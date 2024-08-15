@@ -26,6 +26,7 @@ python3 main-pgse.py \
         --label-file "../volatile/e_coli_mic_label.csv" \
         ---data-dir "../volatile/e_coli_mic/" \
         --save-file "../volatile/var/pgse-70.txt" \
+        --export-file "../volatile/var/pgse-result.txt" \
         --worker 38  \
         --features 1500 \
 

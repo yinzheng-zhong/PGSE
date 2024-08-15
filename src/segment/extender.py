@@ -31,7 +31,11 @@ class Extender:
         # reshape the list of lists to a single list
         new = [item for sublist in new for item in sublist]
 
-        logger.info(f'Adding {len(new)} new subsequences to lookup')
+        if len(new) > 0:
+            logger.info(f'Adding {len(new)} new segments to manager')
+        else:
+            logger.warning('No new segments to add. Finished extending all segments')
+            raise ValueError('No new segments to add')
 
         seg_pool.add_subsequences(new, current_length=seg_pool.current_max_length + length)
 

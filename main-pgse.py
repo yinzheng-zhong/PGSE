@@ -19,6 +19,8 @@ parser.add_argument('--data-dir', type=str, default='../volatile/e_coli_mic/',
                     help="Directory containing the data files")
 parser.add_argument('--save-file', type=str, default='../volatile/var/test-70.txt',
                     help="File path to save the selected segments. Used to recover the progress.")
+parser.add_argument('--export-file', type=str, default='../volatile/var/pgse-result.txt',
+                    help="File path to save the results")
 parser.add_argument('--k', type=int, default=8,
                     help="Initial size of k-mers")
 parser.add_argument('--ext', type=int, default=2,
@@ -67,10 +69,18 @@ while True:
     seg_pool.use_subset(index)
     # do the pruning first otherwise only longer segments will be kept
     seg_pool.redundant_elimination(range(len(index)))
-    extender.extend_all_segs(args.ext)
+
+    # This will change the order
+    try:
+        extender.extend_all_segs(args.ext)
+    except ValueError:
+        break
 
     seg_pool.save(args.save_file)
 
     train_kmer, test_kmer, train_labels, test_labels = loader.get_extended_dataset()
 
     args.k += args.ext
+
+seg_pool.save(args.save_file)
+ray.shutdown()

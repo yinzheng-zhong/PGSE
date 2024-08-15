@@ -53,6 +53,7 @@ python3 main-pgse.py \
         --label-file "../volatile/e_coli_mic_label.csv" \
         --data-dir "../volatile/e_coli_mic/" \
         --save-file "../volatile/var/rec-70-1.txt" \
+        --export-file "../volatile/var/pgse-result.txt" \
         --features 1500 \
         --dist 1
 

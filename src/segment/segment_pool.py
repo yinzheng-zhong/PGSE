@@ -7,10 +7,6 @@ class SegmentPool:
     def __init__(
             self,
     ):
-        """
-        Constructor for the SegmentManager class
-        :param kmer: int: The k-mer value
-        """
         self.segments = []
         self.current_max_length = 0
 
@@ -88,6 +84,7 @@ class SegmentPool:
         self.current_max_length = current_length
 
         logger.info(f'Number of segments: {len(self.segments)}')
+        logger.warning("The order of the segments might have changed")
         logger.info(f'Current max length: {self.current_max_length}')
 
     def redundant_elimination(self, importance_ranking: [int]):
