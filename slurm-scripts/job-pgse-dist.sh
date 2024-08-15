@@ -3,7 +3,7 @@
 #SBATCH --export=ALL
 #SBATCH -J main-rec
 #SBATCH -p lowpriority,nodes           # Ensure this is the correct partition
-#SBATCH -o slurm-rec-dist.out
+#SBATCH -o slurm-pgse-dist.out
 #SBATCH -N 4                  # Number of nodes
 #SBATCH --ntasks-per-node=1   # Number of tasks per node
 #SBATCH --cpus-per-task=40 # CPUs per task
@@ -48,7 +48,14 @@ for ((i = 1; i <= worker_num; i++)); do
     sleep 5
 done
 
-python3 main-recursive.py --worker $((SLURM_CPUS_PER_TASK - 2)) --save-file "rec-70-1.txt" --features 1500 --dist 1
+# Change this to the your paths
+python3 main-pgse.py \
+        --label-file "../volatile/e_coli_mic_label.csv" \
+        --data-dir "../volatile/e_coli_mic/" \
+        --save-file "../volatile/var/rec-70-1.txt" \
+        --features 1500 \
+        --dist 1
+
 echo "Finished running - goodbye from $HOSTNAME"
 
 # Stop Ray

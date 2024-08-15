@@ -52,27 +52,23 @@ class SegmentManager:
         Save the segments table to a file
         :param filename: str: The name of the file to save the lookup table
         """
-        path = os.path.join(config['save_dir'], filename)
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-
-        with open(path, 'w') as f:
+        with open(filename, 'w') as f:
             for item in self.segments:
                 f.write("%s\n" % item)
 
-        logger.info(f'Saved {len(self.segments)} segments to {path}')
+        logger.info(f'Saved {len(self.segments)} segments to {filename}')
 
     def load(self, filename: str):
         """
         Load the segments table from a file
         :param filename: str: The name of the file to load the lookup table
         """
-        path = os.path.join(config['save_dir'], filename)
-
-        with open(path, 'r') as f:
+        with open(filename, 'r') as f:
             self.segments = f.read().split('\n')
 
-        logger.info(f'Loaded {len(self.segments)} segments from {path}')
+        logger.info(f'Loaded {len(self.segments)} segments from {filename}')
 
         # figure out the max length
         self.current_max_length = max([len(s) for s in self.segments])
