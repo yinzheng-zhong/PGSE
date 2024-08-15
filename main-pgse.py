@@ -13,13 +13,13 @@ from src.segment import seg_pool
 import ray
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--label-file', type=str, default='../volatile/e_coli_mic_label.csv',
+parser.add_argument('--label-file', type=str, required=True,
                     help="Path to the CSV file containing the labels")
-parser.add_argument('--data-dir', type=str, default='../volatile/e_coli_mic/',
+parser.add_argument('--data-dir', type=str, required=True,
                     help="Directory containing the data files")
-parser.add_argument('--save-file', type=str, default='../volatile/var/test-70.txt',
+parser.add_argument('--save-file', type=str, required=True,
                     help="File path to save the selected segments. Used to recover the progress.")
-parser.add_argument('--export-file', type=str, default='../volatile/var/pgse-result.txt',
+parser.add_argument('--export-file', type=str, required=True,
                     help="File path to save the results")
 parser.add_argument('--k', type=int, default=8,
                     help="Initial size of k-mers")
