@@ -2,7 +2,6 @@ import numpy as np
 import time
 
 from src.genome import km
-from src.segment import seg_pool
 
 
 class Sequence:
@@ -62,12 +61,12 @@ class Sequence:
 
         return kmer_count
 
-    def get_count_from_seg_manager(self):
+    def get_count_from_seg_manager(self, seg_pool_):
 
         """
         Given a kmer sequence, return the transition frequency matrix.
         """
-        seq_count = np.array([Sequence._occurrences(self._sequence, seg) for seg in seg_pool], dtype=np.int32)
+        seq_count = np.array([Sequence._occurrences(self._sequence, seg) for seg in seg_pool_], dtype=np.int32)
         return seq_count
 
     @staticmethod
@@ -82,9 +81,10 @@ class Sequence:
 
 
 if __name__ == '__main__':
+    from src.segment import seg_pool
     seq = Sequence('../../../volatile/e_coli_mic/562.5419.fna')
     seg_pool.segments = ['aaaaaaaa'] * 2000
     start = time.time()
-    o = seq.get_count_from_seg_manager()
+    o = seq.get_count_from_seg_manager(seg_pool)
     print('Time:', time.time() - start)
     print(o)
