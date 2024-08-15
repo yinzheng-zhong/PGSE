@@ -68,8 +68,8 @@ class Loader:
 
     @staticmethod
     @ray.remote
-    def _get_one_extended_dataset(seq, seg_man):
-        return seq.get_count_from_seg_manager(seg_man)
+    def _get_one_extended_dataset(seq):
+        return seq.get_count_from_seg_manager()
 
     def get_extended_dataset(self):
         """

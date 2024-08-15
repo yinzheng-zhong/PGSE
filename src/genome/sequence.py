@@ -62,12 +62,12 @@ class Sequence:
 
         return kmer_count
 
-    def get_count_from_seg_manager(self, seg_man=seg_manager):
+    def get_count_from_seg_manager(self):
 
         """
         Given a kmer sequence, return the transition frequency matrix.
         """
-        seq_count = np.array([Sequence._occurrences(self._sequence, seg) for seg in seg_man], dtype=np.int32)
+        seq_count = np.array([Sequence._occurrences(self._sequence, seg) for seg in seg_manager], dtype=np.int32)
         return seq_count
 
     @staticmethod

@@ -1,5 +1,5 @@
 import itertools
-from src.features import lookup
+from src.segment import seg_manager
 from src.log import logger
 
 
@@ -24,18 +24,22 @@ class Extender:
         return extended_sequences
 
     def extend_all_seq_in_lookup(self, length: int):
-        new = [self._extend_one_seq(sequence, length) for sequence in lookup]
+        new = [self._extend_one_seq(sequence, length) for sequence in seg_manager]
         # reshape the list of lists to a single list
         new = [item for sublist in new for item in sublist]
 
-        logger.info(f'Adding {len(new)} new segments to manager')
+        if len(new) > 0:
+            logger.info(f'Adding {len(new)} new segments to manager')
+        else:
+            logger.warning('No new segments to add. Finished extending all segments')
+            raise ValueError('No new segments to add')
 
-        lookup.add_subsequences(new)
+        seg_manager.add_subsequences(new)
 
 
 if __name__ == '__main__':
     extender = Extender()
     o = extender._extend_one_seq('aaaaaaaa', 4)
-    print(lookup)
-    print(len(lookup))
-    print(lookup[0])
+    print(seg_manager)
+    print(len(seg_manager))
+    print(seg_manager[0])
