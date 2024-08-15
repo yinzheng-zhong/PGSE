@@ -54,7 +54,7 @@ python3 main-pgse.py \
         --data-dir "../volatile/e_coli_mic/" \
         --save-file "../volatile/var/rec-70-1.txt" \
         --export-file "../volatile/var/pgse-result.txt" \
-        --features 1500 \
+        --features 5000 \
         --dist 1
 
 echo "Finished running - goodbye from $HOSTNAME"

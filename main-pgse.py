@@ -60,7 +60,7 @@ while True:
     if args.k > args.target:
         break
 
-    xgb = XGBoost()
+    xgb = XGBoost(boost_rounds=500)
     results_df, importance_df = xgb.run(train_kmer, test_kmer, train_labels, test_labels)
 
     print(importance_df)

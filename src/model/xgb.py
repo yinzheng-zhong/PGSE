@@ -16,7 +16,7 @@ class XGBoost:
     ):
         self.params = {
             'objective': 'reg:squarederror',
-            'max_depth': 6,
+            'max_depth': 8,
             'learning_rate': 0.1,
             'nthread': 76,
             'tree_method': 'approx',  # Using histogram-based method

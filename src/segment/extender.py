@@ -38,6 +38,7 @@ class Extender:
             raise ValueError('No new segments to add')
 
         seg_pool.add_subsequences(new, current_length=seg_pool.current_max_length + length)
+        logger.warning("The order of the segments might have changed")
 
 
 if __name__ == '__main__':
