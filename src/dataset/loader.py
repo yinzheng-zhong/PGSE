@@ -7,7 +7,7 @@ from src.genome import seq_manager
 from src.log import logger
 from src.genome.sequence import Sequence
 import ray
-from src.segment import seg_manager
+from src.segment import seg_pool
 
 
 class Loader:
@@ -77,8 +77,8 @@ class Loader:
         :return: tuple: The training and test datasets
         """
         logger.info(f'Getting extended dataset...')
-        train_ext = [Loader._get_one_extended_dataset.remote(seq, seg_manager) for seq in seq_manager.train_sequences]
-        test_ext = [Loader._get_one_extended_dataset.remote(seq, seg_manager) for seq in seq_manager.test_sequences]
+        train_ext = [Loader._get_one_extended_dataset.remote(seq, seg_pool) for seq in seq_manager.train_sequences]
+        test_ext = [Loader._get_one_extended_dataset.remote(seq, seg_pool) for seq in seq_manager.test_sequences]
 
 
         return (

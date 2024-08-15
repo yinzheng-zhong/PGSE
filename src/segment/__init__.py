@@ -1,3 +1,3 @@
-from src.segment.segment_manager import SegmentManager as _SegmentManager
+from src.segment.segment_pool import SegmentPool as _SegmentPool
 
-seg_manager = _SegmentManager()
+seg_pool = _SegmentPool()

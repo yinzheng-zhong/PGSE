@@ -9,8 +9,7 @@ from src.dataset.file_label import FileLabel
 from src.dataset.loader import Loader
 from src.segment.extender import Extender
 from src.model.xgb import XGBoost
-from src.segment import seg_manager
-from src.etc.config import config
+from src.segment import seg_pool
 import ray
 
 parser = argparse.ArgumentParser()
@@ -47,12 +46,12 @@ loader = Loader(file_label)
 
 # check if the save file exists
 try:
-    seg_manager.load(args.save_file)
+    seg_pool.load(args.save_file)
     train_kmer, test_kmer, train_labels, test_labels = loader.get_extended_dataset()
 
     print(train_kmer)
 except FileNotFoundError:
-    seg_manager.add_all_kmer(args.k)
+    seg_pool.add_all_kmer(args.k)
     train_kmer, test_kmer, train_labels, test_labels = loader.get_kmer_dataset(args.k)
 
 while True:
@@ -65,12 +64,12 @@ while True:
     print(importance_df)
 
     index = list(map(int, importance_df['Feature'].str.replace('f', '').values))[:args.features]
-    seg_manager.use_subset(index)
+    seg_pool.use_subset(index)
     # do the pruning first otherwise only longer segments will be kept
-    seg_manager.segments_pruning(range(len(index)))
+    seg_pool.redundant_elimination(range(len(index)))
     extender.extend_all_segs(args.ext)
 
-    seg_manager.save(args.save_file)
+    seg_pool.save(args.save_file)
 
     train_kmer, test_kmer, train_labels, test_labels = loader.get_extended_dataset()
 

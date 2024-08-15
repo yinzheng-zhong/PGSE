@@ -2,9 +2,8 @@ import time
 import os
 from src.genome import km
 from src.log import logger
-from src.etc.config import config
 
-class SegmentManager:
+class SegmentPool:
     def __init__(
             self,
     ):
@@ -91,9 +90,9 @@ class SegmentManager:
         logger.info(f'Number of segments: {len(self.segments)}')
         logger.info(f'Current max length: {self.current_max_length}')
 
-    def segments_pruning(self, importance_ranking: [int]):
+    def redundant_elimination(self, importance_ranking: [int]):
         """
-        Prune the list of strings to remove substrings or master strings
+        If segments are substrings of other segments, keep the one with the highest importance
         :param importance_ranking: list: The list of indices of the most important features (descending order)
         :return:
         """
@@ -129,8 +128,8 @@ class SegmentManager:
 
 
 if __name__ == '__main__':
-    seg_manager = SegmentManager()
+    seg_manager = SegmentPool()
     seg_manager.segments = ['aaa', 'aa', 'aa', 'a', 'ab', 'b', 'ba', 'bac', 'c', 'ca', 'cab', 'd', 'da', 'dac', 'e',
                             'ea', 'eac']
-    seg_manager.segments_pruning([1, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
+    seg_manager.redundant_elimination([1, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
     print()
