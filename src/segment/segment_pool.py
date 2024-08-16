@@ -120,7 +120,7 @@ class SegmentPool:
         # Update the segments with the pruned list
         self.segments = result
 
-        logger.info(f'Number of segments after pruning: {len(self.segments)}')
+        logger.info(f'Number of segments after redundant elimination: {len(self.segments)}')
 
 
 if __name__ == '__main__':

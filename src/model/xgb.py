@@ -19,7 +19,7 @@ class XGBoost:
     ):
         self.params = {
             'objective': 'reg:squarederror',
-            'max_depth': 8,
+            'max_depth': 6,
             'learning_rate': 0.1,
             'nthread': num_cpu_per_node,
         }

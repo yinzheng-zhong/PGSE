@@ -11,6 +11,7 @@ class FileLabel:
 
     def _load_label_lookup(self):
         data = pd.read_csv(self.label_file, dtype=str)
+        # TODO: remove the hardcoded extension and put it in the CSV file
         data['files'] = self.data_dir + data['files'] + '.fna'
         return data.set_index('files').to_dict()['labels']
 
