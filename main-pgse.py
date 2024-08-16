@@ -1,3 +1,4 @@
+from src.log import logger
 import os
 
 os.environ["RAY_LOG_TO_STDERR"] = "0"
@@ -28,7 +29,9 @@ parser.add_argument('--ext', type=int, default=2,
 parser.add_argument('--target', type=int, default=70,
                     help="Target length of segments to reach")
 parser.add_argument('--workers', type=int, default=38,
-                    help="Number of CPU workers to allocate. Used with single node only.")
+                    help="Number of CPU workers to allocate per node.")
+parser.add_argument('--nodes', type=int, default=os.environ.get('SLURM_JOB_NUM_NODES', 1),
+                    help="Number of nodes allocated. Used with distributed processing only.")
 parser.add_argument('--features', type=int, default=1000,
                     help="Number of top features to select based on importance")
 parser.add_argument('--dist', type=int, default=0,
@@ -41,6 +44,10 @@ extender = Extender()
 # Initialize Ray
 if args.dist:
     ray.init(address='auto')
+    logger.warning(
+        f'Connected to Ray cluster with {args.nodes} nodes and {args.workers} workers per node.\n'
+        f'Sometimes the progress bar may seem frozen, but it is still running.'
+    )
 else:
     ray.init(num_cpus=args.workers)
 
@@ -60,7 +67,8 @@ while True:
     if args.k > args.target:
         break
 
-    xgb = XGBoost(boost_rounds=500)
+    # For some reason, using multiple nodes with XGBoost is much slower
+    xgb = XGBoost(boost_rounds=300, num_cpu_per_node=38, num_nodes=1)
     results_df, importance_df = xgb.run(train_kmer, test_kmer, train_labels, test_labels)
 
     print(importance_df)

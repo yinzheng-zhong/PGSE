@@ -4,10 +4,10 @@
 #SBATCH -J main-rec
 #SBATCH -p lowpriority,nodes           # Ensure this is the correct partition
 #SBATCH -o slurm-pgse-dist.out
-#SBATCH -N 4                  # Number of nodes
+#SBATCH -N 8                  # Number of nodes
 #SBATCH --ntasks-per-node=1   # Number of tasks per node
 #SBATCH --cpus-per-task=40 # CPUs per task
-#SBATCH --time=72:00:00
+#SBATCH --time=24:00:00
 
 # Optionally set OMP_NUM_THREADS if using OpenMP
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
@@ -52,10 +52,12 @@ done
 python3 main-pgse.py \
         --label-file "../volatile/e_coli_mic_label.csv" \
         --data-dir "../volatile/e_coli_mic/" \
-        --save-file "../volatile/var/rec-70-1.txt" \
+        --save-file "../volatile/var/rec-10.txt" \
         --export-file "../volatile/var/pgse-result.txt" \
+        --workers 38 \
         --features 5000 \
-        --dist 1
+        --dist 1 \
+        --k 10
 
 echo "Finished running - goodbye from $HOSTNAME"
 

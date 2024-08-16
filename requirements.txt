@@ -5,3 +5,5 @@ pandas
 tqdm
 scikit-learn
 colorlog
+xgboost-ray
+ray[train]
