@@ -26,8 +26,11 @@ class Extender:
         return extended_sequences
 
     def extend_all_segs(self, length: int):
-        # should only be made on the segments that have the maximum length as earlier segments are already extended
-        new = [self._extend_one_seg(sequence, length) for sequence in seg_pool if len(sequence) == seg_pool.current_max_length]
+        new = [
+            self._extend_one_seg(sequence, i) for sequence in seg_pool for i in range(1, length + 1) if
+            len(sequence) > seg_pool.last_length
+        ]
+
         # reshape the list of lists to a single list
         new = [item for sublist in new for item in sublist]
 
@@ -42,8 +45,11 @@ class Extender:
 
 
 if __name__ == '__main__':
+    from src.segment import seg_pool
+
+    seg_pool.segments = ['m']
     extender = Extender()
-    o = extender._extend_one_seg('aaaaaaaa', 4)
+    o = extender.extend_all_segs(4)
     print(seg_pool)
     print(len(seg_pool))
     print(seg_pool[0])

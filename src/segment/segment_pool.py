@@ -8,6 +8,7 @@ class SegmentPool:
             self,
     ):
         self.segments = []
+        self.last_length = 0
         self.current_max_length = 0
 
     def __iter__(self):
@@ -81,6 +82,7 @@ class SegmentPool:
         if remove_duplicates:
             self.segments = list(set(self.segments))
 
+        self.last_length = self.current_max_length
         self.current_max_length = current_length
 
         logger.info(f'Number of segments: {len(self.segments)}')

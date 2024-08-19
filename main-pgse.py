@@ -67,11 +67,10 @@ while True:
     if args.k > args.target:
         break
 
-    # For some reason, using multiple nodes with XGBoost is much slower
-    xgb = XGBoost(boost_rounds=300, num_cpu_per_node=38, num_nodes=1)
+    xgb = XGBoost(boost_rounds=1000, num_cpu_per_node=args.workers, num_nodes=1)
     results_df, importance_df = xgb.run(train_kmer, test_kmer, train_labels, test_labels)
 
-    print(importance_df)
+    logger.info(str(importance_df.head(20)))
 
     index = list(map(int, importance_df['Feature'].str.replace('f', '').values))[:args.features]
     seg_pool.use_subset(index)
@@ -90,5 +89,6 @@ while True:
 
     args.k += args.ext
 
-seg_pool.save(args.save_file)
+
+seg_pool.save(args.export_file)
 ray.shutdown()
