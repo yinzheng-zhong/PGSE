@@ -22,7 +22,7 @@ class XGBoost:
 
         self.params = {
             'objective': 'reg:squarederror',
-            'max_depth': 4,
+            'max_depth': 6,
             'learning_rate': 0.1
         }
 
@@ -51,7 +51,8 @@ class XGBoost:
         logger.info('Training the model...')
 
         model = xgb.train(self.params, dtrain, self.boost_rounds, watchlist,
-                              custom_metric=essential_agreement_cus_metric)
+                          custom_metric=essential_agreement_cus_metric,
+                          verbose_eval=100)  # Only print every 10 boosts
 
         # Print the final evaluation results
         evals_result = model.eval(dtest)
