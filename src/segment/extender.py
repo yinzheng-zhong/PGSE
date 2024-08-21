@@ -1,5 +1,7 @@
 import itertools
 
+from sympy.solvers.diophantine.diophantine import length
+
 from src.genome import seq_manager
 from src.segment import seg_pool
 from src.log import logger
@@ -26,9 +28,11 @@ class Extender:
         return extended_sequences
 
     def extend_all_segs(self, length: int):
+        # extended if their lengths fall between the last length and the sum of last length and the specified length.
+        # Make it suitable for grafting.
         new = [
             self._extend_one_seg(sequence, i) for sequence in seg_pool for i in range(1, length + 1) if
-            len(sequence) > seg_pool.last_length
+            len(sequence) in range(seg_pool.last_length, seg_pool.last_length + length + 1)
         ]
 
         # reshape the list of lists to a single list
