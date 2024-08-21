@@ -76,6 +76,7 @@ while True:
     seg_pool.use_subset(index)
     # do the pruning first otherwise only longer segments will be kept
     seg_pool.redundant_elimination(range(len(index)))
+    # seg_pool.n_gram_grafting()
 
     # This will change the order
     try:
@@ -90,5 +91,5 @@ while True:
     args.k += args.ext
 
 
-seg_pool.save(args.export_file)
+seg_pool.export(args.export_file)
 ray.shutdown()

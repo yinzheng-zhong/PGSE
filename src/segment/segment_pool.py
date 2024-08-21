@@ -1,7 +1,9 @@
 import time
 import os
+import pickle
 from src.genome import km
 from src.log import logger
+
 
 class SegmentPool:
     def __init__(
@@ -22,18 +24,25 @@ class SegmentPool:
 
     def get_copy(self):
         """
-        Return a copy of the segments table
+        Return a copy of the segments table.
+        :return: list: A copy of the segments list.
         """
         return self.segments.copy()
 
     def add_all_kmer(self, k: int, keep_read_error=False):
+        """
+        Add all k-mers to the segments list.
+        :param k: int: The length of the k-mers.
+        :param keep_read_error: bool: Include read errors if True.
+        """
         base = 5 if keep_read_error else 4
         kmers = [km.reverse_kmer_mapping(i, k) for i in range(base ** k)]
         self.add_subsequences(kmers, k, remove_duplicates=False)
 
     def use_subset(self, indices: [int]):
         """
-        Filter the segments table by the keys
+        Filter the segments list by indices.
+        :param indices: list of int: The indices to keep in the segments list.
         """
         try:
             self.segments = [self.segments[i] for i in indices]
@@ -45,8 +54,32 @@ class SegmentPool:
 
     def save(self, filename: str):
         """
-        Save the segments table to a file
-        :param filename: str: The name of the file to save the lookup table
+        Save the SegmentPool instance to a file using pickle.
+        :param filename: str: The name of the file to save the instance.
+        """
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with open(filename, 'wb') as f:
+            pickle.dump(self.__dict__, f)
+
+        logger.info(f'Saved SegmentPool instance to {filename}')
+
+    def load(self, filename: str):
+        """
+        Load the SegmentPool instance from a file using pickle.
+        :param filename: str: The name of the file to load the instance.
+        """
+        with open(filename, 'rb') as f:
+            self.__dict__ = pickle.load(f)
+
+        logger.info(f'Loaded SegmentPool instance from {filename}')
+
+        logger.info(f'Set last length: {self.last_length}')
+        logger.info(f'Set current max length: {self.current_max_length}')
+
+    def export(self, filename: str):
+        """
+        Save the segments table to a file.
+        :param filename: str: The name of the file to save the lookup table.
         """
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
@@ -54,29 +87,15 @@ class SegmentPool:
             for item in self.segments:
                 f.write("%s\n" % item)
 
-        logger.info(f'Saved {len(self.segments)} segments to {filename}')
-
-    def load(self, filename: str):
-        """
-        Load the segments table from a file
-        :param filename: str: The name of the file to load the lookup table
-        """
-        with open(filename, 'r') as f:
-            self.segments = f.read().split('\n')
-
-        logger.info(f'Loaded {len(self.segments)} segments from {filename}')
-
-        # figure out the max length
-        self.current_max_length = max([len(s) for s in self.segments])
-        logger.info(f'Set current max length: {self.current_max_length}')
+        logger.info(f'Exported {len(self.segments)} segments to {filename}')
 
     def add_subsequences(self, sequences: [str], current_length: int, remove_duplicates=True):
         """
-        Add a list of sequences to the lookup table
-        Note: This method uses set to remove duplicates, but it changes order of the sequences
-        :param sequences: list: The list of sequences to add
-        :param current_length: int: The current max length of the sequences
-        :param remove_duplicates: bool: Remove duplicates from the list
+        Add a list of sequences to the lookup table.
+        Note: This method uses set to remove duplicates, but it changes the order of the sequences.
+        :param sequences: list: The list of sequences to add.
+        :param current_length: int: The current max length of the sequences.
+        :param remove_duplicates: bool: Remove duplicates from the list if True.
         """
         self.segments = self.segments + sequences
         if remove_duplicates:
@@ -119,15 +138,27 @@ class SegmentPool:
             for k in master_sub - {min(master_sub)}:
                 blocked[k] = True
 
-        # Update the segments with the pruned list
+        eliminated = len(self.segments) - len(result)
         self.segments = result
-
+        logger.info(f'Number of segments eliminated: {eliminated}')
         logger.info(f'Number of segments after redundant elimination: {len(self.segments)}')
+        
+    def n_gram_grafting(self):
+        _ = [self._n_gram_grafting(i) for i in range(self.last_length, self.current_max_length + 1)]
 
+    def _n_gram_grafting(self, n: int):
+        """
+        Combine two segments to if they match n-grams in the middle to create new segments.
+        :param n: int: The length of the n-grams.
+        """
+        new_segments = [
+            self.segments[i] + self.segments[j][n:]
+            for i in range(len(self.segments)) if len(self.segments[i]) >= n
+            for j in range(len(self.segments)) if
+            len(self.segments[j]) >= n and i != j and len(self.segments[i]) + len(self.segments[j]) >= n
+            if self.segments[i][-n:] == self.segments[j][:n]
+        ]
 
-if __name__ == '__main__':
-    seg_manager = SegmentPool()
-    seg_manager.segments = ['aaa', 'aa', 'aa', 'a', 'ab', 'b', 'ba', 'bac', 'c', 'ca', 'cab', 'd', 'da', 'dac', 'e',
-                            'ea', 'eac']
-    seg_manager.redundant_elimination([1, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
-    print()
+        self.add_subsequences(new_segments, self.current_max_length)
+
+        logger.info(f'Number of new segments after n-gram grafting: {len(new_segments)}')
