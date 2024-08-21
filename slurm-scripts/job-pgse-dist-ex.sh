@@ -52,7 +52,7 @@ done
 python3 main-pgse.py \
         --label-file "../volatile/e_coli_mic_label.csv" \
         --data-dir "../volatile/e_coli_mic/" \
-        --save-file "../volatile/var/rec-10-2-xgb.txt" \
+        --save-file "../volatile/var/rec-10-2-xgb.save" \
         --export-file "../volatile/var/pgse-result.txt" \
         --workers 38 \
         --features 10000 \
