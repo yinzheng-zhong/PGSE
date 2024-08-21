@@ -13,17 +13,23 @@ class XGBoost:
     def __init__(
             self,
             boost_rounds: int = 250,
+            max_depth: int = 4,
+            learning_rate: float = 0.05,
+            importance_type: str = 'gain',
             num_nodes=1,
             num_cpu_per_node=8,
     ):
         self.boost_rounds = boost_rounds
+        self.max_depth = max_depth
+        self.learning_rate = learning_rate
+        self.importance_type = importance_type
         self.num_nodes = num_nodes
         self.num_cpu_per_node = num_cpu_per_node
 
         self.params = {
             'objective': 'reg:squarederror',
-            'max_depth': 6,
-            'learning_rate': 0.1
+            'max_depth': max_depth,
+            'learning_rate': learning_rate
         }
 
     def run(
@@ -69,7 +75,7 @@ class XGBoost:
         })
 
         # Get feature importance
-        feature_importance = model.get_score(importance_type='gain')
+        feature_importance = model.get_score(importance_type=self.importance_type)
         # Convert dictionary to pandas dataframe
         importance_df = pd.DataFrame(list(feature_importance.items()), columns=['Feature', 'Importance'])
         # Sort by importance
