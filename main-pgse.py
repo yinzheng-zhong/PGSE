@@ -34,6 +34,8 @@ parser.add_argument('--nodes', type=int, default=os.environ.get('SLURM_JOB_NUM_N
                     help="Number of nodes allocated. Used with distributed processing only.")
 parser.add_argument('--features', type=int, default=1000,
                     help="Number of top features to select based on importance")
+parser.add_argument('--lr', type=float, default=0.03,
+                    help="Learning rate for the XGBoost model")
 parser.add_argument('--dist', type=int, default=0,
                     help="Flag to enable distributed processing")
 args = parser.parse_args()
@@ -67,7 +69,13 @@ while True:
     if args.k > args.target:
         break
 
-    xgb = XGBoost(boost_rounds=1000, num_cpu_per_node=args.workers, num_nodes=1)
+    xgb = XGBoost(
+        boost_rounds=1000,
+        num_cpu_per_node=args.workers,
+        num_nodes=1,
+        learning_rate=args.lr
+    )
+
     results_df, importance_df = xgb.run(train_kmer, test_kmer, train_labels, test_labels)
 
     logger.info(str(importance_df.head(20)))

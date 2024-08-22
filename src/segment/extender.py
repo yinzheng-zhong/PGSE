@@ -49,8 +49,6 @@ class Extender:
 
 
 if __name__ == '__main__':
-    from src.segment import seg_pool
-
     seg_pool.segments = ['m']
     extender = Extender()
     o = extender.extend_all_segs(4)

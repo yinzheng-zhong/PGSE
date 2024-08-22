@@ -37,6 +37,8 @@ class SegmentPool:
         """
         base = 5 if keep_read_error else 4
         kmers = [km.reverse_kmer_mapping(i, k) for i in range(base ** k)]
+        # init the current max length to k otherwise the last length will be 0 later which causes the extension not working properly.
+        self.current_max_length = k
         self.add_subsequences(kmers, k, remove_duplicates=False)
 
     def use_subset(self, indices: [int]):
