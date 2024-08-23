@@ -58,12 +58,12 @@ loader = Loader(file_label)
 # check if the save file exists
 try:
     seg_pool.load(args.save_file)
-    train_kmer, test_kmer, train_labels, test_labels = loader.get_extended_dataset()
+    train_kmer, test_kmer, train_labels, test_labels = loader.get_extended_dataset(no_consecutive=True)
 
     print(train_kmer)
 except FileNotFoundError:
     seg_pool.add_all_kmer(args.k)
-    train_kmer, test_kmer, train_labels, test_labels = loader.get_kmer_dataset(args.k)
+    train_kmer, test_kmer, train_labels, test_labels = loader.get_kmer_dataset(args.k, no_consecutive=True)
 
 while True:
     if args.k > args.target:
@@ -94,7 +94,7 @@ while True:
 
     seg_pool.save(args.save_file)
 
-    train_kmer, test_kmer, train_labels, test_labels = loader.get_extended_dataset()
+    train_kmer, test_kmer, train_labels, test_labels = loader.get_extended_dataset(no_consecutive=True)
 
     args.k += args.ext
 

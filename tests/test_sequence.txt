@@ -1,0 +1,4 @@
+>JUBP01000001   Escherichia coli strain CVM N41586PS N41586PS_contig_1, whole genome shotgun sequence.   [Escherichia coli CVM N41586PS | 562.5419]
+AACTGCCAGGCATCAAATTAGA
+>JUBP01000001   Escherichia co
+T

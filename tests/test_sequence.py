@@ -1,0 +1,33 @@
+import unittest
+
+from src.genome.sequence import Sequence
+
+
+class TestSequence(unittest.TestCase):
+    def setUp(self):
+        self.sequence = Sequence('test_sequence.txt')
+
+    def test_read_sequence(self):
+        self.assertEqual('aactgccaggcatcaaattagat', str(self.sequence))
+
+    def test_get_kmer_count_with_consecutive(self):
+        count = self.sequence.get_kmer_count(2)
+        self.assertEqual(
+            [3, 3, 2, 1, 1, 1, 1, 1, 1, 0, 1, 2, 3, 1, 0, 1],
+            list(count)
+        )
+
+    def test_get_kmer_count_no_consecutive(self):
+        count = self.sequence.get_kmer_count(2, no_consecutive=True)
+        self.assertEqual(
+            [2, 3, 2, 1, 1, 1, 1, 1, 1, 0, 1, 2, 3, 1, 0, 1],
+            list(count)
+        )
+
+    def test_occurrence(self):
+        string = 'aactgccaggcatcaaattagat'
+        count_overlapping = Sequence._occurrences_overlapping(string, 'aa')
+        self.assertEqual(3, count_overlapping)
+
+        count_non_overlapping = Sequence._occurrences(string, 'aa')
+        self.assertEqual(2, count_non_overlapping)
