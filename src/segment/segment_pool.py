@@ -163,4 +163,4 @@ class SegmentPool:
 
         self.add_subsequences(new_segments, self.current_max_length)
 
-        logger.info(f'Number of new segments after n-gram grafting: {len(new_segments)}')
+        logger.info(f'Number of new segments after {n}-gram grafting: {len(new_segments)}')
