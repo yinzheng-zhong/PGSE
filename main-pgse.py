@@ -58,12 +58,12 @@ loader = Loader(file_label)
 # check if the save file exists
 try:
     seg_pool.load(args.save_file)
-    train_kmer, test_kmer, train_labels, test_labels = loader.get_extended_dataset(no_consecutive=True)
+    train_kmer, test_kmer, train_labels, test_labels = loader.get_extended_dataset(no_consecutive=False)
 
     print(train_kmer)
 except FileNotFoundError:
-    seg_pool.add_all_kmer(args.k)
-    train_kmer, test_kmer, train_labels, test_labels = loader.get_kmer_dataset(args.k, no_consecutive=True)
+    seg_pool.add_all_kmer(args.k, args.ext)
+    train_kmer, test_kmer, train_labels, test_labels = loader.get_kmer_dataset(args.k, no_consecutive=False)
 
 while True:
     if args.k > args.target:
@@ -84,7 +84,7 @@ while True:
     seg_pool.use_subset(index)
     # do the pruning first otherwise only longer segments will be kept
     seg_pool.redundant_elimination(range(len(index)))
-    # seg_pool.n_gram_grafting()
+    seg_pool.n_gram_grafting()
 
     # This will change the order
     try:
@@ -94,7 +94,7 @@ while True:
 
     seg_pool.save(args.save_file)
 
-    train_kmer, test_kmer, train_labels, test_labels = loader.get_extended_dataset(no_consecutive=True)
+    train_kmer, test_kmer, train_labels, test_labels = loader.get_extended_dataset(no_consecutive=False)
 
     args.k += args.ext
 

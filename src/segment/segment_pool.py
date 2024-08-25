@@ -29,16 +29,19 @@ class SegmentPool:
         """
         return self.segments.copy()
 
-    def add_all_kmer(self, k: int, keep_read_error=False):
+    def add_all_kmer(self, k: int, extension: int, keep_read_error=False):
         """
         Add all k-mers to the segments list.
+        Note: although the counting of kmers is not based on strings added here, we still need to add them the list
+        to keep track of the segments.
+        :param extension:
         :param k: int: The length of the k-mers.
         :param keep_read_error: bool: Include read errors if True.
         """
         base = 5 if keep_read_error else 4
         kmers = [km.reverse_kmer_mapping(i, k) for i in range(base ** k)]
         # init the current max length to k otherwise the last length will be 0 later which causes the extension not working properly.
-        self.current_max_length = k
+        self.current_max_length = k - extension
         self.add_subsequences(kmers, k, remove_duplicates=False)
 
     def use_subset(self, indices: [int]):
@@ -107,7 +110,6 @@ class SegmentPool:
         self.current_max_length = current_length
 
         logger.info(f'Number of segments: {len(self.segments)}')
-        logger.info(f'Current max length: {self.current_max_length}')
 
     def redundant_elimination(self, importance_ranking: [int]):
         """
@@ -161,6 +163,19 @@ class SegmentPool:
             if self.segments[i][-n:] == self.segments[j][:n]
         ]
 
+        logger.info(f'Number of new segments after {n}-gram grafting: {len(new_segments)}')
         self.add_subsequences(new_segments, self.current_max_length)
 
-        logger.info(f'Number of new segments after {n}-gram grafting: {len(new_segments)}')
+    def fill(self, limit: int):
+        """
+        Fill the segments list with random sequences of the current length.
+        :param limit: int: The number of segments to fill.
+        """
+
+        num_to_fill = limit - len(self.segments)
+        if num_to_fill < 1:
+            return
+
+        logger.info(f'Filling {num_to_fill} segments')
+        new_segments = [km.random_sequence(self.current_max_length) for _ in range(num_to_fill)]
+        self.add_subsequences(new_segments, self.current_max_length)

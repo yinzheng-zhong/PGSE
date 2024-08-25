@@ -45,3 +45,12 @@ class Kmer:
             sequence.append('a')
 
         return ''.join(sequence[::-1])
+
+    def random_sequence(self, length: int):
+        """
+        Generate a random sequence of a given length.
+        :param length: int: The length of the sequence.
+        :return: str: The random sequence.
+        """
+        sequence = np.random.choice(list(self.nuc_map.keys()), length)
+        return ''.join(sequence)

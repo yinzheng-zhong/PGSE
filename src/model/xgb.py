@@ -7,6 +7,7 @@ import xgboost as xgb
 import ray
 from src.model.util import is_essential_agreement, essential_agreement_cus_metric
 from src.log import logger
+import ray
 
 
 class XGBoost:
@@ -31,6 +32,36 @@ class XGBoost:
             'max_depth': max_depth,
             'learning_rate': learning_rate
         }
+
+    @ray.remote
+    def train_sub_features(
+            self,
+            train_x: np.ndarray,
+            train_y: np.ndarray,
+            test_x: np.ndarray,
+            test_y: np.ndarray,
+    ):
+        dtrain = xgb.DMatrix(train_x, label=train_y)
+        dtest = xgb.DMatrix(test_x, label=test_y)
+
+        watchlist = [(dtrain, 'train'), (dtest, 'test')]
+        model = xgb.train(
+            self.params, dtrain, self.boost_rounds, watchlist,
+                            custom_metric=essential_agreement_cus_metric,
+                            verbose_eval=100
+        )
+
+        # Predict using the trained model
+        predictions = model.predict(dtest)
+
+        # Create a dataframe with predictions and actual labels
+        results = {
+            'Prediction': predictions,
+            'Actual': dtest.get_label(),
+            'Essential Agreement': list(is_essential_agreement(dtest.get_label(), predictions))
+        }
+
+        return results
 
     def run(
             self,
@@ -62,7 +93,7 @@ class XGBoost:
 
         # Print the final evaluation results
         evals_result = model.eval(dtest)
-        print(evals_result)
+        logger.info(f'Evaluation results: {evals_result}')
 
         # Predict using the trained model
         predictions = model.predict(dtest)

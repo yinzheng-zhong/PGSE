@@ -1,7 +1,5 @@
 import itertools
 
-from sympy.solvers.diophantine.diophantine import length
-
 from src.genome import seq_manager
 from src.segment import seg_pool
 from src.log import logger
@@ -45,6 +43,7 @@ class Extender:
             raise ValueError('No new segments to add')
 
         seg_pool.add_subsequences(new, current_length=seg_pool.current_max_length + length)
+        logger.info(f'Current max length: {seg_pool.current_max_length + length}')
         logger.warning("The order of the segments might have changed")
 
 
