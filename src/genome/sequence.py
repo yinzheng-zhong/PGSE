@@ -2,6 +2,7 @@ import numpy as np
 import time
 
 from src.genome import km
+from src.genome.cache import Cache
 
 
 class Sequence:
@@ -14,6 +15,8 @@ class Sequence:
         self.keep_read_error = keep_read_error
         self._sequence = ''
         self._read_sequence()
+
+        self.cache = Cache()
 
 
     def __len__(self):
@@ -79,16 +82,58 @@ class Sequence:
     def get_count_from_seg_manager(self, seg_pool_, no_consecutive):
 
         """
-        Given a kmer sequence, return the transition frequency matrix.
+        Given a kmer sequence, return the transition frequency matrix. Cache is only available for the overlapping
+        count for now.
         :param seg_pool_: SegmentPool: The SegmentPool instance.
         :param no_consecutive: bool: Remove consecutive identical k-mers if True.
         """
         if no_consecutive:
             seq_count = np.array([self._occurrences(self._sequence, seg) for seg in seg_pool_], dtype=np.int32)
         else:
-            seq_count = np.array([self._occurrences_overlapping(self._sequence, seg) for seg in seg_pool_], dtype=np.int32)
+            ext = seg_pool_.current_max_length - seg_pool_.last_length
+            seq_count = np.array([self._occurrences_overlapping_cache(self._sequence, seg, ext) for seg in seg_pool_], dtype=np.int32)
 
         return seq_count
+
+    def _occurrences_overlapping_cache(self, string, sub, ext):
+        """
+        Count the occurrences of a substring in a string. Use cache to store the indices of the substring.
+        :param string: master string
+        :param sub: substring
+        :param ext: the extension length
+        :return:
+        """
+        cached = self.cache.get(sub)
+        # cache hit
+        if cached:
+            return cached['count']
+
+        # cache miss
+        count = start = 0
+        while True:
+            start = string.find(sub, start)
+            if start >= 0:
+                self.cache.set(sub, start)
+                self._pre_cache(start, start + len(sub), ext)
+                count += 1
+                start += 1
+            else:
+                return count
+
+    def _pre_cache(self, start, end, length):
+        """
+        Pre-cache the extensions of the substring.
+        :param start:
+        :param end:
+        :param length:
+        :return:
+        """
+        for i in range(1, length + 1):
+            new_start = start - i
+            new_seg_len = end - new_start
+
+            for j in range(new_start, start + 1):
+                self.cache.set(self._sequence[j: j + new_seg_len], j)
 
     def _occurrences_overlapping(self, string, sub):
         count = start = 0
@@ -101,13 +146,3 @@ class Sequence:
 
     def _occurrences(self, string, sub):
         return string.count(sub)
-
-
-if __name__ == '__main__':
-    from src.segment import seg_pool
-    seq = Sequence('../../../volatile/e_coli_mic/562.5419.fna')
-    seg_pool.segments = ['aaaaaaaa'] * 2000
-    start = time.time()
-    o = seq.get_count_from_seg_manager(seg_pool)
-    print('Time:', time.time() - start)
-    print(o)
