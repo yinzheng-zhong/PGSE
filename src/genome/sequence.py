@@ -84,14 +84,13 @@ class Sequence:
         :param no_consecutive: bool: Remove consecutive identical k-mers if True.
         """
         if no_consecutive:
-            seq_count = np.array([Sequence._occurrences(self._sequence, seg) for seg in seg_pool_], dtype=np.int32)
+            seq_count = np.array([self._occurrences(self._sequence, seg) for seg in seg_pool_], dtype=np.int32)
         else:
-            seq_count = np.array([Sequence._occurrences_overlapping(self._sequence, seg) for seg in seg_pool_], dtype=np.int32)
+            seq_count = np.array([self._occurrences_overlapping(self._sequence, seg) for seg in seg_pool_], dtype=np.int32)
 
         return seq_count
 
-    @staticmethod
-    def _occurrences_overlapping(string, sub):
+    def _occurrences_overlapping(self, string, sub):
         count = start = 0
         while True:
             start = string.find(sub, start) + 1
@@ -100,8 +99,7 @@ class Sequence:
             else:
                 return count
 
-    @staticmethod
-    def _occurrences(string, sub):
+    def _occurrences(self, string, sub):
         return string.count(sub)
 
 
