@@ -72,7 +72,7 @@ while True:
     xgb = XGBoost(
         boost_rounds=1000,
         num_cpu_per_node=args.workers,
-        partition_size=10,
+        partition_size=5000,
         learning_rate=args.lr,
     )
 
@@ -91,7 +91,6 @@ while True:
     xgb = XGBoost(
         boost_rounds=1000,
         num_cpu_per_node=args.workers,
-        partition_size=1,
         learning_rate=args.lr,
     )
 

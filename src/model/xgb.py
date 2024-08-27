@@ -91,7 +91,7 @@ class XGBoost:
         """
 
         # Split the features across the available nodes
-        num_splits = self.partition_size // train_x.shape[1] if self.partition_size > 0 else 1
+        num_splits = train_x.shape[1] // self.partition_size if self.partition_size > 0 else 1
         feature_splits = np.array_split(np.arange(train_x.shape[1]), num_splits)
 
         # Store ray object references
