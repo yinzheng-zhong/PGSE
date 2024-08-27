@@ -54,7 +54,7 @@ python3 main-pgse.py \
         --data-dir "../volatile/e_coli_mic/" \
         --save-file "../volatile/var/rec-10-2-xgb.save" \
         --export-file "../volatile/var/pgse-result.txt" \
-        --workers 38 \
+        --workers 39 \
         --features 10000 \
         --dist 1 \
         --k 10 \

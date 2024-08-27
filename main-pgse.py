@@ -28,7 +28,7 @@ parser.add_argument('--ext', type=int, default=2,
                     help="Length of extensions to add in each iteration")
 parser.add_argument('--target', type=int, default=70,
                     help="Target length of segments to reach")
-parser.add_argument('--workers', type=int, default=38,
+parser.add_argument('--workers', type=int, default=8,
                     help="Number of CPU workers to allocate per node.")
 parser.add_argument('--nodes', type=int, default=os.environ.get('SLURM_JOB_NUM_NODES', 1),
                     help="Number of nodes allocated. Used with distributed processing only.")
