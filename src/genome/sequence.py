@@ -93,6 +93,8 @@ class Sequence:
             ext = seg_pool_.current_max_length - seg_pool_.last_length
             seq_count = np.array([self._occurrences_overlapping_cache(self._sequence, seg, ext) for seg in seg_pool_], dtype=np.int32)
 
+            self.cache.refresh()
+
         return seq_count
 
     def _occurrences_overlapping_cache(self, string, sub, ext):

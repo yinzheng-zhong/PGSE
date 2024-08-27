@@ -69,6 +69,7 @@ while True:
     if args.k > args.target:
         break
 
+    logger.info(f'==================== Feature Selection ====================')
     xgb = XGBoost(
         boost_rounds=1000,
         num_cpu_per_node=args.workers,
@@ -87,12 +88,15 @@ while True:
     #seg_pool.n_gram_grafting()
 
     # test with single training
+    logger.info(f'==================== Training & testing with selected segments ====================')
     train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool(no_consecutive=False)
     xgb = XGBoost(
         boost_rounds=1000,
         num_cpu_per_node=args.workers,
         learning_rate=args.lr,
     )
+
+    _, _ = xgb.run(train_kmer, test_kmer, train_labels, test_labels)
 
     # This will change the order
     try:
