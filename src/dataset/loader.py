@@ -70,7 +70,7 @@ class Loader:
     def _get_one_extended_dataset(seq, seg_pool_, no_consecutive):
         return seq.get_count_from_seg_manager(seg_pool_, no_consecutive)
 
-    def get_extended_dataset(self, no_consecutive):
+    def get_dataset_from_pool(self, no_consecutive):
         """
         Get the extended dataset for the training and test sequences
         :return: tuple: The training and test datasets

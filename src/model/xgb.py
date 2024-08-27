@@ -1,13 +1,14 @@
 import os
-
+import sys
+import logging
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-
 import ray
+from tqdm import tqdm
+
 from src.model.util import is_essential_agreement, essential_agreement_cus_metric
 from src.log import logger
-import ray
 
 
 class XGBoost:
@@ -17,38 +18,43 @@ class XGBoost:
             max_depth: int = 4,
             learning_rate: float = 0.05,
             importance_type: str = 'gain',
-            num_nodes=1,
+            num_splits=1,
             num_cpu_per_node=8,
     ):
         self.boost_rounds = boost_rounds
         self.max_depth = max_depth
         self.learning_rate = learning_rate
         self.importance_type = importance_type
-        self.num_nodes = num_nodes
+        self.num_nodes = num_splits
         self.num_cpu_per_node = num_cpu_per_node
 
         self.params = {
             'objective': 'reg:squarederror',
             'max_depth': max_depth,
-            'learning_rate': learning_rate
+            'learning_rate': learning_rate,
+            'nthread': num_cpu_per_node  # Use multiple threads per worker
         }
 
-    @ray.remote
+    @staticmethod
+    @ray.remote(num_cpus=1)
     def train_sub_features(
-            self,
             train_x: np.ndarray,
             train_y: np.ndarray,
             test_x: np.ndarray,
             test_y: np.ndarray,
+            params: dict,
+            boost_rounds: int,
+            importance_type: str,
+            feature_indices: np.ndarray  # Pass the original feature indices
     ):
         dtrain = xgb.DMatrix(train_x, label=train_y)
         dtest = xgb.DMatrix(test_x, label=test_y)
 
         watchlist = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(
-            self.params, dtrain, self.boost_rounds, watchlist,
-                            custom_metric=essential_agreement_cus_metric,
-                            verbose_eval=100
+            params, dtrain, boost_rounds, watchlist,
+            custom_metric=essential_agreement_cus_metric,
+            verbose_eval=100
         )
 
         # Predict using the trained model
@@ -61,7 +67,12 @@ class XGBoost:
             'Essential Agreement': list(is_essential_agreement(dtest.get_label(), predictions))
         }
 
-        return results
+        importance = model.get_score(importance_type=importance_type)
+
+        # Map back to the original feature indices
+        importance_mapped = {feature_indices[int(k[1:])]: v for k, v in importance.items()}
+
+        return results, list(importance_mapped.items())
 
     def run(
             self,
@@ -79,37 +90,49 @@ class XGBoost:
         :return:
         """
 
-        dtrain = xgb.DMatrix(train_x, label=train_y)
-        dtest = xgb.DMatrix(test_x, label=test_y)
+        # Split the features across the available nodes
+        feature_splits = np.array_split(np.arange(train_x.shape[1]), self.num_nodes)
 
-        # Watchlist to observe the training and testing performance
-        watchlist = [(dtrain, 'train'), (dtest, 'test')]
+        # Store ray object references
+        tasks = []
 
-        logger.info('Training the model...')
+        logger.info(f'Training on {self.num_nodes} splits with {self.num_cpu_per_node} CPUs each...')
 
-        model = xgb.train(self.params, dtrain, self.boost_rounds, watchlist,
-                          custom_metric=essential_agreement_cus_metric,
-                          verbose_eval=100)  # Only print every 10 boosts
+        for split in feature_splits:
+            train_x_split = train_x[:, split]
+            test_x_split = test_x[:, split]
 
-        # Print the final evaluation results
-        evals_result = model.eval(dtest)
-        logger.info(f'Evaluation results: {evals_result}')
+            # Assign each task to a node with the specified number of CPUs
+            task_ref = self.train_sub_features.options(
+                num_cpus=self.num_cpu_per_node
+            ).remote(train_x_split, train_y, test_x_split, test_y, self.params, self.boost_rounds, self.importance_type, split)
 
-        # Predict using the trained model
-        predictions = model.predict(dtest)
+            tasks.append(task_ref)
 
-        # Create a dataframe with predictions and actual labels
+        # Gather the results from each node
+        results = ray.get(tasks)
+
+        # Combine the predictions and models from each node
+        combined_predictions = np.mean([res[0]['Prediction'] for res in tqdm(results)], axis=0)
+        combined_essential_agreement = is_essential_agreement(test_y, combined_predictions)
+
+        # Create a dataframe with combined results
         results_df = pd.DataFrame({
-            'Prediction': predictions,
-            'Actual': dtest.get_label(),
-            'Essential Agreement': list(is_essential_agreement(dtest.get_label(), predictions))
+            'Prediction': combined_predictions,
+            'Actual': test_y,
+            'Essential Agreement': combined_essential_agreement
         })
 
-        # Get feature importance
-        feature_importance = model.get_score(importance_type=self.importance_type)
-        # Convert dictionary to pandas dataframe
-        importance_df = pd.DataFrame(list(feature_importance.items()), columns=['Feature', 'Importance'])
-        # Sort by importance
-        importance_df = importance_df.sort_values(by='Importance', ascending=False)
+        # Concatenate the importance dataframes
+        all_importance_dfs = []
+        for res in results:
+            all_importance_dfs += res[1]
+
+        importance_df = pd.DataFrame(all_importance_dfs, columns=['Feature', 'Importance'], index=None)
+        importance_df.sort_values(by='Importance', ascending=False, inplace=True)
+
+        # rooted mean square error
+        rmse = np.sqrt(np.mean((results_df['Prediction'] - results_df['Actual']) ** 2))
+        logger.info(f'Rooted Mean Square Error: {rmse}')
 
         return results_df, importance_df

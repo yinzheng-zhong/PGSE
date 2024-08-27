@@ -32,7 +32,7 @@ parser.add_argument('--workers', type=int, default=38,
                     help="Number of CPU workers to allocate per node.")
 parser.add_argument('--nodes', type=int, default=os.environ.get('SLURM_JOB_NUM_NODES', 1),
                     help="Number of nodes allocated. Used with distributed processing only.")
-parser.add_argument('--features', type=int, default=1000,
+parser.add_argument('--features', type=int, default=10000,
                     help="Number of top features to select based on importance")
 parser.add_argument('--lr', type=float, default=0.03,
                     help="Learning rate for the XGBoost model")
@@ -45,20 +45,20 @@ extender = Extender()
 
 # Initialize Ray
 if args.dist:
-    ray.init(address='auto')
+    ray.init(address='auto', log_to_driver=True)
     logger.warning(
         f'Connected to Ray cluster with {args.nodes} nodes and {args.workers} workers per node.\n'
         f'Sometimes the progress bar may seem frozen, but it is still running.'
     )
 else:
-    ray.init(num_cpus=args.workers)
+    ray.init(num_cpus=args.workers, log_to_driver=True)
 
 loader = Loader(file_label)
 
 # check if the save file exists
 try:
     seg_pool.load(args.save_file)
-    train_kmer, test_kmer, train_labels, test_labels = loader.get_extended_dataset(no_consecutive=False)
+    train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool(no_consecutive=False)
 
     print(train_kmer)
 except FileNotFoundError:
@@ -72,19 +72,28 @@ while True:
     xgb = XGBoost(
         boost_rounds=1000,
         num_cpu_per_node=args.workers,
-        num_nodes=1,
-        learning_rate=args.lr
+        num_splits=10,
+        learning_rate=args.lr,
     )
 
     results_df, importance_df = xgb.run(train_kmer, test_kmer, train_labels, test_labels)
 
     logger.info(str(importance_df.head(20)))
 
-    index = list(map(int, importance_df['Feature'].str.replace('f', '').values))[:args.features]
+    index = list(map(int, importance_df['Feature'].values))[:args.features]
     seg_pool.use_subset(index)
     # do the pruning first otherwise only longer segments will be kept
     seg_pool.redundant_elimination(range(len(index)))
-    seg_pool.n_gram_grafting()
+    #seg_pool.n_gram_grafting()
+
+    # test with single training
+    train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool(no_consecutive=False)
+    xgb = XGBoost(
+        boost_rounds=1000,
+        num_cpu_per_node=args.workers,
+        num_splits=1,
+        learning_rate=args.lr,
+    )
 
     # This will change the order
     try:
@@ -94,10 +103,9 @@ while True:
 
     seg_pool.save(args.save_file)
 
-    train_kmer, test_kmer, train_labels, test_labels = loader.get_extended_dataset(no_consecutive=False)
+    train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool(no_consecutive=False)
 
     args.k += args.ext
-
 
 seg_pool.export(args.export_file)
 ray.shutdown()
