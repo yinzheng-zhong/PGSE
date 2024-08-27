@@ -18,14 +18,14 @@ class XGBoost:
             max_depth: int = 4,
             learning_rate: float = 0.05,
             importance_type: str = 'gain',
-            num_splits=1,
+            partition_size=0,
             num_cpu_per_node=8,
     ):
         self.boost_rounds = boost_rounds
         self.max_depth = max_depth
         self.learning_rate = learning_rate
         self.importance_type = importance_type
-        self.num_nodes = num_splits
+        self.partition_size = partition_size
         self.num_cpu_per_node = num_cpu_per_node
 
         self.params = {
@@ -91,12 +91,13 @@ class XGBoost:
         """
 
         # Split the features across the available nodes
-        feature_splits = np.array_split(np.arange(train_x.shape[1]), self.num_nodes)
+        num_splits = self.partition_size // train_x.shape[1] if self.partition_size > 0 else 1
+        feature_splits = np.array_split(np.arange(train_x.shape[1]), num_splits)
 
         # Store ray object references
         tasks = []
 
-        logger.info(f'Training on {self.num_nodes} splits with {self.num_cpu_per_node} CPUs each...')
+        logger.info(f'Training on {num_splits} splits with..')
 
         for split in feature_splits:
             train_x_split = train_x[:, split]
