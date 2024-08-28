@@ -108,6 +108,8 @@ class Sequence:
         cached = self.cache.get(sub)
         # cache hit
         if cached:
+            starts = cached['indices']
+            _ = [self._pre_cache(start, start + len(sub), ext) for start in starts]
             return cached['count']
 
         # cache miss
@@ -130,12 +132,11 @@ class Sequence:
         :param length:
         :return:
         """
-        for i in range(1, length + 1):
-            new_start = start - i
-            new_seg_len = end - new_start
-
-            for j in range(new_start, start + 1):
-                self.cache.set(self._sequence[j: j + new_seg_len], j)
+        _ = [
+            self.cache.set(self._sequence[j: j + end - (start - i)], j)
+            for i in range(1, length + 1)
+            for j in range(start - i, start + 1)
+        ]
 
     def _occurrences_overlapping(self, string, sub):
         count = start = 0

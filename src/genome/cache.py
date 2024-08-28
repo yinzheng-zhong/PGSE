@@ -9,6 +9,7 @@ The cache is used to store the segment counts. E.g.
 }
 """
 
+
 class Cache:
     def __init__(self):
         self.cache = {}
@@ -49,10 +50,11 @@ class Cache:
         """
         Reduce the ttl for all and remove the segments that have a ttl of less than 0.
         """
-        for segment in self.cache:
-            self.cache[segment]['ttl'] -= 1
-
-        keys_to_delete = [segment for segment in self.cache if self.cache[segment]['ttl'] < 0]
-
-        for segment in keys_to_delete:
-            del self.cache[segment]
+        self.cache = {
+            segment: {
+                'count': self.cache[segment]['count'],
+                'indices': self.cache[segment]['indices'],
+                'ttl': self.cache[segment]['ttl'] - 1
+            }
+            for segment in self.cache if self.cache[segment]['ttl'] >= 1
+        }
