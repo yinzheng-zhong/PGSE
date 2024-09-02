@@ -37,7 +37,7 @@ class Extender:
         new = [item for sublist in new for item in sublist]
 
         if len(new) > 0:
-            logger.info(f'Adding {len(new)} new segments to manager')
+            logger.info(f'Adding {len(new)} new segments to the pool')
         else:
             logger.warning('No new segments to add. Finished extending all segments')
             raise ValueError('No new segments to add')

@@ -15,7 +15,7 @@ class FileLabel:
         data['files'] = self.data_dir + data['files'] + '.fna'
         return data.set_index('files').to_dict()['labels']
 
-    def get_train_test_path(self, test_size=0.2, random_state=38):
+    def get_train_test_path(self, test_size=0.2, random_state=42):
         """
         To get the path and labels, so they can be loaded later
         :param test_size:
@@ -28,6 +28,7 @@ class FileLabel:
         train_files, test_files, train_labels, test_labels = train_test_split(
             files,
             labels,
+            stratify=True,
             test_size=test_size,
             random_state=random_state
         )

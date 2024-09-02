@@ -45,7 +45,8 @@ class XGBoost:
             params: dict,
             boost_rounds: int,
             importance_type: str,
-            feature_indices: np.ndarray  # Pass the original feature indices
+            feature_indices: np.ndarray,  # Pass the original feature indices
+            verbose: int = 100
     ):
         dtrain = xgb.DMatrix(train_x, label=train_y)
         dtest = xgb.DMatrix(test_x, label=test_y)
@@ -54,7 +55,7 @@ class XGBoost:
         model = xgb.train(
             params, dtrain, boost_rounds, watchlist,
             custom_metric=essential_agreement_cus_metric,
-            verbose_eval=100
+            verbose_eval=verbose
         )
 
         # Predict using the trained model
@@ -99,7 +100,7 @@ class XGBoost:
         # Store ray object references
         tasks = []
 
-        logger.info(f'Training on {num_splits} splits with..')
+        logger.info(f'Training {num_splits} partitions of features')
 
         for split in feature_splits:
             train_x_split = train_x[:, split]
@@ -108,12 +109,22 @@ class XGBoost:
             # Assign each task to a node with the specified number of CPUs
             task_ref = self.train_sub_features.options(
                 num_cpus=self.num_cpu_per_node
-            ).remote(train_x_split, train_y, test_x_split, test_y, self.params, self.boost_rounds, self.importance_type, split)
+            ).remote(
+                train_x_split,
+                train_y,
+                test_x_split,
+                test_y,
+                self.params,
+                self.boost_rounds,
+                self.importance_type,
+                split,
+                verbose=100 if len(feature_splits) == 1 else 0
+            )
 
             tasks.append(task_ref)
 
         # Gather the results from each node
-        results = ray.get(tasks)
+        results = tqdm(list(ray.get(tasks)))
 
         # Combine the predictions and models from each node
         combined_predictions = np.mean([res[0]['Prediction'] for res in tqdm(results)], axis=0)
