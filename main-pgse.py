@@ -50,10 +50,11 @@ while True:
 
     logger.info(f'==================== Feature Selection ====================')
     xgb = XGBoost(
+        partition_size=5000,
         boost_rounds=1000,
         num_cpu_per_node=args.workers,
-        partition_size=5000,
-        learning_rate=args.lr,
+        use_partition=True,
+        base_learning_rate=args.lr,
     )
 
     results_df, importance_df = xgb.run(train_kmer, test_kmer, train_labels, test_labels)
@@ -70,9 +71,11 @@ while True:
     logger.info(f'==================== Training & testing with selected segments ====================')
     train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool(no_consecutive=False)
     xgb = XGBoost(
+        partition_size=5000,
         boost_rounds=1000,
         num_cpu_per_node=args.workers,
-        learning_rate=args.lr,
+        use_partition=False,
+        base_learning_rate=args.lr,
         custom_metric=lambda x, y : essential_agreement_cus_metric(
             x, y,
             min_after_log2=math.log2(args.ea_min) if args.ea_min is not None else None,

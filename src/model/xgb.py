@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 import pandas as pd
 import xgboost as xgb
@@ -9,11 +11,12 @@ from src.log import logger
 class XGBoost:
     def __init__(
             self,
+            partition_size: int,
             boost_rounds: int = 250,
             max_depth: int = 4,
-            learning_rate: float = 0.05,
+            base_learning_rate: float = 0.05,
             importance_type: str = 'gain',
-            partition_size: int = 0,
+            use_partition: bool = False,
             num_cpu_per_node: int = 8,
             custom_metric=None
     ):
@@ -22,8 +25,9 @@ class XGBoost:
         """
         self.boost_rounds = boost_rounds
         self.max_depth = max_depth
-        self.learning_rate = learning_rate
+        self.base_learning_rate = base_learning_rate
         self.importance_type = importance_type
+        self.use_partition = use_partition
         self.partition_size = partition_size
         self.num_cpu_per_node = num_cpu_per_node
         self.custom_metric = custom_metric
@@ -31,7 +35,7 @@ class XGBoost:
         self.params = {
             'objective': 'reg:squarederror',
             'max_depth': max_depth,
-            'learning_rate': learning_rate,
+            'learning_rate': base_learning_rate,
             'nthread': num_cpu_per_node  # Use multiple threads per worker
         }
 
@@ -40,6 +44,12 @@ class XGBoost:
         Helper method to create DMatrix for training and testing.
         """
         return xgb.DMatrix(data, label=label)
+
+    def _adaptive_learning_rate(self, train_x: np.ndarray) -> float:
+        """
+        Calculate the adaptive learning rate based on the number of features.
+        """
+        return self.base_learning_rate / math.sqrt(self.partition_size / train_x.shape[1])
 
     @ray.remote(num_cpus=1)
     def _train_one_partition(
@@ -56,6 +66,9 @@ class XGBoost:
         """
         dtrain = self._create_dmatrix(train_x, train_y)
         dtest = self._create_dmatrix(test_x, test_y)
+
+        # Update learning rate based on the number of features
+        self.params['learning_rate'] = self._adaptive_learning_rate(train_x)
 
         watchlist = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(
@@ -79,9 +92,9 @@ class XGBoost:
         """
         Split features based on partition size.
         """
-        num_splits = feature_count // self.partition_size if self.partition_size > 0 else 1
-        num_splits = max(num_splits, 1)
-        return np.array_split(np.arange(feature_count), num_splits)
+        num_partitions = feature_count // self.partition_size if self.partition_size > 0 else 1
+        num_partitions = max(num_partitions, 1) if self.use_partition else 1
+        return np.array_split(np.arange(feature_count), num_partitions)
 
     def _gather_results(self, tasks: list) -> tuple:
         """
