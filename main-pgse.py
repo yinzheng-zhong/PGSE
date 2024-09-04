@@ -1,10 +1,14 @@
+import math
+
 from src.log import logger
 import os
+
+from src.model.util import essential_agreement_cus_metric
 
 os.environ["RAY_LOG_TO_STDERR"] = "0"
 os.environ["RAY_LOG_LEVEL"] = "ERROR"
 
-import argparse
+from src.enviromnet import args
 
 from src.dataset.file_label import FileLabel
 from src.dataset.loader import Loader
@@ -13,32 +17,7 @@ from src.model.xgb import XGBoost
 from src.segment import seg_pool
 import ray
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--label-file', type=str, required=True,
-                    help="Path to the CSV file containing the labels")
-parser.add_argument('--data-dir', type=str, required=True,
-                    help="Directory containing the data files")
-parser.add_argument('--save-file', type=str, required=True,
-                    help="File path to save the selected segments. Used to recover the progress.")
-parser.add_argument('--export-file', type=str, required=True,
-                    help="File path to save the results")
-parser.add_argument('--k', type=int, default=8,
-                    help="Initial size of k-mers")
-parser.add_argument('--ext', type=int, default=2,
-                    help="Length of extensions to add in each iteration")
-parser.add_argument('--target', type=int, default=70,
-                    help="Target length of segments to reach")
-parser.add_argument('--workers', type=int, default=8,
-                    help="Number of CPU workers to allocate per node.")
-parser.add_argument('--nodes', type=int, default=os.environ.get('SLURM_JOB_NUM_NODES', 1),
-                    help="Number of nodes allocated. Used with distributed processing only.")
-parser.add_argument('--features', type=int, default=10000,
-                    help="Number of top features to select based on importance")
-parser.add_argument('--lr', type=float, default=0.03,
-                    help="Learning rate for the XGBoost model")
-parser.add_argument('--dist', type=int, default=0,
-                    help="Flag to enable distributed processing")
-args = parser.parse_args()
+
 
 file_label = FileLabel(args.label_file, args.data_dir)
 extender = Extender()
@@ -94,6 +73,11 @@ while True:
         boost_rounds=1000,
         num_cpu_per_node=args.workers,
         learning_rate=args.lr,
+        custom_metric=lambda x, y : essential_agreement_cus_metric(
+            x, y,
+            min_after_log2=math.log2(args.ea_min) if args.ea_min is not None else None,
+            max_after_log2=math.log2(args.ea_max) if args.ea_max is not None else None
+        )
     )
 
     _, _ = xgb.run(train_kmer, test_kmer, train_labels, test_labels)

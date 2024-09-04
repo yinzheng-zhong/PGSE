@@ -11,6 +11,7 @@
 
 # Optionally set OMP_NUM_THREADS if using OpenMP
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+export WORKERS_PER_NODE=39
 
 # Activate the conda environment first
 conda activate genome
@@ -32,7 +33,7 @@ echo "SLURM_NODEID: $SLURM_NODEID"
 echo "Starting HEAD at $HEAD_NODE"
 srun --nodes=1 --ntasks=1 -w "$HEAD_NODE" \
     ray start --head --node-ip-address="$HEAD_ADDR" --port=$HEAD_PORT \
-    --num-cpus 38 --block &
+    --num-cpus $WORKERS_PER_NODE --block &
 
 # number of nodes other than the head node
 worker_num=$((SLURM_JOB_NUM_NODES - 1))
@@ -44,7 +45,7 @@ for ((i = 1; i <= worker_num; i++)); do
     echo "Starting WORKER $i at $node_i"
     srun --nodes=1 --ntasks=1 -w "$node_i" \
         ray start --address "$HEAD_ADDR":"$HEAD_PORT" \
-        --num-cpus 38 --block &
+        --num-cpus $WORKERS_PER_NODE --block &
     sleep 5
 done
 
@@ -54,11 +55,12 @@ python3 main-pgse.py \
         --data-dir "../volatile/e_coli_mic/" \
         --save-file "../volatile/var/rec-10-2-xgb.save" \
         --export-file "../volatile/var/pgse-result.txt" \
-        --workers 39 \
+        --workers $WORKERS_PER_NODE \
         --features 10000 \
         --dist 1 \
         --k 10 \
-        --ext 2
+        --ext 2 \
+        --lr 0.03
 
 echo "Finished running - goodbye from $HOSTNAME"
 

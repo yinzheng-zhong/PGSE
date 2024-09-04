@@ -1,0 +1,33 @@
+import argparse
+import os
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--label-file', type=str, required=True,
+                    help="Path to the CSV file containing the labels")
+parser.add_argument('--data-dir', type=str, required=True,
+                    help="Directory containing the data files")
+parser.add_argument('--save-file', type=str, required=True,
+                    help="File path to save the selected segments. Used to recover the progress.")
+parser.add_argument('--export-file', type=str, required=True,
+                    help="File path to save the results")
+parser.add_argument('--k', type=int, default=8,
+                    help="Initial size of k-mers")
+parser.add_argument('--ext', type=int, default=2,
+                    help="Length of extensions to add in each iteration")
+parser.add_argument('--target', type=int, default=70,
+                    help="Target length of segments to reach")
+parser.add_argument('--workers', type=int, default=8,
+                    help="Number of CPU workers to allocate per node.")
+parser.add_argument('--nodes', type=int, default=os.environ.get('SLURM_JOB_NUM_NODES', 1),
+                    help="Number of nodes allocated. Used with distributed processing only.")
+parser.add_argument('--features', type=int, default=10000,
+                    help="Number of top features to select based on importance")
+parser.add_argument('--lr', type=float, default=0.03,
+                    help="Learning rate for the XGBoost model")
+parser.add_argument('--dist', type=int, default=0,
+                    help="Flag to enable distributed processing")
+parser.add_argument('--ea-max', type=float, default=None,
+                    help="Maximum value of MIC (>)")
+parser.add_argument('--ea-min', type=float, default=None,
+                    help="Minimum value of MIC (<)")
+args = parser.parse_args()

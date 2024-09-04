@@ -8,7 +8,7 @@ def is_essential_agreement(
         label: Union[np.ndarray, list],
         predicted: Union[np.ndarray, list],
         min_after_log2: Optional[float] = None,
-        max_after_log2: Optional[float] = math.log2(64)
+        max_after_log2: Optional[float] = None
 ):
     """
     Check if the predicted value is within the essential agreement range
@@ -47,9 +47,9 @@ def is_essential_agreement(
     return ea
 
 
-def essential_agreement_cus_metric(preds, dtrain):
+def essential_agreement_cus_metric(preds, dtrain, min_after_log2=None, max_after_log2=None):
     labels = dtrain.get_label()
-    agreements = is_essential_agreement(labels, preds)
+    agreements = is_essential_agreement(labels, preds, min_after_log2, max_after_log2)
     agreement_rate = np.mean(agreements)
     return 'essential_agreement', agreement_rate
 

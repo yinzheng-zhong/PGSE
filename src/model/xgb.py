@@ -20,6 +20,7 @@ class XGBoost:
             importance_type: str = 'gain',
             partition_size=0,
             num_cpu_per_node=8,
+            custom_metric=None
     ):
         self.boost_rounds = boost_rounds
         self.max_depth = max_depth
@@ -27,6 +28,7 @@ class XGBoost:
         self.importance_type = importance_type
         self.partition_size = partition_size
         self.num_cpu_per_node = num_cpu_per_node
+        self.custom_metric = custom_metric
 
         self.params = {
             'objective': 'reg:squarederror',
@@ -35,16 +37,13 @@ class XGBoost:
             'nthread': num_cpu_per_node  # Use multiple threads per worker
         }
 
-    @staticmethod
     @ray.remote(num_cpus=1)
     def train_sub_features(
+            self,
             train_x: np.ndarray,
             train_y: np.ndarray,
             test_x: np.ndarray,
             test_y: np.ndarray,
-            params: dict,
-            boost_rounds: int,
-            importance_type: str,
             feature_indices: np.ndarray,  # Pass the original feature indices
             verbose: int = 100
     ):
@@ -53,8 +52,8 @@ class XGBoost:
 
         watchlist = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(
-            params, dtrain, boost_rounds, watchlist,
-            custom_metric=essential_agreement_cus_metric,
+            self.params, dtrain, self.boost_rounds, watchlist,
+            custom_metric=self.custom_metric,
             verbose_eval=verbose
         )
 
@@ -64,11 +63,10 @@ class XGBoost:
         # Create a dataframe with predictions and actual labels
         results = {
             'Prediction': predictions,
-            'Actual': dtest.get_label(),
-            'Essential Agreement': list(is_essential_agreement(dtest.get_label(), predictions))
+            'Actual': dtest.get_label()
         }
 
-        importance = model.get_score(importance_type=importance_type)
+        importance = model.get_score(importance_type=self.importance_type,)
 
         # Map back to the original feature indices
         importance_mapped = {feature_indices[int(k[1:])]: v for k, v in importance.items()}
@@ -110,15 +108,13 @@ class XGBoost:
             task_ref = self.train_sub_features.options(
                 num_cpus=self.num_cpu_per_node
             ).remote(
+                self,
                 train_x_split,
                 train_y,
                 test_x_split,
                 test_y,
-                self.params,
-                self.boost_rounds,
-                self.importance_type,
                 split,
-                verbose=100 if len(feature_splits) == 1 else 0
+                verbose=100 if not self.partition_size else 0
             )
 
             tasks.append(task_ref)
@@ -127,14 +123,12 @@ class XGBoost:
         results = [ray.get(task) for task in tqdm(tasks, desc='Training partitions')]
 
         # Combine the predictions and models from each node
-        combined_predictions = np.mean([res[0]['Prediction'] for res in tqdm(results)], axis=0)
-        combined_essential_agreement = is_essential_agreement(test_y, combined_predictions)
+        combined_predictions = np.mean([res[0]['Prediction'] for res in results], axis=0)
 
         # Create a dataframe with combined results
         results_df = pd.DataFrame({
             'Prediction': combined_predictions,
-            'Actual': test_y,
-            'Essential Agreement': combined_essential_agreement
+            'Actual': test_y
         })
 
         # Concatenate the importance dataframes

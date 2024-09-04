@@ -16,9 +16,6 @@ echo "This code is running on "
 hostname
 echo "Starting running on host $HOSTNAME"
 
-echo "CUDA_VISIBLE_DEVICES : $CUDA_VISIBLE_DEVICES"
-echo "GPU_DEVICE_ORDINAL   : $GPU_DEVICE_ORDINAL"
-
 conda activate genome
 
 # Change this to the your paths
@@ -27,7 +24,7 @@ python3 main-pgse.py \
         --data-dir "../volatile/e_coli_mic/" \
         --save-file "../volatile/var/pgse-70.save" \
         --export-file "../volatile/var/pgse-result.txt" \
-        --worker 38  \
-        --features 1500 \
+        --workers 76  \
+        --features 10000 \
 
 echo "Finished running - goodbye from $HOSTNAME"
