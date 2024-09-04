@@ -124,7 +124,7 @@ class XGBoost:
             tasks.append(task_ref)
 
         # Gather the results from each node
-        results = tqdm(list(ray.get(tasks)))
+        results = [ray.get(task) for task in tqdm(tasks, desc='Training partitions')]
 
         # Combine the predictions and models from each node
         combined_predictions = np.mean([res[0]['Prediction'] for res in tqdm(results)], axis=0)

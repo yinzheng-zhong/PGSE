@@ -1,4 +1,5 @@
-from typing import Union
+import math
+from typing import Union, Optional
 
 import numpy as np
 
@@ -6,8 +7,8 @@ import numpy as np
 def is_essential_agreement(
         label: Union[np.ndarray, list],
         predicted: Union[np.ndarray, list],
-        min_after_log2: float | None = None,
-        max_after_log2: float | None = None
+        min_after_log2: Optional[float] = None,
+        max_after_log2: Optional[float] = math.log2(64)
 ):
     """
     Check if the predicted value is within the essential agreement range

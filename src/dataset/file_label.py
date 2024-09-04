@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
+from src.log import logger
 
 
 class FileLabel:
@@ -12,7 +13,7 @@ class FileLabel:
     def _load_label_lookup(self):
         data = pd.read_csv(self.label_file, dtype=str)
         # TODO: remove the hardcoded extension and put it in the CSV file
-        data['files'] = self.data_dir + data['files'] + '.fna'
+        data['files'] = self.data_dir + data['files']
         return data.set_index('files').to_dict()['labels']
 
     def get_train_test_path(self, test_size=0.2, random_state=42):
@@ -25,10 +26,20 @@ class FileLabel:
         files = list(self.label_lookup.keys())
         labels = np.array(list(self.label_lookup.values()), dtype=np.float32)
 
+        # Ensure there's more than one instance of each class, if not, stratify=None
+        counts = np.bincount(labels.astype(int))
+        min_class_size = min(counts[counts > 0])
+
+        if min_class_size < 2:
+            logger.warning('Stratify is disabled because there is at least one class with only one instance')
+            stratify = None
+        else:
+            stratify = labels
+
         train_files, test_files, train_labels, test_labels = train_test_split(
             files,
             labels,
-            stratify=True,
+            stratify=stratify,
             test_size=test_size,
             random_state=random_state
         )
