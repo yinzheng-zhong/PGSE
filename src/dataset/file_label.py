@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 from src.log import logger
+from collections import Counter
 
 
 class FileLabel:
@@ -12,7 +13,6 @@ class FileLabel:
 
     def _load_label_lookup(self):
         data = pd.read_csv(self.label_file, dtype=str)
-        # TODO: remove the hardcoded extension and put it in the CSV file
         data['files'] = self.data_dir + data['files']
         return data.set_index('files').to_dict()['labels']
 
@@ -27,8 +27,8 @@ class FileLabel:
         labels = np.array(list(self.label_lookup.values()), dtype=np.float32)
 
         # Ensure there's more than one instance of each class, if not, stratify=None
-        counts = np.bincount(labels.astype(int))
-        min_class_size = min(counts[counts > 0])
+        counts = np.array(list(Counter(labels).values()))
+        min_class_size = min(counts)
 
         if min_class_size < 2:
             logger.warning('Stratify is disabled because there is at least one class with only one instance')
