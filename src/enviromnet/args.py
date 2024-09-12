@@ -30,4 +30,6 @@ parser.add_argument('--ea-max', type=float, default=None,
                     help="Maximum value of MIC (>)")
 parser.add_argument('--ea-min', type=float, default=None,
                     help="Minimum value of MIC (<)")
+parser.add_argument('--num-rounds', type=int, default=1000,
+                    help="Number of boosting rounds")
 args = parser.parse_args()
