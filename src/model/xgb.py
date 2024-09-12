@@ -59,7 +59,7 @@ class XGBoost:
             test_x: np.ndarray,
             test_y: np.ndarray,
             feature_indices: np.ndarray,
-            verbose: int = 100
+            verbose: int = 50
     ):
         """
         Train XGBoost model on a subset of features (a split).
@@ -147,7 +147,7 @@ class XGBoost:
                 test_x_split,
                 test_y,
                 split,
-                verbose=100 if not self.partition_size else 0
+                verbose=0 if self.use_partition else 50
             )
             tasks.append(task_ref)
 
