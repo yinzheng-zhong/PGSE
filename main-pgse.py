@@ -17,8 +17,6 @@ from src.model.xgb import XGBoost
 from src.segment import seg_pool
 import ray
 
-
-
 file_label = FileLabel(args.label_file, args.data_dir)
 extender = Extender()
 
@@ -51,7 +49,7 @@ while True:
     logger.info(f'==================== Feature Selection ====================')
     xgb = XGBoost(
         partition_size=5000,
-        boost_rounds=1000,
+        boost_rounds=args.num_rounds,
         num_cpu_per_node=args.workers,
         use_partition=True,
         base_learning_rate=args.lr,
@@ -72,7 +70,7 @@ while True:
     train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool(no_consecutive=False)
     xgb = XGBoost(
         partition_size=5000,
-        boost_rounds=1000,
+        boost_rounds=args.num_rounds,
         num_cpu_per_node=args.workers,
         use_partition=False,
         base_learning_rate=args.lr,
