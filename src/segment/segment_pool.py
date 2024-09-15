@@ -55,7 +55,7 @@ class SegmentPool:
             logger.error('Index out of range')
             self.segments = []
 
-        logger.info(f'Keeping {len(self.segments)} segments as shown below:\n{self.segments}')
+        logger.info(f'Keeping {len(self.segments)} segments as shown below:\n{self.segments[:100]}...')
 
     def save(self, filename: str):
         """
