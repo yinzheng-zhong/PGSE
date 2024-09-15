@@ -179,3 +179,6 @@ class SegmentPool:
         logger.info(f'Filling {num_to_fill} segments')
         new_segments = [km.random_sequence(self.current_max_length) for _ in range(num_to_fill)]
         self.add_subsequences(new_segments, self.current_max_length)
+
+    def get_current_max_length(self):
+        return self.current_max_length
