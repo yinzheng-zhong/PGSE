@@ -14,8 +14,12 @@ class Loader:
     def __init__(
             self,
             file_label: FileLabel,
+            folds: int = 0,
+            fold_index: int = 0
     ):
         self.file_label = file_label
+        self.folds = folds
+        self.fold_index = fold_index
 
         self.train_files = None
         self.test_files = None
@@ -27,7 +31,10 @@ class Loader:
         self._get_test_seq()
 
     def _load_sequence_files(self):
-        self.train_files, self.test_files, self.train_labels, self.test_labels = self.file_label.get_train_test_path()
+        self.train_files, self.test_files, self.train_labels, self.test_labels = self.file_label.get_train_test_path(
+            num_folds=self.folds,
+            fold_index=self.fold_index
+        )
 
     @staticmethod
     @ray.remote

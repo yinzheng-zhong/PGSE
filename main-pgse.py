@@ -16,6 +16,7 @@ from src.segment.extender import Extender
 from src.model.xgb import XGBoost
 from src.segment import seg_pool
 import ray
+import pandas as pd
 
 file_label = FileLabel(args.label_file, args.data_dir)
 extender = Extender()
@@ -30,9 +31,10 @@ if args.dist:
 else:
     ray.init(num_cpus=args.workers, log_to_driver=True)
 
-loader = Loader(file_label)
+loader = Loader(file_label, folds=args.folds, fold_index=args.fold_index)
 
 # check if the save file exists
+results = pd.DataFrame()  # initialize results as an empty DataFrame
 try:
     seg_pool.load(args.save_file)
     train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool(no_consecutive=False)
@@ -55,7 +57,7 @@ while True:
         base_learning_rate=args.lr,
     )
 
-    results_df, importance_df = xgb.run(train_kmer, test_kmer, train_labels, test_labels)
+    _, importance_df = xgb.run(train_kmer, test_kmer, train_labels, test_labels)
 
     logger.info(str(importance_df.head(20)))
 
@@ -63,7 +65,7 @@ while True:
     seg_pool.use_subset(index)
     # do the pruning first otherwise only longer segments will be kept
     seg_pool.redundant_elimination(range(len(index)))
-    #seg_pool.n_gram_grafting()
+    # seg_pool.n_gram_grafting()
 
     # test with single training
     logger.info(f'==================== Training & testing with selected segments ====================')
@@ -74,19 +76,19 @@ while True:
         num_cpu_per_node=args.workers,
         use_partition=False,
         base_learning_rate=args.lr,
-        custom_metric=lambda x, y : essential_agreement_cus_metric(
+        custom_metric=lambda x, y: essential_agreement_cus_metric(
             x, y,
             min_after_log2=math.log2(args.ea_min) if args.ea_min is not None else None,
             max_after_log2=math.log2(args.ea_max) if args.ea_max is not None else None
         )
     )
 
-    _, _ = xgb.run(train_kmer, test_kmer, train_labels, test_labels)
+    results, _ = xgb.run(train_kmer, test_kmer, train_labels, test_labels)
 
     # This will change the order
     try:
         extender.extend_all_segs(args.ext)
-    except ValueError:
+    except ValueError:  # if no segments can be extended
         break
 
     seg_pool.save(args.save_file)
@@ -95,5 +97,8 @@ while True:
 
     args.k += args.ext
 
+# Export the final results
+if not results.empty:  # only write to csv if results DataFrame is not empty
+    results.to_csv(f'{args.export_file}.csv')
 seg_pool.export(args.export_file)
 ray.shutdown()

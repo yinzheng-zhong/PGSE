@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
+
 from src.log import logger
 from collections import Counter
 
@@ -16,32 +17,53 @@ class FileLabel:
         data['files'] = self.data_dir + data['files']
         return data.set_index('files').to_dict()['labels']
 
-    def get_train_test_path(self, test_size=0.2, random_state=42):
+    def _perform_train_test_split(self, files, labels, test_size, random_state):
         """
-        To get the path and labels, so they can be loaded later
+        :param files: List of filenames
+        :param labels: Corresponding labels
+        :param test_size: Test data proportion
+        :param random_state: Random State
+        :return: train_files, test_files, train_labels, test_labels
+        """
+        try:
+            return train_test_split(
+                files,
+                labels,
+                stratify=labels,
+                test_size=test_size,
+                random_state=random_state
+            )
+        except ValueError:
+            logger.warning('Stratify disabled due to single instance class')
+            return train_test_split(
+                files,
+                labels,
+                test_size=test_size,
+                random_state=random_state
+            )
+
+    def get_train_test_path(self, test_size=0.2, random_state=42, num_folds=0, fold_index=0):
+        """
+
         :param test_size:
         :param random_state:
+        :param num_folds:
+        :param fold_index:
         :return:
         """
         files = list(self.label_lookup.keys())
         labels = np.array(list(self.label_lookup.values()), dtype=np.float32)
 
-        # Ensure there's more than one instance of each class, if not, stratify=None
-        counts = np.array(list(Counter(labels).values()))
-        min_class_size = min(counts)
-
-        if min_class_size < 2:
-            logger.warning('Stratify is disabled because there is at least one class with only one instance')
-            stratify = None
+        if num_folds <= 0:
+            return self._perform_train_test_split(files, labels, test_size, random_state)
         else:
-            stratify = labels
+            k_fold_instance = KFold(n_splits=num_folds, shuffle=True, random_state=random_state)
+            splits = list(k_fold_instance.split(files, labels))
+            train_index, test_index = splits[fold_index]
 
-        train_files, test_files, train_labels, test_labels = train_test_split(
-            files,
-            labels,
-            stratify=stratify,
-            test_size=test_size,
-            random_state=random_state
-        )
+            train_files = [files[i] for i in train_index]
+            test_files = [files[i] for i in test_index]
+            train_labels = labels[train_index]
+            test_labels = labels[test_index]
 
-        return train_files, test_files, train_labels, test_labels
+            return train_files, test_files, train_labels, test_labels
