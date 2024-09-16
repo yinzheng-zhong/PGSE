@@ -8,6 +8,7 @@ from tqdm import tqdm
 
 from src.log import logger
 
+
 class XGBoost:
     def __init__(
             self,
@@ -68,13 +69,14 @@ class XGBoost:
         dtest = self._create_dmatrix(test_x, test_y)
 
         # Update learning rate based on the number of features
-        self.params['learning_rate'] = self._adaptive_learning_rate(train_x)
+        # self.params['learning_rate'] = self._adaptive_learning_rate(train_x)
 
         watchlist = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(
-            self.params, dtrain, self.boost_rounds, watchlist,
-            custom_metric=self.custom_metric,
-            verbose_eval=verbose
+            self.params, dtrain, self.boost_rounds, evals=watchlist,
+            # custom_metric=self.custom_metric,
+            verbose_eval=verbose,
+            early_stopping_rounds=50
         )
 
         predictions = model.predict(dtest)
@@ -147,7 +149,7 @@ class XGBoost:
                 test_x_split,
                 test_y,
                 split,
-                verbose=0 if self.use_partition else 50
+                verbose=0 if self.use_partition else 1
             )
             tasks.append(task_ref)
 
@@ -162,6 +164,8 @@ class XGBoost:
         importance_df.sort_values(by='Importance', ascending=False, inplace=True)
 
         rmse = self._calculate_rmse(results_df['Prediction'], results_df['Actual'])
+        ea = self.custom_metric(results_df['Prediction'], results_df['Actual'])
         self._log_rmse(rmse)
+        logger.info(f'Essential Agreement: {ea}')
 
         return results_df, importance_df

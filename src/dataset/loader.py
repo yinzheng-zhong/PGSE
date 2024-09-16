@@ -26,6 +26,7 @@ class Loader:
         self.train_labels = None
         self.test_labels = None
 
+        seq_manager.clear()
         self._load_sequence_files()
         self._get_train_seq()
         self._get_test_seq()

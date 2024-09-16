@@ -20,3 +20,7 @@ class SequenceManager:
 
     def get_test_sequence(self, index):
         return self.test_sequences[index]
+
+    def clear(self):
+        self.train_sequences.clear()
+        self.test_sequences.clear()

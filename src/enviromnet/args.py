@@ -34,6 +34,4 @@ parser.add_argument('--num-rounds', type=int, default=1000,
                     help="Number of boosting rounds")
 parser.add_argument('--folds', type=int, default=0,
                     help="Number of folds for cross-validation")
-parser.add_argument('--fold-index', type=int, default=0,
-                    help="Index of the k-fold cross-validation")
 args = parser.parse_args()
