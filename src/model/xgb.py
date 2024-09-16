@@ -153,7 +153,7 @@ class XGBoost:
                 test_x_split,
                 test_y,
                 split,
-                verbose=0 if self.use_partition else 1
+                verbose=0 if self.use_partition else 50
             )
             tasks.append(task_ref)
 
