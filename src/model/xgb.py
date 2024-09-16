@@ -74,9 +74,9 @@ class XGBoost:
         watchlist = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(
             self.params, dtrain, self.boost_rounds, evals=watchlist,
-            # custom_metric=self.custom_metric,
+            #custom_metric=self.custom_metric,
             verbose_eval=verbose,
-            early_stopping_rounds=50
+            early_stopping_rounds=150
         )
 
         predictions = model.predict(dtest)
@@ -84,6 +84,10 @@ class XGBoost:
             'Prediction': predictions,
             'Actual': dtest.get_label()
         }
+
+        if self.custom_metric is not None:
+            ea = self.custom_metric(predictions, dtest)
+            logger.info(f'Essential Agreement: {ea}')
 
         importance = model.get_score(importance_type=self.importance_type)
         importance_mapped = {feature_indices[int(k[1:])]: v for k, v in importance.items()}
@@ -164,8 +168,6 @@ class XGBoost:
         importance_df.sort_values(by='Importance', ascending=False, inplace=True)
 
         rmse = self._calculate_rmse(results_df['Prediction'], results_df['Actual'])
-        ea = self.custom_metric(results_df['Prediction'], results_df['Actual'])
         self._log_rmse(rmse)
-        logger.info(f'Essential Agreement: {ea}')
 
         return results_df, importance_df

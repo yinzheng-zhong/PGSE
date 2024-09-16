@@ -51,7 +51,7 @@ def essential_agreement_cus_metric(preds, dtrain, min_after_log2=None, max_after
     labels = dtrain.get_label()
     agreements = is_essential_agreement(labels, preds, min_after_log2, max_after_log2)
     agreement_rate = np.mean(agreements)
-    return 'essential_agreement', agreement_rate
+    return agreement_rate
 
 
 def standardize_data(X_train, X_test):
