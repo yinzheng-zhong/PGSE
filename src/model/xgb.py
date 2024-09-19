@@ -76,7 +76,7 @@ class XGBoost:
             self.params, dtrain, self.boost_rounds, evals=watchlist,
             #custom_metric=self.custom_metric,
             verbose_eval=verbose,
-            early_stopping_rounds=150
+            early_stopping_rounds=100
         )
 
         predictions = model.predict(dtest)

@@ -10,7 +10,7 @@ parser.add_argument('--save-file', type=str, required=True,
                     help="File path to save the selected segments. Used to recover the progress.")
 parser.add_argument('--export-file', type=str, required=True,
                     help="File path to save the results")
-parser.add_argument('--k', type=int, default=8,
+parser.add_argument('--k', type=int, default=10,
                     help="Initial size of k-mers")
 parser.add_argument('--ext', type=int, default=2,
                     help="Length of extensions to add in each iteration")
@@ -30,7 +30,7 @@ parser.add_argument('--ea-max', type=float, default=None,
                     help="Maximum value of MIC (>)")
 parser.add_argument('--ea-min', type=float, default=None,
                     help="Minimum value of MIC (<)")
-parser.add_argument('--num-rounds', type=int, default=1000,
+parser.add_argument('--num-rounds', type=int, default=1500,
                     help="Number of boosting rounds")
 parser.add_argument('--folds', type=int, default=0,
                     help="Number of folds for cross-validation")
