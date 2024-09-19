@@ -30,7 +30,7 @@ class Extender:
         # Make it suitable for grafting.
         new = [
             self._extend_one_seg(sequence, i) for sequence in seg_pool for i in range(1, length + 1) if
-            len(sequence) in range(seg_pool.last_length, seg_pool.last_length + length + 1)
+            len(sequence) in range(seg_pool.last_length + 1, seg_pool.last_length + length + 1)
         ]
 
         # reshape the list of lists to a single list
