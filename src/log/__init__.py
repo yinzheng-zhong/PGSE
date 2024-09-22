@@ -1,3 +1,5 @@
+from src.enviromnet import args
 from src.log.logger import Logger as _Logger
 
-logger = _Logger('Logger')
+# Initialize the logger with a default name
+logger = _Logger('default_log')
