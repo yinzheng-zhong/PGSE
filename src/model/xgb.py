@@ -19,7 +19,8 @@ class XGBoost:
             importance_type: str = 'gain',
             use_partition: bool = False,
             num_cpu_per_node: int = 8,
-            custom_metric=None
+            custom_metric=None,
+            early_stopping_rounds: int = 20
     ):
         """
         Initialize XGBoost model with parameters
@@ -32,6 +33,7 @@ class XGBoost:
         self.partition_size = partition_size
         self.num_cpu_per_node = num_cpu_per_node
         self.custom_metric = custom_metric
+        self.early_stopping_rounds = early_stopping_rounds
 
         self.params = {
             'objective': 'reg:squarederror',
@@ -74,9 +76,9 @@ class XGBoost:
         watchlist = [(dtrain, 'train'), (dtest, 'test')]
         model = xgb.train(
             self.params, dtrain, self.boost_rounds, evals=watchlist,
-            #custom_metric=self.custom_metric,
+            # custom_metric=self.custom_metric,
             verbose_eval=verbose,
-            early_stopping_rounds=20
+            early_stopping_rounds=self.early_stopping_rounds
         )
 
         predictions = model.predict(dtest)

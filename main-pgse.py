@@ -43,6 +43,7 @@ def load_progress(loader):
         seg_pool.add_all_kmer(args.k, args.ext)
         return loader.get_kmer_dataset(args.k, no_consecutive=False)
 
+
 def save_fold_progress(fold_index, results):
     """Save the current fold index and results to a progress file."""
     progress_data = {
@@ -52,6 +53,7 @@ def save_fold_progress(fold_index, results):
     with open(PROGRESS_FILE, 'w') as f:
         json.dump(progress_data, f)
     logger.info(f"Progress saved at fold {fold_index}.")
+
 
 def load_fold_progress():
     """Load fold progress if available, else return None."""
@@ -66,12 +68,14 @@ def load_fold_progress():
         logger.info("No previous progress found, starting from the first fold.")
         return 0, pd.DataFrame()  # Return starting fold and empty results
 
+
 def append_results(new_results, existing_results):
     """Append new results to the existing results DataFrame."""
     if existing_results.empty:
         return new_results
     else:
         return pd.concat([existing_results, new_results], ignore_index=True)
+
 
 def run_xgboost(train_kmer, test_kmer, train_labels, test_labels, use_partition=True, custom_metric=None):
     """Initialize and run XGBoost with provided parameters."""
@@ -81,7 +85,8 @@ def run_xgboost(train_kmer, test_kmer, train_labels, test_labels, use_partition=
         num_cpu_per_node=args.workers,
         use_partition=use_partition,
         base_learning_rate=args.lr,
-        custom_metric=custom_metric
+        custom_metric=custom_metric,
+        early_stopping_rounds=20 if not use_partition else None
     )
     return xgb.run(train_kmer, test_kmer, train_labels, test_labels)
 
