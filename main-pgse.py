@@ -86,7 +86,7 @@ def run_xgboost(train_kmer, test_kmer, train_labels, test_labels, use_partition=
         use_partition=use_partition,
         base_learning_rate=args.lr,
         custom_metric=custom_metric,
-        early_stopping_rounds=20 if not use_partition else None
+        early_stopping_rounds=20
     )
     return xgb.run(train_kmer, test_kmer, train_labels, test_labels)
 
