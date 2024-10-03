@@ -34,4 +34,6 @@ parser.add_argument('--num-rounds', type=int, default=1500,
                     help="Number of boosting rounds")
 parser.add_argument('--folds', type=int, default=0,
                     help="Number of folds for cross-validation")
+parser.add_argument('--oversample', type=int, default=0,
+                    help="Flag to enable oversampling of the minority class")
 args = parser.parse_args()
