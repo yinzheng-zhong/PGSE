@@ -7,6 +7,7 @@ import ray
 from tqdm import tqdm
 
 from src.log import logger
+from src.model.util import oversample_minority_class
 
 
 class XGBoost:
@@ -137,6 +138,9 @@ class XGBoost:
         """
         Run the training and testing process.
         """
+        train_x, train_y = oversample_minority_class(train_x, train_y)
+        logger.info(f'Training on {train_x.shape[0]} samples after oversampling')
+
         feature_partitions = self._create_partitions(train_x.shape[1])
 
         logger.info(f'Training {len(feature_partitions)} partitions of features')

@@ -2,6 +2,8 @@ import math
 from typing import Union, Optional
 
 import numpy as np
+from imblearn.over_sampling import RandomOverSampler
+from sklearn.utils import shuffle
 
 
 def is_essential_agreement(
@@ -77,3 +79,18 @@ def denormalize_output(
         max_output
 ):
     return output * (max_output - min_output) + min_output
+
+
+def oversample_minority_class(X, y, shuffle_data=True):
+    # Initialize the RandomOverSampler
+    ros = RandomOverSampler(random_state=42)
+
+    # Perform oversampling
+    X_resampled, y_resampled = ros.fit_resample(X, y)
+
+    # Shuffle the data if shuffle_data is True
+    if shuffle_data:
+        X_resampled, y_resampled = shuffle(X_resampled, y_resampled, random_state=42)
+
+    return X_resampled, y_resampled
+

@@ -160,6 +160,8 @@ def main():
             fold_results, _ = run_xgboost(train_kmer, test_kmer, train_labels, test_labels, use_partition=False,
                                           custom_metric=custom_metric)
 
+            logger.info(fold_results)
+
             # Step 3: Attempt to extend segments
             if seg_pool.get_current_max_length() >= args.target or not extend_segments(extender):
                 break
