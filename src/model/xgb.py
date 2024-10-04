@@ -134,14 +134,10 @@ class XGBoost:
             test_x: np.ndarray,
             train_y: np.ndarray,
             test_y: np.ndarray,
-            oversample: bool = True
     ) -> tuple:
         """
         Run the training and testing process.
         """
-        if oversample:
-            train_x, train_y = oversample_minority_class(train_x, train_y)
-            logger.info(f'Training on {train_x.shape[0]} samples after oversampling')
 
         feature_partitions = self._create_partitions(train_x.shape[1])
 
