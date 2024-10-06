@@ -88,7 +88,7 @@ def run_xgboost(train_kmer, test_kmer, train_labels, test_labels, use_partition=
         custom_metric=custom_metric,
         early_stopping_rounds=20
     )
-    return xgb.run(train_kmer, test_kmer, train_labels, test_labels, args.oversample)
+    return xgb.run(train_kmer, test_kmer, train_labels, test_labels)
 
 
 def perform_feature_selection(xgb_result):
