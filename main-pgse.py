@@ -133,7 +133,7 @@ def main():
     start_fold, accumulated_results = load_fold_progress()
 
     for i in range(start_fold, args.folds if args.folds > 0 else 1):
-        logger.info(f'==================== Fold {i} ====================')
+        logger.info(f'==================== Fold {i + 1} ====================')
         loader = Loader(
             file_label,
             folds=args.folds,
