@@ -33,8 +33,9 @@ class Pipeline:
             train_kmer, test_kmer, train_labels, test_labels = loader.get_kmer_dataset(args.k, no_consecutive=False)
 
             # Run XGBoost without partitioning or custom metrics
+            custom_metric = model_trainer.custom_essential_agreement_metric()
             fold_results, importance_df = model_trainer.run_xgboost(
-                train_kmer, test_kmer, train_labels, test_labels, use_partition=False
+                train_kmer, test_kmer, train_labels, test_labels, use_partition=False, custom_metric=custom_metric
             )
 
             logger.info(fold_results)
