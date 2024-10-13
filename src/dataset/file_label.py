@@ -13,7 +13,7 @@ class FileLabel:
         self.label_lookup = self._load_label_lookup()
 
     def _load_label_lookup(self):
-        data = pd.read_csv(self.label_file, dtype=str)
+        data = pd.read_csv(self.label_file, dtype=str).iloc[:10]
         data['files'] = self.data_dir + data['files']
         return data.set_index('files').to_dict()['labels']
 

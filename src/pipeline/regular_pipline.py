@@ -1,0 +1,49 @@
+import pandas as pd
+import ray
+
+from src.enviromnet.ray_env import RayEnvManager
+from src.log import logger
+from src.model.model_trainer import ModelTrainer
+from src.enviromnet import args
+from src.dataset.file_label import FileLabel
+from src.dataset.loader import Loader
+
+
+class Pipeline:
+    def __init__(self):
+        self.file_label = FileLabel(args.label_file, args.data_dir)
+
+    def run(self):
+        RayEnvManager.initialize()
+
+        accumulated_results = pd.DataFrame()
+
+        # Use k-mer data only without any feature selection or partitioning
+        for i in range(args.folds if args.folds > 0 else 1):
+            logger.info(f'==================== Fold {i + 1} ====================')
+            loader = Loader(
+                self.file_label,
+                folds=args.folds,
+                fold_index=i
+            )
+
+            model_trainer = ModelTrainer(loader)
+
+            # Load k-mer dataset
+            train_kmer, test_kmer, train_labels, test_labels = loader.get_kmer_dataset(args.k, no_consecutive=False)
+
+            # Run XGBoost without partitioning or custom metrics
+            fold_results, importance_df = model_trainer.run_xgboost(
+                train_kmer, test_kmer, train_labels, test_labels, use_partition=False
+            )
+
+            logger.info(fold_results)
+            logger.info("Feature importance:")
+            logger.info(str(importance_df.head(20)))
+
+            # Append fold results
+            accumulated_results = pd.concat([accumulated_results, fold_results], ignore_index=True)
+
+        # Export final results and shutdown Ray
+        accumulated_results.to_csv(f'{args.export_file}_regular_xgboost.csv', index=False)
+        ray.shutdown()
