@@ -10,13 +10,16 @@ class Kmer:
         self.nuc_map = {'a': 0, 't': 1, 'g': 2, 'c': 3, 'n': 4} if keep_read_error else {'a': 0, 't': 1, 'g': 2, 'c': 3}
         self.base = 5 if self.keep_read_error else 4
 
-    def canonical_reverse_complement(self, sequence):
+    @staticmethod
+    def canonical_reverse_complement(sequence):
         """
         Get the canonical reverse complement of a sequence.
         :param sequence: str: The sequence.
         :return: str: The canonical reverse complement.
         """
-        return ''.join([self.reverse_complement(c) for c in sequence[::-1]])
+        complement_map = {'a': 't', 't': 'a', 'g': 'c', 'c': 'g'}
+        reverse_complement = "".join(complement_map[base] for base in reversed(sequence))
+        return min(sequence, reverse_complement)
 
     def kmer_mapping(self, sequence):
         """

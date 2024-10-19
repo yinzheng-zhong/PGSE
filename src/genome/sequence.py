@@ -18,7 +18,6 @@ class Sequence:
 
         self.cache = Cache()
 
-
     def __len__(self):
         return len(self._sequence)
 
@@ -61,7 +60,9 @@ class Sequence:
         n = base ** k  # number of possible k-mers
 
         # Directly map the sequence to integer values without a separate function
-        kmer_seq = list(map(lambda i: km.kmer_mapping(self[i:i + k]), range(len(self) - k + 1)))
+        kmer_seq = list(
+            map(lambda i: km.kmer_mapping(km.canonical_reverse_complement(self[i:i + k])), range(len(self) - k + 1))
+        )
 
         kmer_seq = np.array(kmer_seq, dtype=np.int32)
         kmer_count = np.bincount(kmer_seq, minlength=n)
@@ -77,10 +78,20 @@ class Sequence:
         :param no_consecutive: bool: Remove consecutive identical k-mers if True.
         """
         if no_consecutive:
-            seq_count = np.array([self._occurrences(self._sequence, seg) for seg in seg_pool_], dtype=np.int32)
+            seq_count = np.array(
+                [self._occurrences(self._sequence, km.canonical_reverse_complement(seg)) for seg in seg_pool_],
+                dtype=np.int32
+            )
         else:
-            ext = seg_pool_.current_max_length - seg_pool_.last_length
-            seq_count = np.array([self._occurrences_overlapping_cache(self._sequence, seg, ext) for seg in seg_pool_], dtype=np.int32)
+            ext = seg_pool_.current_max_length - seg_pool_.last_length  # for pre-caching purposes
+            seq_count = np.array(
+                [
+                    self._occurrences_overlapping_cache(
+                        self._sequence, km.canonical_reverse_complement(seg), ext
+                    ) for seg in seg_pool_
+                ],
+                dtype=np.int32
+            )
 
             self.cache.refresh()
 
