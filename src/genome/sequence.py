@@ -63,17 +63,6 @@ class Sequence:
         # Directly map the sequence to integer values without a separate function
         kmer_seq = list(map(lambda i: km.kmer_mapping(self[i:i + k]), range(len(self) - k + 1)))
 
-        # remove identical consecutive k-mers if no_consecutive is True
-        if no_consecutive:
-            new = [kmer_seq[0]]
-            for i in range(1, len(kmer_seq)):
-                if kmer_seq[i] == new[-1]:
-                    continue
-
-                new.append(kmer_seq[i])
-
-            kmer_seq = new
-
         kmer_seq = np.array(kmer_seq, dtype=np.int32)
         kmer_count = np.bincount(kmer_seq, minlength=n)
 
