@@ -13,103 +13,102 @@ class Sequence:
     ):
         self.filepath = filepath
         self.keep_read_error = keep_read_error
-        self._sequence = ''
+        self._nodes = []
         self._read_sequence()
 
-        self.cache = Cache()
+        self.cache = Cache(len(self._nodes))
 
     def __len__(self):
-        return len(self._sequence)
+        return sum(len(contig) for contig in self._nodes)
 
     def __getitem__(self, index):
-        return self._sequence[index]
+        for contig in self._nodes:
+            if index < len(contig):
+                return contig[index]
+            index -= len(contig)
+        raise IndexError("Index out of range")
 
     def __str__(self):
-        return self._sequence
+        return ''.join(self._nodes)
+
+    def len_nodes(self):
+        return len(self._nodes)
 
     def _read_sequence(self):
         with open(self.filepath, 'r') as f:
             string = f.read().split('\n')
 
         # use filter() to remove header and empty lines
-        string = list(filter(lambda x: not x.startswith('>') and x != '', string))
+        contigs = list(filter(lambda x: not x.startswith('>') and x != '', string))
 
-        # join the list of strings into one string
-        string = ''.join(string)
-
-        # change to lower case
-        string = string.lower()
+        # change all contigs to lower case
+        contigs = [contig.lower() for contig in contigs]
 
         if self.keep_read_error:
-            # change any character other than 'a', 't', 'g', 'c' to 'n'
-            string = ''.join([c if c in 'atgc' else 'n' for c in string])
+            # change any character other than 'a', 't', 'g', 'c' to 'n' in each contig
+            contigs = [''.join([c if c in 'atgc' else 'n' for c in contig]) for contig in contigs]
         else:
-            # remove any character other than 'a', 't', 'g', 'c'
-            string = ''.join([c for c in string if c in 'atgc'])
+            # remove any character other than 'a', 't', 'g', 'c' in each contig
+            contigs = [''.join([c for c in contig if c in 'atgc']) for contig in contigs]
 
-        self._sequence = string
+        self._nodes = contigs
 
     def get_kmer_count(self, k: int, no_consecutive: bool):
         """
-        Bin count for k-mers. Faster than the lookup table with sequence matching. Used initially before any subsequence
-        is selected.
+        Bin count for k-mers across all contigs. Faster than the lookup table with sequence matching.
         :param k: int: The length of the k-mers.
-        :param no_consecutive: bool: Remove consecutive identical k-mers if True.
+        :param no_consecutive: bool: Deprecated.
         """
         base = 5 if self.keep_read_error else 4
         n = base ** k  # number of possible k-mers
 
-        # Directly map the sequence to integer values without a separate function
-        kmer_seq = list(
-            map(lambda i: km.kmer_mapping(km.canonical_reverse_complement(self[i:i + k])), range(len(self) - k + 1))
-        )
+        # Iterate through each node and count k-mers
+        counts = [
+            km.kmer_mapping(km.canonical_reverse_complement(node[i:i + k]))
+            for node in self._nodes if len(node) >= k
+            for i in range(len(node) - k + 1)
+        ]
 
-        kmer_seq = np.array(kmer_seq, dtype=np.int32)
-        kmer_count = np.bincount(kmer_seq, minlength=n)
+        kmer_count = np.bincount(counts, minlength=n).astype(np.int32)
 
         return kmer_count
 
-    def get_count_from_seg_manager(self, seg_pool_, no_consecutive):
-
+    def get_count_from_seg_manager(self, seg_pool_, no_consecutive=False):
         """
         Given a kmer sequence, return the transition frequency matrix. Cache is only available for the overlapping
         count for now.
         :param seg_pool_: SegmentPool: The SegmentPool instance.
-        :param no_consecutive: bool: Remove consecutive identical k-mers if True.
+        :param no_consecutive: bool: Removed
         """
-        if no_consecutive:
-            seq_count = np.array(
-                [self._occurrences(self._sequence, km.canonical_reverse_complement(seg)) for seg in seg_pool_],
-                dtype=np.int32
-            )
-        else:
-            ext = seg_pool_.current_max_length - seg_pool_.last_length  # for pre-caching purposes
-            seq_count = np.array(
-                [
-                    self._occurrences_overlapping_cache(
-                        self._sequence, km.canonical_reverse_complement(seg), ext
-                    ) for seg in seg_pool_
-                ],
-                dtype=np.int32
-            )
 
-            self.cache.refresh()
+        ext = seg_pool_.current_max_length - seg_pool_.last_length  # for pre-caching purposes
 
+        counts = [
+            self._occurrences_overlapping_cache(
+                node, km.canonical_reverse_complement(seg), ext, node_id
+            )
+            for node_id, node in enumerate(self._nodes)
+            for seg in seg_pool_
+        ]
+        seq_counts = np.array(counts).reshape(len(self._nodes), -1)
+        self.cache.refresh()
+
+        seq_count = np.sum(seq_counts, axis=0, dtype=np.int32)
         return seq_count
 
-    def _occurrences_overlapping_cache(self, string, sub, ext):
+    def _occurrences_overlapping_cache(self, string, sub, ext, node_id):
         """
         Count the occurrences of a substring in a string. Use cache to store the indices of the substring.
-        :param string: master string
+        :param string: master string (contig in this case)
         :param sub: substring
         :param ext: the extension length
         :return:
         """
-        cached = self.cache.get(sub)
+        cached = self.cache.get(sub, node_id)
         # cache hit
         if cached:
             starts = cached['indices']
-            _ = [self._pre_cache(start, start + len(sub), ext) for start in starts]
+            _ = [self._pre_cache(start, start + len(sub), ext, node_id) for start in starts]
             return cached['count']
 
         # cache miss
@@ -117,14 +116,14 @@ class Sequence:
         while True:
             start = string.find(sub, start)
             if start >= 0:
-                self.cache.set(sub, start)
-                self._pre_cache(start, start + len(sub), ext)
+                self.cache.set(sub, start, node_id)
+                self._pre_cache(start, start + len(sub), ext, node_id)
                 count += 1
                 start += 1
             else:
                 return count
 
-    def _pre_cache(self, start, end, length):
+    def _pre_cache(self, start, end, length, node_id):
         """
         Pre-cache the extensions of the substring.
         :param start:
@@ -133,7 +132,7 @@ class Sequence:
         :return:
         """
         _ = [
-            self.cache.set(self._sequence[j: j + end - (start - i)], j)
+            self.cache.set(self._nodes[node_id][j: j + end - (start - i)], j, node_id)
             for i in range(1, length + 1)
             for j in range(start - i, start + 1)
         ]

@@ -11,50 +11,50 @@ The cache is used to store the segment counts. E.g.
 
 
 class Cache:
-    def __init__(self):
-        self.cache = {}
+    def __init__(self, num_nodes: int):
+        self._caches = [{} for _ in range(num_nodes)]
 
     def __len__(self):
-        return len(self.cache)
+        return len(self._caches)
 
     def __contains__(self, segment: str):
-        return segment in self.cache
+        return segment in self._caches
 
-    def get(self, segment: str):
-        if segment in self.cache:
-            self.cache[segment]['ttl'] += 1
+    def get(self, segment: str, node_id: int):
+        if segment in self._caches[node_id]:
+            self._caches[node_id][segment]['ttl'] += 1
 
             return {
-                'count': self.cache[segment]['count'],
-                'indices': list(self.cache[segment]['indices'])
+                'count': self._caches[node_id][segment]['count'],
+                'indices': list(self._caches[node_id][segment]['indices'])
             }
 
         return None
 
-    def set(self, segment: str, index: int):
-        if segment not in self.cache:
-            self.cache[segment] = {
+    def set(self, segment: str, index: int, node_id: int):
+        if segment not in self._caches[node_id]:
+            self._caches[node_id][segment] = {
                 'count': 0,
                 'indices': set(),
                 'ttl': 0
             }
 
-        self.cache[segment]['indices'].add(index)
-        self.cache[segment]['count'] = len(self.cache[segment]['indices'])
-        self.cache[segment]['ttl'] = 1
+        self._caches[node_id][segment]['indices'].add(index)
+        self._caches[node_id][segment]['count'] = len(self._caches[node_id][segment]['indices'])
+        self._caches[node_id][segment]['ttl'] = 1
 
     def clear(self):
-        self.cache = {}
+        self._caches = {}
 
     def refresh(self):
         """
         Reduce the ttl for all and remove the segments that have a ttl of less than 0.
         """
-        self.cache = {
+        self._caches = [{
             segment: {
-                'count': self.cache[segment]['count'],
-                'indices': self.cache[segment]['indices'],
-                'ttl': self.cache[segment]['ttl'] - 1
+                'count': cache[segment]['count'],
+                'indices': cache[segment]['indices'],
+                'ttl': cache[segment]['ttl'] - 1
             }
-            for segment in self.cache if self.cache[segment]['ttl'] >= 1
-        }
+            for segment in cache if cache[segment]['ttl'] >= 1
+        } for cache in self._caches]
