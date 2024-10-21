@@ -3,6 +3,7 @@ import time
 
 from src.genome import km
 from src.genome.cache import Cache
+from src.genome import get_complement
 
 
 class Sequence:
@@ -14,6 +15,7 @@ class Sequence:
         self.filepath = filepath
         self.keep_read_error = keep_read_error
         self._nodes = []
+        self._complement_nodes = []
         self._read_sequence()
 
         self.cache = Cache(len(self._nodes))
@@ -52,6 +54,7 @@ class Sequence:
             contigs = [''.join([c for c in contig if c in 'atgc']) for contig in contigs]
 
         self._nodes = contigs
+        self._complement_nodes = [get_complement(contig) for contig in contigs]
 
     def get_kmer_count(self, k: int, no_consecutive: bool):
         """
@@ -64,7 +67,7 @@ class Sequence:
 
         # Iterate through each node and count k-mers
         counts = [
-            km.kmer_mapping(km.canonical_reverse_complement(node[i:i + k]))
+            km.kmer_mapping(km.convert_to_canonical(node[i:i + k]))
             for node in self._nodes if len(node) >= k
             for i in range(len(node) - k + 1)
         ]
@@ -83,45 +86,74 @@ class Sequence:
 
         ext = seg_pool_.current_max_length - seg_pool_.last_length  # for pre-caching purposes
 
-        counts = [
-            self._occurrences_overlapping_cache(
-                node, km.canonical_reverse_complement(seg), ext, node_id
-            )
-            for node_id, node in enumerate(self._nodes)
-            for seg in seg_pool_
-        ]
-        seq_counts = np.array(counts).reshape(len(self._nodes), -1)
+        seq_counts = np.fromiter(
+            (
+                self._occurrences_overlapping_cache(
+                    node, seg, ext, node_id
+                )
+                for node_id, node in enumerate(self._nodes)
+                for seg in seg_pool_
+            ),
+            dtype=np.int32,
+            count=len(self._nodes) * len(seg_pool_)
+        ).reshape(len(self._nodes), len(seg_pool_))
+
         self.cache.refresh()
 
         seq_count = np.sum(seq_counts, axis=0, dtype=np.int32)
+
         return seq_count
 
-    def _occurrences_overlapping_cache(self, string, sub, ext, node_id):
+    def _occurrences_overlapping_cache(self, genome, canonical_sub, ext, node_id):
         """
         Count the occurrences of a substring in a string. Use cache to store the indices of the substring.
-        :param string: master string (contig in this case)
-        :param sub: substring
+        :param genome: master string (contig in this case)
+        :param canonical_sub: substring
         :param ext: the extension length
         :return:
         """
-        cached = self.cache.get(sub, node_id)
+        # return 0 if the canonical_sub is not truly canonical. Prevent errors from the seg_pool
+        if get_complement(canonical_sub) < canonical_sub:
+            return 0
+
+        cached = self.cache.get(canonical_sub, node_id)
         # cache hit
         if cached:
             starts = cached['indices']
-            _ = [self._pre_cache(start, start + len(sub), ext, node_id) for start in starts]
+            _ = [self._pre_cache(start, start + len(canonical_sub), ext, node_id) for start in starts]
             return cached['count']
 
         # cache miss
         count = start = 0
         while True:
-            start = string.find(sub, start)
+            start = genome.find(canonical_sub, start)
             if start >= 0:
-                self.cache.set(sub, start, node_id)
-                self._pre_cache(start, start + len(sub), ext, node_id)
+                self.cache.set(canonical_sub, start, node_id)
+                self._pre_cache(start, start + len(canonical_sub), ext, node_id)
                 count += 1
                 start += 1
             else:
-                return count
+                break
+
+        # get the complement of the canonical substring
+        complement_sub = get_complement(canonical_sub)
+
+        # prevent palindrome sequences or errors.
+        if complement_sub <= canonical_sub:
+            return count
+
+        start = 0
+        while True:
+            start = genome.find(complement_sub, start)
+            if start >= 0:
+                self.cache.set(complement_sub, start, node_id)
+                self._pre_cache(start, start + len(complement_sub), ext, node_id)
+                count += 1
+                start += 1
+            else:
+                break
+
+        return count
 
     def _pre_cache(self, start, end, length, node_id):
         """
@@ -137,14 +169,35 @@ class Sequence:
             for j in range(start - i, start + 1)
         ]
 
-    def _occurrences_overlapping(self, string, sub):
+    def _occurrences_overlapping(self, genome, canonical_sub):
+        # return 0 if the canonical_sub is not truly canonical
+        if get_complement(canonical_sub) < canonical_sub:
+            return 0
+
         count = start = 0
+
+        # count the canonical substring in the genome first
         while True:
-            start = string.find(sub, start) + 1
+            start = genome.find(canonical_sub, start) + 1
             if start > 0:
                 count += 1
             else:
-                return count
+                break
 
-    def _occurrences(self, string, sub):
-        return string.count(sub)
+        # get the complement of the canonical substring
+        complement_sub = get_complement(canonical_sub)
+
+        # prevent palindrome sequences or errors.
+        if complement_sub >= canonical_sub:
+            return count
+
+        # count the complement substring in the genome
+        start = 0
+        while True:
+            start = genome.find(complement_sub, start) + 1
+            if start > 0:
+                count += 1
+            else:
+                break
+
+        return count

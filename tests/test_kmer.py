@@ -19,7 +19,7 @@ class TestKmer(unittest.TestCase):
 
         for sequence, expected in test_cases:
             with self.subTest(sequence=sequence):
-                result = self.kmer.canonical_reverse_complement(sequence)
+                result = self.kmer.convert_to_canonical(sequence)
                 self.assertEqual(result, expected)
 
 

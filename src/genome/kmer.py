@@ -1,5 +1,7 @@
 import numpy as np
 
+from src.genome.utils import get_complement
+
 
 class Kmer:
     def __init__(
@@ -11,15 +13,11 @@ class Kmer:
         self.base = 5 if self.keep_read_error else 4
 
     @staticmethod
-    def canonical_reverse_complement(sequence):
+    def convert_to_canonical(sequence):
         """
-        Get the canonical reverse complement of a sequence.
-        :param sequence: str: The sequence.
-        :return: str: The canonical reverse complement.
+        Get the canonical kmer
         """
-        complement_map = {'a': 't', 't': 'a', 'g': 'c', 'c': 'g'}
-        reverse_complement = "".join(complement_map[base] for base in reversed(sequence))
-        return min(sequence, reverse_complement)
+        return min(sequence, get_complement(sequence))
 
     def kmer_mapping(self, sequence):
         """
