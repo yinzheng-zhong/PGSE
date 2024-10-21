@@ -9,3 +9,9 @@ def get_complement(sequence):
     sequence = sequence[::-1]
     complement = "".join(complement_map[base] for base in sequence)
     return complement
+
+def canonicalize(sequence):
+    """
+    Get the canonical kmer
+    """
+    return min(sequence, get_complement(sequence))

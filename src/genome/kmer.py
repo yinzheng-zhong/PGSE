@@ -12,13 +12,6 @@ class Kmer:
         self.nuc_map = {'a': 0, 't': 1, 'g': 2, 'c': 3, 'n': 4} if keep_read_error else {'a': 0, 't': 1, 'g': 2, 'c': 3}
         self.base = 5 if self.keep_read_error else 4
 
-    @staticmethod
-    def convert_to_canonical(sequence):
-        """
-        Get the canonical kmer
-        """
-        return min(sequence, get_complement(sequence))
-
     def kmer_mapping(self, sequence):
         """
         'aa' = 0 and 'at' = 1. 'aaa' also = 0

@@ -1,7 +1,7 @@
 import numpy as np
 import time
 
-from src.genome import km
+from src.genome import km, canonicalize
 from src.genome.cache import Cache
 from src.genome import get_complement
 
@@ -67,7 +67,7 @@ class Sequence:
 
         # Iterate through each node and count k-mers
         counts = [
-            km.kmer_mapping(km.convert_to_canonical(node[i:i + k]))
+            km.kmer_mapping(canonicalize(node[i:i + k]))
             for node in self._nodes if len(node) >= k
             for i in range(len(node) - k + 1)
         ]

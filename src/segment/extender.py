@@ -1,6 +1,6 @@
 import itertools
 
-from src.genome import seq_manager
+from src.genome import canonicalize
 from src.segment import seg_pool
 from src.log import logger
 
@@ -36,13 +36,17 @@ class Extender:
         # reshape the list of lists to a single list
         new = [item for sublist in new for item in sublist]
 
+        canonical_sequences = [canonicalize(seq) for seq in new]
+        # remove duplicates
+        canonical_sequences = list(set(canonical_sequences))
+
         if len(new) > 0:
             logger.info(f'Adding {len(new)} new segments to the pool')
         else:
             logger.warning('No new segments to add. Finished extending all segments')
             raise ValueError('No new segments to add')
 
-        seg_pool.add_subsequences(new, current_length=seg_pool.current_max_length + length)
+        seg_pool.add_subsequences(canonical_sequences, current_length=seg_pool.current_max_length + length)
         logger.info(f'Current max length: {seg_pool.current_max_length}')
         logger.warning("The order of the segments might have changed")
 

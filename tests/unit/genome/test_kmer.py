@@ -1,11 +1,11 @@
 import unittest
-from src.genome.kmer import Kmer
+from src.genome import canonicalize
 
 
-class TestKmer(unittest.TestCase):
+class TestUtil(unittest.TestCase):
 
     def setUp(self):
-        self.kmer = Kmer()
+        pass
 
     def test_canonical_reverse_complement(self):
         # Test cases
@@ -19,7 +19,7 @@ class TestKmer(unittest.TestCase):
 
         for sequence, expected in test_cases:
             with self.subTest(sequence=sequence):
-                result = self.kmer.convert_to_canonical(sequence)
+                result = canonicalize(sequence)
                 self.assertEqual(result, expected)
 
 
