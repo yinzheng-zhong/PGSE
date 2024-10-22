@@ -17,7 +17,6 @@ class Sequence:
         self.filepath = filepath
         self.keep_read_error = keep_read_error
         self.concatenate_nodes = concatenate_nodes
-        self.lib = self._load_lib()
         self._nodes = []
         self._complement_nodes = []
         self._read_sequence()
@@ -84,7 +83,6 @@ class Sequence:
         else:
             # remove any character other than 'a', 't', 'g', 'c' in each contig
             contigs = [''.join([c for c in contig if c in 'atgc']) for contig in contigs]
-
 
         if self.concatenate_nodes:
             self._nodes = [''.join(contigs)]
@@ -210,11 +208,12 @@ class Sequence:
         ]
 
     def _occurrences_overlapping(self, genome, canonical_sub):
+        lib = self._load_lib()
         # return 0 if the canonical_sub is not truly canonical. Prevent errors from the seg_pool
         if get_complement(canonical_sub) < canonical_sub:
             return 0
 
-        count = self.lib.count_substrings(genome.encode('utf-8'), canonical_sub.encode('utf-8'))
+        count = lib.count_substrings(genome.encode('utf-8'), canonical_sub.encode('utf-8'))
 
         # get the complement of the canonical substring
         complement_sub = get_complement(canonical_sub)
@@ -223,6 +222,6 @@ class Sequence:
         if complement_sub <= canonical_sub:
             return count
 
-        count += self.lib.count_substrings(genome.encode('utf-8'), complement_sub.encode('utf-8'))
+        count += lib.count_substrings(genome.encode('utf-8'), complement_sub.encode('utf-8'))
 
         return count
