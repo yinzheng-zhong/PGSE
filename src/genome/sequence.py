@@ -119,12 +119,12 @@ class Sequence:
         :param no_consecutive: bool: Removed
         """
 
-        ext = seg_pool_.current_max_length - seg_pool_.last_length  # for pre-caching purposes
+        lib = self._load_lib()  # load the library here for Ray compatibility
 
         seq_counts = np.fromiter(
             (
                 self._occurrences_overlapping(
-                    node, seg
+                    node, seg, lib
                 )
                 for node in self._nodes
                 for seg in seg_pool_
@@ -207,8 +207,7 @@ class Sequence:
             for j in range(start - i, start + 1)
         ]
 
-    def _occurrences_overlapping(self, genome, canonical_sub):
-        lib = self._load_lib()
+    def _occurrences_overlapping(self, genome, canonical_sub, lib):
         # return 0 if the canonical_sub is not truly canonical. Prevent errors from the seg_pool
         if get_complement(canonical_sub) < canonical_sub:
             return 0
