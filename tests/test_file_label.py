@@ -11,7 +11,7 @@ class TestFileLabel(unittest.TestCase):
     def setUp(self, mock_read_csv):
         mock_data = pd.DataFrame({
             'files': ['file1', 'file2', 'file3', 'file4'],
-            'labels': ['0', '1', '0', '1']
+            'labels': ['0.1', '1.1', '0.1', '1.1']
         })
         mock_read_csv.return_value = mock_data
         self.file_label = FileLabel('dummy_label_file.csv', '/dummy/data/dir/')
@@ -34,3 +34,11 @@ class TestFileLabel(unittest.TestCase):
         self.assertEqual(len(test_files), 1)
         self.assertEqual(len(train_labels), 3)
         self.assertEqual(len(test_labels), 1)
+
+    def test_stratify_disabled(self):
+        train_files, test_files, train_labels, test_labels = self.file_label.get_train_test_path(num_folds=2, fold_index=0)
+        self.assertEqual(len(train_files), 3)
+        self.assertEqual(len(test_files), 1)
+        self.assertEqual(len(train_labels), 3)
+        self.assertEqual(len(test_labels), 1)
+

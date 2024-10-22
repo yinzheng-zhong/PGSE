@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, KFold
+from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
 
 from src.log import logger
 from collections import Counter
@@ -55,10 +55,16 @@ class FileLabel:
         labels = np.array(list(self.label_lookup.values()), dtype=np.float32)
 
         if num_folds <= 0:
-            return self._perform_train_test_split(files, labels, test_size, random_state)
+            return self._perform_train_test_split(files, labels.astype(np.int32), test_size, random_state)
         else:
-            k_fold_instance = KFold(n_splits=num_folds, shuffle=True, random_state=random_state)
-            splits = list(k_fold_instance.split(files, labels))
+            try:
+                k_fold_instance = StratifiedKFold(n_splits=num_folds, shuffle=True, random_state=random_state)
+                splits = list(k_fold_instance.split(files, labels.astype(np.int32)))
+            except ValueError as e:
+                logger.warning(f'StratifiedKFold failed: {e}. Falling back to KFold.')
+                k_fold_instance = KFold(n_splits=num_folds, shuffle=True, random_state=random_state)
+                splits = list(k_fold_instance.split(files))
+
             train_index, test_index = splits[fold_index]
 
             train_files = [files[i] for i in train_index]
