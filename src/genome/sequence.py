@@ -11,9 +11,11 @@ class Sequence:
             self,
             filepath: str,
             keep_read_error=False,
+            concatenate_nodes=False
     ):
         self.filepath = filepath
         self.keep_read_error = keep_read_error
+        self.concatenate_nodes = concatenate_nodes
         self._nodes = []
         self._complement_nodes = []
         self._read_sequence()
@@ -40,11 +42,14 @@ class Sequence:
         with open(self.filepath, 'r') as f:
             string = f.read().split('\n')
 
-        # use filter() to remove header and empty lines
-        contigs = list(filter(lambda x: not x.startswith('>') and x != '', string))
+        # find the indices of all headers
+        headers = [i for i, row in enumerate(string) if row.startswith('>')]
 
-        # change all contigs to lower case
-        contigs = [contig.lower() for contig in contigs]
+        # read the contigs between the headers
+        contigs_multi_rows = [string[i+1:j] for i, j in zip(headers, headers[1:]+[None])]
+
+        # concatenate the contigs and convert to lowercase
+        contigs = [''.join(contig).lower() for contig in contigs_multi_rows]
 
         if self.keep_read_error:
             # change any character other than 'a', 't', 'g', 'c' to 'n' in each contig
@@ -53,8 +58,13 @@ class Sequence:
             # remove any character other than 'a', 't', 'g', 'c' in each contig
             contigs = [''.join([c for c in contig if c in 'atgc']) for contig in contigs]
 
-        self._nodes = contigs
-        self._complement_nodes = [get_complement(contig) for contig in contigs]
+
+        if self.concatenate_nodes:
+            self._nodes = [''.join(contigs)]
+            self._complement_nodes = [get_complement(contigs[0])]
+        else:
+            self._nodes = contigs
+            self._complement_nodes = [get_complement(contig) for contig in contigs]
 
     def get_kmer_count(self, k: int, no_consecutive: bool):
         """

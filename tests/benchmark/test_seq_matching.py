@@ -1,3 +1,5 @@
+from turtledemo.penrose import start
+
 TEST_SEGMENTS = ['atgtaaggcc', 'aaggcctt', 'cacatgaacc', 'ctgttgcaaa', 'ggcctttgaa', 'attcaaaggc', 'ttcaaaggcc',
                  'catgaaccca', 'tgtaaggcct', 'agttagcgat', 'cactgttgca', 'tgcaacagtg', 'gtaagcagag', 'gtgggccgta',
                  'accgactatt', 'aaggccggca', 'gcctttgaat', 'agaaaaaa', 'actgttgcaa', 'ggcactgttg', 'tcaaaaactc',
@@ -202,102 +204,13 @@ from time import time
 
 class TestCache(unittest.TestCase):
     def setUp(self):
-        self.sequence = Sequence('benchmark/test_genome.fna', concatenate_nodes=False)
-        seg_pool.segments = TEST_SEGMENTS
+        self.sequence = Sequence('test_genome.fna', concatenate_nodes=False)
+        seg_pool.segments = TEST_SEGMENTS[:100]
         seg_pool.current_max_length = 10
         seg_pool.last_length = 8
         self.cache = Cache(156)
-        self.extender = Extender()
 
-    def _occurrences_overlapping(self, string, sub):
-        count = start = 0
-        while True:
-            start = string.find(sub, start) + 1
-            if start > 0:
-                count += 1
-            else:
-                return count
-
-    def _occurrences_overlapping_cache(self, string, sub):
-        length = seg_pool.current_max_length - seg_pool.last_length
-
-        cached = self.cache.get(sub)
-        # hit
-        if cached:
-            starts = cached['indices']
-            _ = [self._pre_cache(start, start + len(sub), length) for start in starts]
-            return cached['count']
-
-        # miss
-        count = start = 0
-        while True:
-            start = string.find(sub, start)
-            if start >= 0:
-                self.cache.set(sub, start)
-                self._pre_cache(start, start + len(sub), length)
-                count += 1
-                start += 1
-            else:
-                return count
-
-    def _pre_cache(self, start, end, length):
-        _ = [
-            self.cache.set(self.sequence._sequence[j: j + end - (start - i)], j)
-            for i in range(1, length + 1)
-            for j in range(start - i, start + 1)
-        ]
-
-    def test_get_from_segpool_without_cache(self):
-        start = time()
-        counts = np.array([self._occurrences_overlapping(self.sequence._sequence, seg) for seg in seg_pool],
-                          dtype=np.int32)
-        time1 = time() - start
-        print(f'Time for init (no cache): {time1}. Total counts: {np.sum(counts)}')
-
-        # extend the segment pool
-        self.extender.extend_all_segs(2)
-
-        start = time()
-        counts = np.array([self._occurrences_overlapping(self.sequence._sequence, seg) for seg in seg_pool],
-                          dtype=np.int32)
-        time2 = time() - start
-        print(f'Time for extend (no cache): {time2}. Total counts: {np.sum(counts)}')
-
-        seg_pool.segments = seg_pool.segments[:200]
-        self.extender.extend_all_segs(2)
-        start = time()
-        counts = np.array([self._occurrences_overlapping(self.sequence._sequence, seg) for seg in seg_pool],
-                          dtype=np.int32)
-        time3 = time() - start
-        print(f'Time for extend (no cache): {time3}. Total counts: {np.sum(counts)}')
-
-        print('Total time:', time1 + time2 + time3)
-
-    def test_get_from_segpool_with_cache(self):
-        start = time()
-        counts = np.array([self._occurrences_overlapping_cache(self.sequence._sequence, seg) for seg in seg_pool],
-                          dtype=np.int32)
-        self.cache.refresh()
-        time1 = time() - start
-        print(f'Time for init (cached): {time1}. Total counts: {np.sum(counts)}')
-
-        # extend the segment pool
-        self.extender.extend_all_segs(2)
-
-        start = time()
-        counts = np.array([self._occurrences_overlapping_cache(self.sequence._sequence, seg) for seg in seg_pool],
-                          dtype=np.int32)
-        self.cache.refresh()
-        time2 = time() - start
-        print(f'Time for extend (cached): {time2}. Total counts: {np.sum(counts)}')
-
-        seg_pool.segments = seg_pool.segments[:200]
-        self.extender.extend_all_segs(2)
-        start = time()
-        counts = np.array([self._occurrences_overlapping_cache(self.sequence._sequence, seg) for seg in seg_pool],
-                          dtype=np.int32)
-        self.cache.refresh()
-        time3 = time() - start
-        print(f'Time for extend (cached): {time3}. Total counts: {np.sum(counts)}')
-
-        print('Total time:', time1 + time2 + time3)
+    def test_get_count_from_seg_manager(self):
+        start_time = time()
+        o = self.sequence.get_count_from_seg_manager(seg_pool)
+        print(time() - start_time)

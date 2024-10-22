@@ -4,11 +4,12 @@ def get_complement(sequence):
     :param sequence: str: The sequence.
     :return: str: The complement.
     """
-    complement_map = {'a': 't', 't': 'a', 'g': 'c', 'c': 'g'}
-    # reverse the sequence
-    sequence = sequence[::-1]
-    complement = "".join(complement_map[base] for base in sequence)
-    return complement
+    # Create the translation table once outside the function
+    complement_map = str.maketrans('atgc', 'tacg')
+
+    # Translate and reverse in one step
+    return sequence.translate(complement_map)[::-1]
+
 
 def canonicalize(sequence):
     """
