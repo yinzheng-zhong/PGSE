@@ -4,6 +4,7 @@ import time
 from src.genome import km, canonicalize
 from src.genome.cache import Cache
 from src.genome import get_complement
+import ctypes
 
 
 class Sequence:
@@ -16,6 +17,7 @@ class Sequence:
         self.filepath = filepath
         self.keep_read_error = keep_read_error
         self.concatenate_nodes = concatenate_nodes
+        self.lib = self._load_lib()
         self._nodes = []
         self._complement_nodes = []
         self._read_sequence()
@@ -34,6 +36,30 @@ class Sequence:
 
     def __str__(self):
         return ''.join(self._nodes)
+
+    def _load_lib(self):
+        lib = None
+
+        possible_locations = [
+            '../../c/count_substrings.so',
+            'c/count_substrings.so'
+        ]
+        # try to load the library
+        for location in possible_locations:
+            try:
+                lib = ctypes.CDLL(location)
+                break
+            except OSError:
+                pass
+
+        lib.count_substrings.argtypes = [
+            ctypes.c_char_p, ctypes.c_char_p
+        ]
+        lib.count_substrings.restype = ctypes.c_int
+        if lib is None:
+            raise FileNotFoundError("Library count_substrings not found")
+
+        return lib
 
     def len_nodes(self):
         return len(self._nodes)
@@ -98,10 +124,10 @@ class Sequence:
 
         seq_counts = np.fromiter(
             (
-                self._occurrences_overlapping_cache(
-                    node, seg, ext, node_id
+                self._occurrences_overlapping(
+                    node, seg
                 )
-                for node_id, node in enumerate(self._nodes)
+                for node in self._nodes
                 for seg in seg_pool_
             ),
             dtype=np.int32,
@@ -116,6 +142,7 @@ class Sequence:
 
     def _occurrences_overlapping_cache(self, genome, canonical_sub, ext, node_id):
         """
+        Deprecated Python implementation.
         Count the occurrences of a substring in a string. Use cache to store the indices of the substring.
         :param genome: master string (contig in this case)
         :param canonical_sub: substring
@@ -144,6 +171,8 @@ class Sequence:
                 start += 1
             else:
                 break
+
+        # count = self.lib.count_substrings(genome.encode('utf-8'), canonical_sub.encode('utf-8'))
 
         # get the complement of the canonical substring
         complement_sub = get_complement(canonical_sub)
@@ -180,34 +209,19 @@ class Sequence:
         ]
 
     def _occurrences_overlapping(self, genome, canonical_sub):
-        # return 0 if the canonical_sub is not truly canonical
+        # return 0 if the canonical_sub is not truly canonical. Prevent errors from the seg_pool
         if get_complement(canonical_sub) < canonical_sub:
             return 0
 
-        count = start = 0
-
-        # count the canonical substring in the genome first
-        while True:
-            start = genome.find(canonical_sub, start) + 1
-            if start > 0:
-                count += 1
-            else:
-                break
+        count = self.lib.count_substrings(genome.encode('utf-8'), canonical_sub.encode('utf-8'))
 
         # get the complement of the canonical substring
         complement_sub = get_complement(canonical_sub)
 
         # prevent palindrome sequences or errors.
-        if complement_sub >= canonical_sub:
+        if complement_sub <= canonical_sub:
             return count
 
-        # count the complement substring in the genome
-        start = 0
-        while True:
-            start = genome.find(complement_sub, start) + 1
-            if start > 0:
-                count += 1
-            else:
-                break
+        count += self.lib.count_substrings(genome.encode('utf-8'), complement_sub.encode('utf-8'))
 
         return count
