@@ -42,6 +42,7 @@ class Sequence:
 
         possible_locations = [
             '../../c/count_substrings.so',
+            '../c/count_substrings.so',
             'c/count_substrings.so'
         ]
         # try to load the library

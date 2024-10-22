@@ -37,3 +37,9 @@ class TestSequence(unittest.TestCase):
             list(count)
         )
 
+    def test_overlapping_string_count(self):
+        string = 'aaactgccaggcatcaaattagat'
+        sub_string = 'aa'
+
+        count = self.sequence.lib.count_substrings(string.encode('utf-8'), sub_string.encode('utf-8'))
+        self.assertEqual(4, count)
