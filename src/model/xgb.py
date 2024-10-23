@@ -15,7 +15,7 @@ class XGBoost:
             self,
             partition_size: int,
             boost_rounds: int = 250,
-            max_depth: int = 4,
+            max_depth: int = 3,
             base_learning_rate: float = 0.05,
             importance_type: str = 'gain',
             use_partition: bool = False,
