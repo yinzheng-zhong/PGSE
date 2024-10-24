@@ -56,8 +56,6 @@ class Sequence:
             ctypes.c_char_p, ctypes.c_char_p
         ]
         lib.count_substrings.restype = ctypes.c_int
-        if lib is None:
-            raise FileNotFoundError("Library count_substrings not found")
 
         return lib
 
@@ -111,19 +109,23 @@ class Sequence:
 
         return kmer_count
 
-    def get_count_from_seg_manager(self, seg_pool_, no_consecutive=False):
+    def get_count_from_seg_manager(self, seg_pool_):
         """
         Given a kmer sequence, return the transition frequency matrix. Cache is only available for the overlapping
         count for now.
         :param seg_pool_: SegmentPool: The SegmentPool instance.
-        :param no_consecutive: bool: Removed
         """
 
         lib = self._load_lib()  # load the library here for Ray compatibility
+        if lib is None:
+            print('C library not found. Using Python implementation.')
+            counting_method = self._occurrences_overlapping_py
+        else:
+            counting_method = self._occurrences_overlapping
 
         seq_counts = np.fromiter(
             (
-                self._occurrences_overlapping(
+                counting_method(
                     node, seg, lib
                 )
                 for node in self._nodes
@@ -133,79 +135,9 @@ class Sequence:
             count=len(self._nodes) * len(seg_pool_)
         ).reshape(len(self._nodes), len(seg_pool_))
 
-        self.cache.refresh()
-
         seq_count = np.sum(seq_counts, axis=0, dtype=np.int32)
 
         return seq_count
-
-    def _occurrences_overlapping_cache(self, genome, canonical_sub, ext, node_id):
-        """
-        Deprecated Python implementation.
-        Count the occurrences of a substring in a string. Use cache to store the indices of the substring.
-        :param genome: master string (contig in this case)
-        :param canonical_sub: substring
-        :param ext: the extension length
-        :return:
-        """
-        # return 0 if the canonical_sub is not truly canonical. Prevent errors from the seg_pool
-        if get_complement(canonical_sub) < canonical_sub:
-            return 0
-
-        cached = self.cache.get(canonical_sub, node_id)
-        # cache hit
-        if cached:
-            starts = cached['indices']
-            _ = [self._pre_cache(start, start + len(canonical_sub), ext, node_id) for start in starts]
-            return cached['count']
-
-        # cache miss
-        count = start = 0
-        while True:
-            start = genome.find(canonical_sub, start)
-            if start >= 0:
-                self.cache.set(canonical_sub, start, node_id)
-                self._pre_cache(start, start + len(canonical_sub), ext, node_id)
-                count += 1
-                start += 1
-            else:
-                break
-
-        # count = self.lib.count_substrings(genome.encode('utf-8'), canonical_sub.encode('utf-8'))
-
-        # get the complement of the canonical substring
-        complement_sub = get_complement(canonical_sub)
-
-        # prevent palindrome sequences or errors.
-        if complement_sub <= canonical_sub:
-            return count
-
-        start = 0
-        while True:
-            start = genome.find(complement_sub, start)
-            if start >= 0:
-                self.cache.set(complement_sub, start, node_id)
-                self._pre_cache(start, start + len(complement_sub), ext, node_id)
-                count += 1
-                start += 1
-            else:
-                break
-
-        return count
-
-    def _pre_cache(self, start, end, length, node_id):
-        """
-        Pre-cache the extensions of the substring.
-        :param start:
-        :param end:
-        :param length:
-        :return:
-        """
-        _ = [
-            self.cache.set(self._nodes[node_id][j: j + end - (start - i)], j, node_id)
-            for i in range(1, length + 1)
-            for j in range(start - i, start + 1)
-        ]
 
     def _occurrences_overlapping(self, genome, canonical_sub, lib):
         # return 0 if the canonical_sub is not truly canonical. Prevent errors from the seg_pool
@@ -222,5 +154,43 @@ class Sequence:
             return count
 
         count += lib.count_substrings(genome.encode('utf-8'), complement_sub.encode('utf-8'))
+
+        return count
+
+    def _occurrences_overlapping_py(self, genome, canonical_sub, lib):
+        """
+        Python implementation.
+        :param genome: master string (contig in this case)
+        :param canonical_sub: substring
+        :return:
+        """
+        if get_complement(canonical_sub) < canonical_sub:
+            return 0
+
+        count = 0
+        start = 0
+        while True:
+            start = genome.find(canonical_sub, start)
+            if start >= 0:
+                count += 1
+                start += 1
+            else:
+                break
+
+        # get the complement of the canonical substring
+        complement_sub = get_complement(canonical_sub)
+
+        # prevent palindrome sequences or errors.
+        if complement_sub <= canonical_sub:
+            return count
+
+        start = 0
+        while True:
+            start = genome.find(complement_sub, start)
+            if start >= 0:
+                count += 1
+                start += 1
+            else:
+                break
 
         return count

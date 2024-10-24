@@ -56,15 +56,15 @@ class Loader:
 
     @staticmethod
     @ray.remote
-    def _get_one_kmer_dataset(seq, k, no_consecutive):
-        return seq.get_kmer_count(k, no_consecutive)
+    def _get_one_kmer_dataset(seq, k):
+        return seq.get_kmer_count(k)
 
     def get_kmer_dataset(self, k: int, no_consecutive):
 
         logger.info(f'Getting k-mer dataset for k={k}...')
 
-        train_kmer = [Loader._get_one_kmer_dataset.remote(seq, k, no_consecutive) for seq in seq_manager.train_sequences]
-        test_kmer = [Loader._get_one_kmer_dataset.remote(seq, k, no_consecutive) for seq in seq_manager.test_sequences]
+        train_kmer = [Loader._get_one_kmer_dataset.remote(seq, k) for seq in seq_manager.train_sequences]
+        test_kmer = [Loader._get_one_kmer_dataset.remote(seq, k) for seq in seq_manager.test_sequences]
 
         return (
             np.asarray([ray.get(a) for a in tqdm(train_kmer)], dtype=np.float32),
@@ -75,8 +75,8 @@ class Loader:
 
     @staticmethod
     @ray.remote
-    def _get_one_extended_dataset(seq, seg_pool_, no_consecutive):
-        return seq.get_count_from_seg_manager(seg_pool_, no_consecutive)
+    def _get_one_extended_dataset(seq, seg_pool_):
+        return seq.get_count_from_seg_manager(seg_pool_)
 
     def get_dataset_from_pool(self, no_consecutive):
         """
@@ -84,9 +84,8 @@ class Loader:
         :return: tuple: The training and test datasets
         """
         logger.info(f'Getting extended dataset...')
-        train_ext = [Loader._get_one_extended_dataset.remote(seq, seg_pool, no_consecutive) for seq in seq_manager.train_sequences]
-        test_ext = [Loader._get_one_extended_dataset.remote(seq, seg_pool, no_consecutive) for seq in seq_manager.test_sequences]
-
+        train_ext = [Loader._get_one_extended_dataset.remote(seq, seg_pool) for seq in seq_manager.train_sequences]
+        test_ext = [Loader._get_one_extended_dataset.remote(seq, seg_pool) for seq in seq_manager.test_sequences]
 
         return (
             np.asarray([ray.get(a) for a in tqdm(train_ext)], dtype=np.float32),

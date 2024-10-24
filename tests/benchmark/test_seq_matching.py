@@ -1,3 +1,10 @@
+from ray.core.generated.gcs_pb2 import OBJECT
+import ray
+from requests import patch
+from tqdm import tqdm
+
+from src.dataset.loader import Loader
+
 TEST_SEGMENTS = ['atgtaaggcc', 'aaggcctt', 'cacatgaacc', 'ctgttgcaaa', 'ggcctttgaa', 'attcaaaggc', 'ttcaaaggcc',
                  'catgaaccca', 'tgtaaggcct', 'agttagcgat', 'cactgttgca', 'tgcaacagtg', 'gtaagcagag', 'gtgggccgta',
                  'accgactatt', 'aaggccggca', 'gcctttgaat', 'agaaaaaa', 'actgttgcaa', 'ggcactgttg', 'tcaaaaactc',
@@ -198,6 +205,21 @@ from src.segment.extender import Extender
 from src.segment import seg_pool
 import numpy as np
 from time import time
+from src.genome import seq_manager
+
+class MockLoader(Loader):
+    def _load_sequence_files(self):
+        return None
+
+    def _get_train_seq(self):
+        return None
+
+    def _get_test_seq(self):
+        return None
+
+class MockFileLabel:
+    def __init__(self,):
+        pass
 
 
 class TestCache(unittest.TestCase):
@@ -206,9 +228,35 @@ class TestCache(unittest.TestCase):
         seg_pool.segments = TEST_SEGMENTS * 2
         seg_pool.current_max_length = 10
         seg_pool.last_length = 8
-        self.cache = Cache(156)
+
+        self.loader = MockLoader(MockFileLabel())
+        self.loader.train_labels = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+        self.loader.test_labels = np.array([0, 1])
+
+        seq_manager.add_train_sequences([self.sequence] * 10)
+        seq_manager.add_test_sequences([self.sequence] * 2)
 
     def test_get_count_from_seg_manager(self):
         start_time = time()
         o = self.sequence.get_count_from_seg_manager(seg_pool)
         print(time() - start_time)
+
+        s = sum(o)
+        print(s)
+
+    def test_get_count_from_seg_manager_python_implementation(self):
+        self.sequence._load_lib = lambda :None
+        start_time = time()
+        o = self.sequence.get_count_from_seg_manager(seg_pool)
+        print(time() - start_time)
+
+        s = sum(o)
+        print(s)
+
+    def test_get_dataset_from_pool(self):
+        ray.init(num_cpus=2)
+        start_time = time()
+        self.loader.get_dataset_from_pool(False)
+        print(time() - start_time)
+
+        ray.shutdown()
