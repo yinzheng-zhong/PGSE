@@ -89,7 +89,7 @@ class Sequence:
             self._nodes = contigs
             self._complement_nodes = [get_complement(contig) for contig in contigs]
 
-    def get_kmer_count(self, k: int, no_consecutive: bool):
+    def get_kmer_count(self, k: int):
         """
         Bin count for k-mers across all contigs. Faster than the lookup table with sequence matching.
         :param k: int: The length of the k-mers.
