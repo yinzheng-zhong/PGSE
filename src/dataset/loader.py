@@ -84,12 +84,21 @@ class Loader:
         :return: tuple: The training and test datasets
         """
         logger.info(f'Getting extended dataset...')
-        train_ext = [Loader._get_one_extended_dataset.remote(seq, seg_pool) for seq in seq_manager.train_sequences]
-        test_ext = [Loader._get_one_extended_dataset.remote(seq, seg_pool) for seq in seq_manager.test_sequences]
+
+        # Combine training and testing sequences to maximise parallelism.
+        all_sequences = seq_manager.train_sequences + seq_manager.test_sequences
+        tasks = [Loader._get_one_extended_dataset.remote(seq, seg_pool) for seq in all_sequences]
+
+        # Fetch the results for all tasks in parallel.
+        all_data = np.asarray([ray.get(task) for task in tqdm(tasks)], dtype=np.float32)
+
+        # Separate the results back into training and testing datasets.
+        train_data = all_data[:len(seq_manager.train_sequences)]
+        test_data = all_data[len(seq_manager.train_sequences):]
 
         return (
-            np.asarray([ray.get(a) for a in tqdm(train_ext)], dtype=np.float32),
-            np.asarray([ray.get(b) for b in tqdm(test_ext)], dtype=np.float32),
+            train_data,
+            test_data,
             np.asarray(self.train_labels, dtype=np.float32),
             np.asarray(self.test_labels, dtype=np.float32)
         )

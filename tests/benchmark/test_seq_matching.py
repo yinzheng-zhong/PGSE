@@ -225,7 +225,7 @@ class MockFileLabel:
 class TestCache(unittest.TestCase):
     def setUp(self):
         self.sequence = Sequence('test_genome.fna', concatenate_nodes=False)
-        seg_pool.segments = TEST_SEGMENTS * 2
+        seg_pool.segments = TEST_SEGMENTS * 3
         seg_pool.current_max_length = 10
         seg_pool.last_length = 8
 
@@ -254,7 +254,7 @@ class TestCache(unittest.TestCase):
         print(s)
 
     def test_get_dataset_from_pool(self):
-        ray.init(num_cpus=2)
+        ray.init(num_cpus=12)
         start_time = time()
         self.loader.get_dataset_from_pool(False)
         print(time() - start_time)
