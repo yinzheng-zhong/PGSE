@@ -225,7 +225,7 @@ class MockFileLabel:
 class TestCache(unittest.TestCase):
     def setUp(self):
         self.sequence = Sequence('test_genome.fna', concatenate_nodes=False)
-        seg_pool.segments = TEST_SEGMENTS * 3
+        seg_pool.segments = TEST_SEGMENTS * 6
         seg_pool.current_max_length = 10
         seg_pool.last_length = 8
 

@@ -6,7 +6,6 @@ from src.genome.cache import Cache
 from src.genome import get_complement
 import ctypes
 
-
 class Sequence:
     def __init__(
             self,
@@ -40,9 +39,9 @@ class Sequence:
         lib = None
 
         possible_locations = [
-            '../../c/count_substrings.so',
-            '../c/count_substrings.so',
-            'c/count_substrings.so'
+            '../../c/count_segments.so',
+            '../c/count_segments.so',
+            'c/count_segments.so',
         ]
         # try to load the library
         for location in possible_locations:
@@ -52,10 +51,15 @@ class Sequence:
             except OSError:
                 pass
 
-        lib.count_substrings.argtypes = [
-            ctypes.c_char_p, ctypes.c_char_p
-        ]
-        lib.count_substrings.restype = ctypes.c_int
+        if lib is not None:
+            lib.count_segments.argtypes = [
+                ctypes.POINTER(ctypes.c_char_p),  # nodes
+                ctypes.c_int,  # num_nodes
+                ctypes.POINTER(ctypes.c_char_p),  # segments
+                ctypes.c_int,  # num_segments
+                ctypes.POINTER(ctypes.c_int)  # result_counts
+            ]
+            lib.count_segments.restype = None
 
         return lib
 
@@ -111,51 +115,49 @@ class Sequence:
 
     def get_count_from_seg_manager(self, seg_pool_):
         """
-        Given a kmer sequence, return the transition frequency matrix. Cache is only available for the overlapping
-        count for now.
+        Given a kmer sequence, return the transition frequency matrix.
         :param seg_pool_: SegmentPool: The SegmentPool instance.
         """
-
-        lib = self._load_lib()  # load the library here for Ray compatibility
+        lib = self._load_lib()
         if lib is None:
             print('C library not found. Using Python implementation.')
             counting_method = self._occurrences_overlapping_py
+            seq_counts = np.fromiter(
+                (
+                    counting_method(
+                        node, seg, lib
+                    )
+                    for node in self._nodes
+                    for seg in seg_pool_
+                ),
+                dtype=np.int32,
+                count=len(self._nodes) * len(seg_pool_)
+            ).reshape(len(self._nodes), len(seg_pool_))
+
+            seq_count = np.sum(seq_counts, axis=0)
         else:
-            counting_method = self._occurrences_overlapping
+            # Prepare data for C function
+            num_nodes = len(self._nodes)
+            num_segments = len(seg_pool_)
 
-        seq_counts = np.fromiter(
-            (
-                counting_method(
-                    node, seg, lib
-                )
-                for node in self._nodes
-                for seg in seg_pool_
-            ),
-            dtype=np.int32,
-            count=len(self._nodes) * len(seg_pool_)
-        ).reshape(len(self._nodes), len(seg_pool_))
+            # Create arrays of c_char_p
+            node_array = (ctypes.c_char_p * num_nodes)(*(node.encode('utf-8') for node in self._nodes))
+            segment_array = (ctypes.c_char_p * num_segments)(*(seg.encode('utf-8') for seg in seg_pool_))
 
-        seq_count = np.sum(seq_counts, axis=0, dtype=np.int32)
+            # Prepare result array
+            result_counts = (ctypes.c_int * num_segments)()
+
+            # Call the C function
+            lib.count_segments(
+                node_array, ctypes.c_int(num_nodes),
+                segment_array, ctypes.c_int(num_segments),
+                result_counts
+            )
+
+            # Convert result to NumPy array
+            seq_count = np.ctypeslib.as_array(result_counts, shape=(num_segments,))
 
         return seq_count
-
-    def _occurrences_overlapping(self, genome, canonical_sub, lib):
-        # return 0 if the canonical_sub is not truly canonical. Prevent errors from the seg_pool
-        if get_complement(canonical_sub) < canonical_sub:
-            return 0
-
-        count = lib.count_substrings(genome.encode('utf-8'), canonical_sub.encode('utf-8'))
-
-        # get the complement of the canonical substring
-        complement_sub = get_complement(canonical_sub)
-
-        # prevent palindrome sequences or errors.
-        if complement_sub <= canonical_sub:
-            return count
-
-        count += lib.count_substrings(genome.encode('utf-8'), complement_sub.encode('utf-8'))
-
-        return count
 
     def _occurrences_overlapping_py(self, genome, canonical_sub, lib):
         """
