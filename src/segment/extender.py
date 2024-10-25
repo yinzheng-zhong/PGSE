@@ -40,8 +40,8 @@ class Extender:
         # remove duplicates
         canonical_sequences = list(set(canonical_sequences))
 
-        if len(new) > 0:
-            logger.info(f'Adding {len(new)} new segments to the pool')
+        if len(canonical_sequences) > 0:
+            logger.info(f'Adding {len(canonical_sequences)} new canonical segments to the pool')
         else:
             logger.warning('No new segments to add. Finished extending all segments')
             raise ValueError('No new segments to add')
