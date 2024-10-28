@@ -53,25 +53,25 @@ class Pipeline:
                 xgb_result = self.model_trainer.run_xgboost(train_kmer, test_kmer, train_labels, test_labels)
                 self.model_trainer.perform_feature_selection(xgb_result)
 
-                # Step 2: Train and test with selected segments
-                logger.info(f'==================== Training & testing with selected segments ====================')
-                train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool(no_consecutive=False)
-
-                # Run XGBoost with custom metric
-                custom_metric = self.model_trainer.custom_essential_agreement_metric()
-                fold_results, _ = self.model_trainer.run_xgboost(
-                    train_kmer, test_kmer, train_labels, test_labels,
-                    use_partition=False, custom_metric=custom_metric
-                )
-
-                logger.info(fold_results)
-
-                # Step 3: Attempt to extend segments
+                # Step 2: Attempt to extend segments
                 if seg_pool.get_current_max_length() >= args.target or not self.extend_segments():
                     break
 
                 seg_pool.save(args.save_file)
                 train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool(no_consecutive=False)
+
+            # Step 3: Train and test with selected segments
+            logger.info(f'==================== Training & testing with selected segments ====================')
+            train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool(no_consecutive=False)
+
+            # Run XGBoost with custom metric
+            custom_metric = self.model_trainer.custom_essential_agreement_metric()
+            fold_results, _ = self.model_trainer.run_xgboost(
+                train_kmer, test_kmer, train_labels, test_labels,
+                use_partition=False, custom_metric=custom_metric
+            )
+
+            logger.info(fold_results)
 
             # Append fold results
             accumulated_results = ProgressManager.append_results(fold_results, accumulated_results)

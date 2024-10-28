@@ -5,5 +5,4 @@ pandas
 tqdm
 scikit-learn
 colorlog
-xgboost-ray
 imbalanced-learn

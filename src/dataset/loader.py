@@ -90,7 +90,7 @@ class Loader:
         tasks = [Loader._get_one_extended_dataset.remote(seq, seg_pool) for seq in all_sequences]
 
         # Fetch the results for all tasks in parallel.
-        all_data = np.asarray([ray.get(task) for task in tqdm(tasks)], dtype=np.float32)
+        all_data = np.asarray([ray.get(task) for task in tqdm(tasks, desc='Counting segments for train/test')], dtype=np.float32)
 
         # Separate the results back into training and testing datasets.
         train_data = all_data[:len(seq_manager.train_sequences)]
