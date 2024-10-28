@@ -1,5 +1,5 @@
 import numpy as np
-import time
+from src.algos import count_segments_py
 
 from src.genome import km, canonicalize
 from src.genome.cache import Cache
@@ -121,20 +121,7 @@ class Sequence:
         lib = self._load_lib()
         if lib is None:
             print('C library not found. Using Python implementation.')
-            counting_method = self._occurrences_overlapping_py
-            seq_counts = np.fromiter(
-                (
-                    counting_method(
-                        node, seg, lib
-                    )
-                    for node in self._nodes
-                    for seg in seg_pool_
-                ),
-                dtype=np.int32,
-                count=len(self._nodes) * len(seg_pool_)
-            ).reshape(len(self._nodes), len(seg_pool_))
-
-            seq_count = np.sum(seq_counts, axis=0)
+            seq_count = count_segments_py(self._nodes, seg_pool_)
         else:
             # Prepare data for C function
             num_nodes = len(self._nodes)
