@@ -1,10 +1,9 @@
 import numpy as np
-from src.algos import count_segments_py
 
 from src.genome import km, canonicalize
 from src.genome.cache import Cache
 from src.genome import get_complement
-import ctypes
+from src.algos import count_segments
 
 class Sequence:
     def __init__(
@@ -34,34 +33,6 @@ class Sequence:
 
     def __str__(self):
         return ''.join(self._nodes)
-
-    def _load_lib(self):
-        lib = None
-
-        possible_locations = [
-            '../../c/count_segments.so',
-            '../c/count_segments.so',
-            'c/count_segments.so',
-        ]
-        # try to load the library
-        for location in possible_locations:
-            try:
-                lib = ctypes.CDLL(location)
-                break
-            except OSError:
-                pass
-
-        if lib is not None:
-            lib.count_segments.argtypes = [
-                ctypes.POINTER(ctypes.c_char_p),  # nodes
-                ctypes.c_int,  # num_nodes
-                ctypes.POINTER(ctypes.c_char_p),  # segments
-                ctypes.c_int,  # num_segments
-                ctypes.POINTER(ctypes.c_int)  # result_counts
-            ]
-            lib.count_segments.restype = None
-
-        return lib
 
     def len_nodes(self):
         return len(self._nodes)
@@ -118,68 +89,6 @@ class Sequence:
         Given a kmer sequence, return the transition frequency matrix.
         :param seg_pool_: SegmentPool: The SegmentPool instance.
         """
-        lib = self._load_lib()
-        if lib is None:
-            print('C library not found. Using Python implementation.')
-            seq_count = count_segments_py(self._nodes, seg_pool_)
-        else:
-            # Prepare data for C function
-            num_nodes = len(self._nodes)
-            num_segments = len(seg_pool_)
+        seg_count = count_segments(self._nodes, seg_pool_)
 
-            # Create arrays of c_char_p
-            node_array = (ctypes.c_char_p * num_nodes)(*(node.encode('utf-8') for node in self._nodes))
-            segment_array = (ctypes.c_char_p * num_segments)(*(seg.encode('utf-8') for seg in seg_pool_))
-
-            # Prepare result array
-            result_counts = (ctypes.c_int * num_segments)()
-
-            # Call the C function
-            lib.count_segments(
-                node_array, ctypes.c_int(num_nodes),
-                segment_array, ctypes.c_int(num_segments),
-                result_counts
-            )
-
-            # Convert result to NumPy array
-            seq_count = np.ctypeslib.as_array(result_counts, shape=(num_segments,))
-
-        return seq_count
-
-    def _occurrences_overlapping_py(self, genome, canonical_sub, lib):
-        """
-        Python implementation.
-        :param genome: master string (contig in this case)
-        :param canonical_sub: substring
-        :return:
-        """
-        if get_complement(canonical_sub) < canonical_sub:
-            return 0
-
-        count = 0
-        start = 0
-        while True:
-            start = genome.find(canonical_sub, start)
-            if start >= 0:
-                count += 1
-                start += 1
-            else:
-                break
-
-        # get the complement of the canonical substring
-        complement_sub = get_complement(canonical_sub)
-
-        # prevent palindrome sequences or errors.
-        if complement_sub <= canonical_sub:
-            return count
-
-        start = 0
-        while True:
-            start = genome.find(complement_sub, start)
-            if start >= 0:
-                count += 1
-                start += 1
-            else:
-                break
-
-        return count
+        return seg_count
