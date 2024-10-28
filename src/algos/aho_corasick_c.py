@@ -1,22 +1,26 @@
 import ctypes
-
 import numpy as np
+import os
 
 
 def load_lib():
     lib = None
 
+    current_path = os.getcwd()
+
     possible_locations = [
+        os.path.join(current_path, 'c-lib', 'aho_corasick.so'),
         '../../c-lib/aho_corasick.so',
         '../c-lib/src/algos/aho_corasick.so',
-        'c-lib/src/algos/aho_corasick.so',
+        './c-lib/src/algos/aho_corasick.so',
     ]
     # try to load the library
     for location in possible_locations:
         try:
             lib = ctypes.CDLL(location)
             break
-        except OSError:
+        except OSError as a:
+            a = a
             pass
 
     if lib is None:
