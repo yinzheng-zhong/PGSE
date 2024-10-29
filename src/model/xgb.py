@@ -69,10 +69,10 @@ class XGBoost:
         """
         Train XGBoost model on a subset of features (a split).
         """
-        if self.use_partition:  # min-max scaling
-            scaler = MinMaxScaler()
-            train_x = scaler.fit_transform(train_x)
-            test_x = scaler.transform(test_x)
+        # if self.use_partition:  # min-max scaling
+        #     scaler = MinMaxScaler()
+        #     train_x = scaler.fit_transform(train_x)
+        #     test_x = scaler.transform(test_x)
 
         dtrain = self._create_dmatrix(train_x, train_y)
         dtest = self._create_dmatrix(test_x, test_y)
