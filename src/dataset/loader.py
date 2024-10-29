@@ -59,7 +59,7 @@ class Loader:
     def _get_one_kmer_dataset(seq, k):
         return seq.get_kmer_count(k)
 
-    def get_kmer_dataset(self, k: int, no_consecutive):
+    def get_kmer_dataset(self, k: int):
 
         logger.info(f'Getting k-mer dataset for k={k}...')
 
@@ -78,7 +78,7 @@ class Loader:
     def _get_one_extended_dataset(seq, seg_pool_):
         return seq.get_count_from_seg_manager(seg_pool_)
 
-    def get_dataset_from_pool(self, no_consecutive):
+    def get_dataset_from_pool(self):
         """
         Get the extended dataset for the training and test sequences
         :return: tuple: The training and test datasets

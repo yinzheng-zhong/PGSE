@@ -255,7 +255,7 @@ class TestCache(unittest.TestCase):
     def test_get_dataset_from_pool(self):
         ray.init(num_cpus=12)
         start_time = time()
-        self.loader.get_dataset_from_pool(False)
+        self.loader.get_dataset_from_pool()
         print(time() - start_time)
 
         ray.shutdown()

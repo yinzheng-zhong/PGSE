@@ -58,11 +58,11 @@ class Pipeline:
                     break
 
                 seg_pool.save(args.save_file)
-                train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool(no_consecutive=False)
+                train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool()
 
             # Step 3: Train and test with selected segments
             logger.info(f'==================== Training & testing with selected segments ====================')
-            train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool(no_consecutive=False)
+            train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool()
 
             # Run XGBoost with custom metric
             custom_metric = self.model_trainer.custom_essential_agreement_metric()

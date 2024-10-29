@@ -30,7 +30,7 @@ class Pipeline:
             model_trainer = ModelTrainer(loader)
 
             # Load k-mer dataset
-            train_kmer, test_kmer, train_labels, test_labels = loader.get_kmer_dataset(args.k, no_consecutive=False)
+            train_kmer, test_kmer, train_labels, test_labels = loader.get_kmer_dataset(args.k)
 
             # Run XGBoost without partitioning or custom metrics
             custom_metric = model_trainer.custom_essential_agreement_metric()
