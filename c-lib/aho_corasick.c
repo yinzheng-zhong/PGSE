@@ -171,17 +171,8 @@ void free_trie(TrieNode *root) {
     free(root);
 }
 
-// Main function to count segments in nodes using Aho-Corasick algorithm
-void count_segments(
-    char **nodes, int num_nodes,
-    char **segments, int num_segments,
-    int *result_counts
-) {
-    // Initialize result_counts to zero
-    for (int i = 0; i < num_segments; ++i) {
-        result_counts[i] = 0;
-    }
-
+// Function to build the Aho-Corasick automaton
+TrieNode* build_automaton(char **segments, int num_segments) {
     // Precompute complements and canonical status
     char **complements = (char **)malloc(num_segments * sizeof(char *));
     int *canonical = (int *)malloc(num_segments * sizeof(int));
@@ -211,16 +202,48 @@ void count_segments(
     // Build failure links
     build_failure_links(root);
 
-    // Process each node
-    for (int n = 0; n < num_nodes; ++n) {
-        search_in_text(root, nodes[n], result_counts);
-    }
-
-    // Free allocated memory
+    // Free allocated memory for complements and canonical
     for (int s = 0; s < num_segments; ++s) {
         free(complements[s]);
     }
     free(complements);
     free(canonical);
+
+    return root;
+}
+
+// Function to free the automaton
+void free_automaton(TrieNode* root) {
     free_trie(root);
 }
+
+// Function to process the text using the automaton
+void process_nodes(TrieNode* root, char **nodes, int num_nodes, int *result_counts, int num_segments) {
+    // Initialize result_counts to zero
+    for (int i = 0; i < num_segments; ++i) {
+        result_counts[i] = 0;
+    }
+
+    // Process each node
+    for (int n = 0; n < num_nodes; ++n) {
+        search_in_text(root, nodes[n], result_counts);
+    }
+}
+
+// Keep the original count_segments function for compatibility
+
+void count_segments(
+    char **nodes, int num_nodes,
+    char **segments, int num_segments,
+    int *result_counts
+) {
+    // Build the automaton
+    TrieNode *root = build_automaton(segments, num_segments);
+
+    // Process the nodes
+    process_nodes(root, nodes, num_nodes, result_counts, num_segments);
+
+    // Free the automaton
+    free_automaton(root);
+}
+

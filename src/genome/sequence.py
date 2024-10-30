@@ -3,7 +3,7 @@ import numpy as np
 from src.genome import km, canonicalize
 from src.genome.cache import Cache
 from src.genome import get_complement
-from src.algos import count_segments
+from src.algos import aho_corasick
 
 class Sequence:
     def __init__(
@@ -89,6 +89,6 @@ class Sequence:
         Given a kmer sequence, return the transition frequency matrix.
         :param seg_pool_: SegmentPool: The SegmentPool instance.
         """
-        seg_count = count_segments(self._nodes, seg_pool_)
+        seg_count = aho_corasick.count_segments(self._nodes, seg_pool_)
 
         return seg_count

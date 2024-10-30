@@ -16,3 +16,7 @@ def canonicalize(sequence):
     Get the canonical kmer
     """
     return min(sequence, get_complement(sequence))
+
+
+def is_canonical(seq, complement_seq):
+    return seq <= complement_seq

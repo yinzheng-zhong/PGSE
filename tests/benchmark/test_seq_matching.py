@@ -203,7 +203,6 @@ from src.segment import seg_pool
 import numpy as np
 from time import time
 from src.genome import seq_manager
-from src.algos.aho_corasick_py import count_segments as count_segments_py
 from unittest.mock import patch
 
 class MockLoader(Loader):
@@ -243,7 +242,7 @@ class TestCache(unittest.TestCase):
         s = sum(o)
         print(s)
 
-    @patch('src.genome.sequence.count_segments', count_segments_py)
+
     def test_get_count_from_seg_manager_python_implementation(self):
         start_time = time()
         o = self.sequence.get_count_from_seg_manager(seg_pool)
