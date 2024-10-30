@@ -98,20 +98,3 @@ class AhoCorasickPy(AhoCorasickBase):
             self._search_automaton(root, node_text, result_counts)
 
         return result_counts
-
-    def process_nodes(self, automaton, nodes, num_segments):
-        """
-        Process the nodes using the automaton.
-        :param automaton: Aho-Corasick automaton.
-        :param nodes: list of nodes.
-        :param num_segments: int: Number of segments.
-        :return: list of counts.
-        """
-        # Initialize result counts
-        result_counts = [0] * num_segments
-
-        # Search each node's text
-        for node_text in nodes:
-            self._search_automaton(automaton, node_text, result_counts)
-
-        return result_counts
