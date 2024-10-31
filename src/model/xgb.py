@@ -58,7 +58,10 @@ class XGBoost:
         """
         return self.base_learning_rate / math.sqrt(self.partition_size / train_x.shape[1])
 
-    @ray.remote(num_cpus=1, num_gpus=0)
+    @ray.remote(
+        num_cpus=1,
+        # num_gpus=0
+    )
     def _train_one_partition(
             self,
             train_x: np.ndarray,
