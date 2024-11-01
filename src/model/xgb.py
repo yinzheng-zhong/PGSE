@@ -40,6 +40,8 @@ class XGBoost:
         self.params = {
             'objective': 'reg:squarederror',
             'max_depth': max_depth,
+            'tree_method': 'hist',
+            # 'device': 'cuda',
             'learning_rate': base_learning_rate,
             'nthread': num_cpu_per_node  # Use multiple threads per worker
         }
@@ -56,7 +58,10 @@ class XGBoost:
         """
         return self.base_learning_rate / math.sqrt(self.partition_size / train_x.shape[1])
 
-    @ray.remote(num_cpus=1)
+    @ray.remote(
+        num_cpus=1,
+        # num_gpus=0
+    )
     def _train_one_partition(
             self,
             train_x: np.ndarray,
@@ -155,7 +160,8 @@ class XGBoost:
             test_x_split = test_x[:, split]
 
             task_ref = self._train_one_partition.options(
-                num_cpus=self.num_cpu_per_node
+                num_cpus=self.num_cpu_per_node,
+                # num_gpus=1
             ).remote(
                 self,
                 train_x_split,
