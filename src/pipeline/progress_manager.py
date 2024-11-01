@@ -39,7 +39,7 @@ class ProgressManager:
                 progress_data = json.load(f)
                 fold_index = progress_data['fold_index']
                 results = pd.DataFrame.from_dict(progress_data['results'])
-                logger.info(f"Resuming from fold {fold_index}.")
+                logger.info(f"Resuming from fold {fold_index + 1}.")
                 return fold_index, results
         else:
             logger.info("No previous progress found, starting from the first fold.")
