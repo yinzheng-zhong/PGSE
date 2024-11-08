@@ -3,6 +3,7 @@ import itertools
 from src.genome import canonicalize
 from src.segment import seg_pool
 from src.log import logger
+from src.segment.util import remove_duplicate_elements
 
 
 class Extender:
@@ -38,7 +39,7 @@ class Extender:
 
         canonical_sequences = [canonicalize(seq) for seq in new]
         # remove duplicates
-        canonical_sequences = list(set(canonical_sequences))
+        canonical_sequences = remove_duplicate_elements(canonical_sequences)
 
         if len(canonical_sequences) > 0:
             logger.info(f'Adding {len(canonical_sequences)} new canonical segments to the pool')

@@ -3,6 +3,7 @@ import os
 import pickle
 from src.genome import km
 from src.log import logger
+from src.segment.util import remove_duplicate_elements
 
 
 class SegmentPool:
@@ -105,7 +106,7 @@ class SegmentPool:
         """
         self.segments = self.segments + sequences
         if remove_duplicates:
-            self.segments = list(set(self.segments))
+            self.segments = remove_duplicate_elements(self.segments)
 
         self.last_length = self.current_max_length
         self.current_max_length = current_length
