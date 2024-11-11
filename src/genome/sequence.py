@@ -1,7 +1,6 @@
 import numpy as np
 
 from src.genome import km, canonicalize
-from src.genome.cache import Cache
 from src.genome import get_complement
 from src.algos import aho_corasick
 
@@ -18,8 +17,6 @@ class Sequence:
         self._nodes = []
         self._complement_nodes = []
         self._read_sequence()
-
-        self.cache = Cache(len(self._nodes))
 
     def __len__(self):
         return sum(len(contig) for contig in self._nodes)
