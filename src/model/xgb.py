@@ -6,6 +6,7 @@ import xgboost as xgb
 import ray
 from tqdm import tqdm
 
+from time import time
 from src.log import logger
 from src.model.util import oversample_minority_class
 from sklearn.preprocessing import MinMaxScaler
@@ -93,7 +94,11 @@ class XGBoost:
             early_stopping_rounds=self.early_stopping_rounds
         )
 
+        start = time()
         predictions = model.predict(dtest)
+        if not self.use_partition:
+            logger.info(f'Inference time: {time() - start:.3f} seconds')
+
         results = {
             'Prediction': predictions,
             'Actual': dtest.get_label()
