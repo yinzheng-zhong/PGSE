@@ -14,7 +14,7 @@ from src.segment import seg_pool
 
 class Pipeline:
     def __init__(self):
-        self.file_label = FileLabel(args.label_file, args.data_dir)
+        self.file_label = FileLabel(args.label_file, args.data_dir, args.pre_kfold_info_file)
         self.extender = Extender()
         self.progress_manager = None
         self.model_trainer = None

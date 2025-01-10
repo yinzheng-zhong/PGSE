@@ -11,7 +11,7 @@ from src.dataset.loader import Loader
 
 class Pipeline:
     def __init__(self):
-        self.file_label = FileLabel(args.label_file, args.data_dir)
+        self.file_label = FileLabel(args.label_file, args.data_dir, args.pre_kfold_info_file)
 
     def run(self):
         RayEnvManager.initialize()

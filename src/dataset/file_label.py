@@ -1,3 +1,6 @@
+import json
+import os
+
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, KFold, StratifiedKFold
@@ -7,9 +10,10 @@ from collections import Counter
 
 
 class FileLabel:
-    def __init__(self, label_file, data_dir):
+    def __init__(self, label_file, data_dir, pre_kfold_info_file=None):
         self.label_file = label_file
         self.data_dir = data_dir
+        self.pre_kfold_info_file = pre_kfold_info_file
         self.label_lookup = self._load_label_lookup()
 
     def _load_label_lookup(self):
@@ -53,6 +57,25 @@ class FileLabel:
         """
         files = list(self.label_lookup.keys())
         labels = np.array(list(self.label_lookup.values()), dtype=np.float32)
+
+        if self.pre_kfold_info_file:
+            with open(self.pre_kfold_info_file, 'r') as f:
+                k_fold_indices = json.load(f)
+
+            # fold_index as the test set
+            test_files = k_fold_indices[f'fold_{fold_index}']
+            test_labels = [self.label_lookup[os.path.join(self.data_dir, file)] for file in test_files]
+
+            # other folds as the training set
+            train_files = []
+            train_labels = []
+            for i in range(num_folds):
+                if i != fold_index:
+                    train_files.extend(k_fold_indices[f'fold_{i}'])
+                    train_labels.extend([self.label_lookup[os.path.join(self.data_dir, file)] for file in k_fold_indices[f'fold_{i}']])
+
+            return train_files, test_files, np.array(train_labels, dtype=np.float32), np.array(test_labels, dtype=np.float32)
+
 
         if num_folds <= 0:
             return self._perform_train_test_split(files, labels.astype(np.int32), test_size, random_state)
