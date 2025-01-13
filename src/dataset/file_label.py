@@ -18,7 +18,7 @@ class FileLabel:
 
     def _load_label_lookup(self):
         data = pd.read_csv(self.label_file, dtype=str)
-        data['files'] = self.data_dir + data['files']
+        data['files'] = [os.path.join(self.data_dir, p) for p in data['files']]
         return data.set_index('files').to_dict()['labels']
 
     def _perform_train_test_split(self, files, labels, test_size, random_state):
@@ -63,15 +63,15 @@ class FileLabel:
                 k_fold_indices = json.load(f)
 
             # fold_index as the test set
-            test_files = k_fold_indices[f'fold_{fold_index}']
-            test_labels = [self.label_lookup[os.path.join(self.data_dir, file)] for file in test_files]
+            test_files = [os.path.join(self.data_dir, p) for p in k_fold_indices[f'fold_{fold_index}']]
+            test_labels = [self.label_lookup[file] for file in test_files]
 
             # other folds as the training set
             train_files = []
             train_labels = []
             for i in range(num_folds):
                 if i != fold_index:
-                    train_files.extend(k_fold_indices[f'fold_{i}'])
+                    train_files.extend([os.path.join(self.data_dir, p) for p in k_fold_indices[f'fold_{i}']])
                     train_labels.extend([self.label_lookup[os.path.join(self.data_dir, file)] for file in k_fold_indices[f'fold_{i}']])
 
             return train_files, test_files, np.array(train_labels, dtype=np.float32), np.array(test_labels, dtype=np.float32)
