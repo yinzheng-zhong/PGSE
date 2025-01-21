@@ -41,6 +41,6 @@ class ModelTrainer:
     def custom_essential_agreement_metric():
         return lambda x, y: essential_agreement_cus_metric(
             x, y,
-            min_after_log2=math.log2(args.ea_min) if args.ea_min is not None else None,
-            max_after_log2=math.log2(args.ea_max) if args.ea_max is not None else None
+            min_after_log2=math.log2(args.ea_min) if args.ea_min else None,
+            max_after_log2=math.log2(args.ea_max) if args.ea_max else None
         )
