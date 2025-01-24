@@ -57,9 +57,16 @@ class Loader:
     @staticmethod
     @ray.remote
     def _get_one_kmer_dataset(seq, k):
+        """
+        Deprecated. All kmers are now stored in the segment pool.
+        """
+
         return seq.get_kmer_count(k)
 
     def get_kmer_dataset(self, k: int):
+        """
+        Deprecated. All kmers are now stored in the segment pool.
+        """
 
         logger.info(f'Getting k-mer dataset for k={k}...')
 
@@ -83,7 +90,7 @@ class Loader:
         Get the extended dataset for the training and test sequences
         :return: tuple: The training and test datasets
         """
-        logger.info(f'Getting extended dataset...')
+        logger.info(f'Counting segments to generate the dataset...')
 
         # Combine training and testing sequences to maximise parallelism.
         all_sequences = seq_manager.train_sequences + seq_manager.test_sequences

@@ -7,6 +7,7 @@ from src.model.model_trainer import ModelTrainer
 from src.enviromnet import args
 from src.dataset.file_label import FileLabel
 from src.dataset.loader import Loader
+from src.segment import seg_pool
 
 
 class Pipeline:
@@ -30,7 +31,9 @@ class Pipeline:
             model_trainer = ModelTrainer(loader)
 
             # Load k-mer dataset
-            train_kmer, test_kmer, train_labels, test_labels = loader.get_kmer_dataset(args.k)
+            seg_pool.clear()
+            seg_pool.add_all_kmer(args.k, args.ext)
+            train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool()
 
             # Run XGBoost without partitioning or custom metrics
             custom_metric = model_trainer.custom_essential_agreement_metric()

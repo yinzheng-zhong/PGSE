@@ -30,6 +30,14 @@ class SegmentPool:
         """
         return self.segments.copy()
 
+    def clear(self):
+        """
+        Clear the segments list.
+        """
+        self.segments = []
+        self.last_length = 0
+        self.current_max_length = 0
+
     def add_all_kmer(self, k: int, extension: int, keep_read_error=False):
         """
         Add all k-mers to the segments list.
@@ -39,10 +47,8 @@ class SegmentPool:
         :param k: int: The length of the k-mers.
         :param keep_read_error: bool: Include read errors if True.
         """
-        self.segments = []
-        base = 5 if keep_read_error else 4
-        kmers = [km.reverse_kmer_mapping(i, k) for i in range(base ** k)]
-        # init the current max length to k otherwise the last length will be 0 later which causes the extension not working properly.
+        kmers = km.gen_canonical_kmers(k)
+
         self.current_max_length = k - extension
         self.add_subsequences(kmers, k, remove_duplicates=False)
 

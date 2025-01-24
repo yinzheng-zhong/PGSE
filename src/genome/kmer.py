@@ -1,6 +1,8 @@
+from itertools import product
+
 import numpy as np
 
-from src.genome.utils import get_complement
+from src.genome.utils import get_complement, canonicalize
 
 
 class Kmer:
@@ -10,6 +12,7 @@ class Kmer:
     ):
         self.keep_read_error = keep_read_error
         self.nuc_map = {'a': 0, 't': 1, 'g': 2, 'c': 3, 'n': 4} if keep_read_error else {'a': 0, 't': 1, 'g': 2, 'c': 3}
+        self.nucs = list(self.nuc_map.keys())
         self.base = 5 if self.keep_read_error else 4
 
     def kmer_mapping(self, sequence):
@@ -24,6 +27,28 @@ class Kmer:
         value = np.dot([self.nuc_map[c] for c in sequence], multiply_by)  # Convert the sequence to an integer
 
         return value
+
+    def gen_canonical_kmers(self, k):
+        """
+            Generate a set of all canonical k-mers of length k using the provided canonicalize() function.
+
+            :param k: int: The length of k-mers to generate.
+            :return: set: A set of unique canonical k-mers.
+        """
+        kmers = set()
+
+        # Iterate over all possible k-length tuples from self.nucs
+        for kmer_tuple in product(self.nucs, repeat=k):
+            # Convert the tuple to a string
+            kmer = ''.join(kmer_tuple)
+
+            # Canonicalize the k-mer
+            can_kmer = canonicalize(kmer)
+
+            # Add it to our set (duplicate canonical forms are automatically ignored)
+            kmers.add(can_kmer)
+
+        return list(kmers)
 
     def reverse_kmer_mapping(
             self,

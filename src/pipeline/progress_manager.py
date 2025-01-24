@@ -18,10 +18,10 @@ class ProgressManager:
     def load_progress(self):
         try:
             seg_pool.load(args.save_file)
-            return self.loader.get_dataset_from_pool()
         except FileNotFoundError:
             seg_pool.add_all_kmer(args.k, args.ext)
-            return self.loader.get_kmer_dataset(args.k)
+
+        return self.loader.get_dataset_from_pool()
 
     def save_fold_progress(self, fold_index, results):
         progress_data = {
