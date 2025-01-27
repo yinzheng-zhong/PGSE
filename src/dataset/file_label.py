@@ -69,13 +69,19 @@ class FileLabel:
             # other folds as the training set
             train_files = []
             train_labels = []
-            for i in range(num_folds):
-                if i != fold_index:
+
+            if num_folds > 0:
+                for i in range(num_folds):
+                    if i != fold_index:
+                        train_files.extend([os.path.join(self.data_dir, p) for p in k_fold_indices[f'fold_{i}']])
+                        train_labels.extend([self.label_lookup[os.path.join(self.data_dir, file)] for file in k_fold_indices[f'fold_{i}']])
+            else:
+                # just load from the second fold till the end
+                for i in range(1, len(k_fold_indices)):
                     train_files.extend([os.path.join(self.data_dir, p) for p in k_fold_indices[f'fold_{i}']])
                     train_labels.extend([self.label_lookup[os.path.join(self.data_dir, file)] for file in k_fold_indices[f'fold_{i}']])
 
             return train_files, test_files, np.array(train_labels, dtype=np.float32), np.array(test_labels, dtype=np.float32)
-
 
         if num_folds <= 0:
             return self._perform_train_test_split(files, labels.astype(np.int32), test_size, random_state)
