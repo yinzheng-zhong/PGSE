@@ -19,6 +19,7 @@ class ProgressManager:
         try:
             seg_pool.load(args.save_file)
         except FileNotFoundError:
+            seg_pool.clear()
             seg_pool.add_all_kmer(args.k, args.ext)
 
         return self.loader.get_dataset_from_pool()

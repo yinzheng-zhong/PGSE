@@ -78,7 +78,6 @@ class Pipeline:
             # Save progress after each fold
             self.progress_manager.save_fold_progress(i + 1, accumulated_results)
 
-            # Remove saved segments
             try:
                 os.remove(args.save_file)
             except FileNotFoundError as e:

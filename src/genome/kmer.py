@@ -35,7 +35,7 @@ class Kmer:
             :param k: int: The length of k-mers to generate.
             :return: set: A set of unique canonical k-mers.
         """
-        kmers = set()
+        kmers = []
 
         # Iterate over all possible k-length tuples from self.nucs
         for kmer_tuple in product(self.nucs, repeat=k):
@@ -46,9 +46,9 @@ class Kmer:
             can_kmer = canonicalize(kmer)
 
             # Add it to our set (duplicate canonical forms are automatically ignored)
-            kmers.add(can_kmer)
+            kmers.append(can_kmer)
 
-        return list(kmers)
+        return list(dict.fromkeys(kmers))
 
     def reverse_kmer_mapping(
             self,
