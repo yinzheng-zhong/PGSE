@@ -49,6 +49,9 @@ class Loader:
         seq_manager.add_train_sequences(train_sequences)
 
     def _get_test_seq(self):
+        if not self.test_files:
+            return
+
         logger.info('Loading test sequences...')
         test_sequences = [Loader._get_one_sequence.remote(file) for file in self.test_files]
         test_sequences = [ray.get(a) for a in tqdm(test_sequences)]

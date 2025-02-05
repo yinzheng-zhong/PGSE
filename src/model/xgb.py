@@ -111,7 +111,7 @@ class XGBoost:
         importance = model.get_score(importance_type=self.importance_type)
         importance_mapped = {feature_indices[int(k[1:])]: v for k, v in importance.items()}
 
-        return results, list(importance_mapped.items())
+        return results, list(importance_mapped.items()), None if self.use_partition else model
 
     def _create_partitions(self, feature_count: int) -> list:
         """
@@ -130,8 +130,9 @@ class XGBoost:
 
         combined_predictions = np.mean([res[0]['Prediction'] for res in results], axis=0)
         all_importance = [imp for res in results for imp in res[1]]
+        trained_model = None if self.use_partition else results[0][2]
 
-        return combined_predictions, all_importance
+        return combined_predictions, all_importance, trained_model
 
     def _calculate_rmse(self, predictions: np.ndarray, actuals: np.ndarray) -> float:
         """
@@ -151,7 +152,7 @@ class XGBoost:
             test_x: np.ndarray,
             train_y: np.ndarray,
             test_y: np.ndarray,
-    ) -> tuple:
+    ) -> tuple[pd.DataFrame, pd.DataFrame, xgb.Booster]:
         """
         Run the training and testing process.
         """
@@ -179,7 +180,7 @@ class XGBoost:
             )
             tasks.append(task_ref)
 
-        combined_predictions, all_importance = self._gather_results(tasks)
+        combined_predictions, all_importance, trained_model = self._gather_results(tasks)
 
         results_df = pd.DataFrame({
             'Prediction': combined_predictions,
@@ -192,4 +193,4 @@ class XGBoost:
         rmse = self._calculate_rmse(results_df['Prediction'], results_df['Actual'])
         self._log_rmse(rmse)
 
-        return results_df, importance_df
+        return results_df, importance_df, trained_model

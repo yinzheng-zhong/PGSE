@@ -102,6 +102,16 @@ class SegmentPool:
 
         logger.info(f'Exported {len(self.segments)} segments to {filename}')
 
+    def import_segments(self, filename: str):
+        """
+        Load the segments table from a file.
+        :param filename: str: The name of the file to load the lookup table.
+        """
+        with open(filename, 'r') as f:
+            self.segments = f.read().splitlines()
+
+        logger.info(f'Imported {len(self.segments)} segments from {filename}')
+
     def add_subsequences(self, sequences: [str], current_length: int, remove_duplicates=True):
         """
         Add a list of sequences to the lookup table.

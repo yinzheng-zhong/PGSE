@@ -66,7 +66,7 @@ class Pipeline:
 
             # Run XGBoost with custom metric
             custom_metric = self.model_trainer.custom_essential_agreement_metric()
-            fold_results, _ = self.model_trainer.run_xgboost(
+            fold_results, _, trained_model = self.model_trainer.run_xgboost(
                 train_kmer, test_kmer, train_labels, test_labels,
                 use_partition=False, custom_metric=custom_metric
             )
@@ -83,7 +83,9 @@ class Pipeline:
             except FileNotFoundError as e:
                 logger.error(e)
 
+            seg_pool.export(args.export_file + f'_fold_{i}.txt')
+            trained_model.save_model(args.export_file + f'_fold_{i}.json')
+
         # Export final results and shutdown Ray
         accumulated_results.to_csv(f'{args.export_file}.csv')
-        seg_pool.export(args.export_file)
         ray.shutdown()

@@ -1,4 +1,8 @@
 import math
+
+import pandas as pd
+import xgboost
+
 from src.log import logger
 from src.model.util import essential_agreement_cus_metric
 from src.enviromnet import args
@@ -15,7 +19,7 @@ class ModelTrainer:
     def __init__(self, loader):
         self.loader = loader
 
-    def run_xgboost(self, train_kmer, test_kmer, train_labels, test_labels, use_partition=True, custom_metric=None):
+    def run_xgboost(self, train_kmer, test_kmer, train_labels, test_labels, use_partition=True, custom_metric=None) -> tuple[pd.DataFrame, pd.DataFrame, xgboost.Booster]:
         xgb = XGBoost(
             partition_size=DEFAULT_PARTITION_SIZE,
             boost_rounds=args.num_rounds,
@@ -29,7 +33,7 @@ class ModelTrainer:
 
     @staticmethod
     def perform_feature_selection(xgb_result):
-        _, importance_df = xgb_result
+        _, importance_df, _ = xgb_result
         logger.info(str(importance_df.head(DEFAULT_FEATURES_PRINT_COUNT)))
 
         # Select top features

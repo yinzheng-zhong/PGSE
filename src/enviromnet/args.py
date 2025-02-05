@@ -2,15 +2,15 @@ import argparse
 import os
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--label-file', type=str, required=True,
+parser.add_argument('--label-file', type=str,
                     help="Path to the CSV file containing the labels")
-parser.add_argument('--data-dir', type=str, required=True,
+parser.add_argument('--data-dir', type=str,
                     help="Directory containing the data files")
 parser.add_argument('--pre-kfold-info-file', type=str, default=None,
                     help="Path to the JSON file containing the pre-defined k-fold indices")
 parser.add_argument('--save-file', type=str,
                     help="File path to save the selected segments. Used to recover the progress.")
-parser.add_argument('--export-file', type=str, required=True,
+parser.add_argument('--export-file', type=str,
                     help="File path to save the results")
 parser.add_argument('--k', type=int, default=10,
                     help="Initial size of k-mers")
