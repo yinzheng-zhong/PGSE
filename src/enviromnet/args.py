@@ -38,4 +38,6 @@ parser.add_argument('--folds', type=int, default=0,
                     help="Number of folds for cross-validation")
 parser.add_argument('--oversample', type=int, default=0,
                     help="Flag to enable oversampling of the minority class")
+parser.add_argument('--verbose', type=int, default=0,
+                    help="0: Error, 1: Warning, 2: Info, 3: Debug")
 args = parser.parse_args()

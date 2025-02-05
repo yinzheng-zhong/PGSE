@@ -73,7 +73,7 @@ class XGBoost:
             verbose: int = 50
     ):
         """
-        Train XGBoost model on a subset of features (a split).
+        Train XGBoost model on a subset of features (a partition).
         """
         # if self.use_partition:  # min-max scaling
         #     scaler = MinMaxScaler()
@@ -118,6 +118,7 @@ class XGBoost:
         Split features based on partition size.
         """
         num_partitions = feature_count // self.partition_size if self.partition_size > 0 else 1
+        # use just 1 partition if we are not using partitioning e.g. testing/inference
         num_partitions = max(num_partitions, 1) if self.use_partition else 1
         return np.array_split(np.arange(feature_count), num_partitions)
 
