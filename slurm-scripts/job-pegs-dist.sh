@@ -1,13 +1,13 @@
 #!/bin/bash -l
 #SBATCH -D ./
 #SBATCH --export=ALL
-#SBATCH -J pgse-distributed
-#SBATCH -p lowpriority,nodes           # Ensure this is the correct partition
-#SBATCH -o slurm-pgse-dist-amk-%j.out
-#SBATCH -N 8                 # Number of nodes
+#SBATCH -J main-rec
+#SBATCH -p nodes           # Ensure this is the correct partition
+#SBATCH -o slurm-pgse-dist-e_co-%j.out
+#SBATCH -N 10                 # Number of nodes
 #SBATCH --ntasks-per-node=1   # Number of tasks per node
 #SBATCH --cpus-per-task=40 # CPUs per task
-#SBATCH --time=24:00:00
+#SBATCH --time=72:00:00
 
 # Optionally set OMP_NUM_THREADS if using OpenMP
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
@@ -50,22 +50,20 @@ for ((i = 1; i <= worker_num; i++)); do
 done
 
 # Change this to the your paths
-python3 main-pgse.py \
-        --label-file "../volatile/cgr_labels/cgr_label_AMK.csv" \
-        --data-dir "../volatile/cgr/" \
-        --save-file "../volatile/var/amk.save" \
-        --export-file "../volatile/var/result-amk.txt" \
+python3 main-pegs.py \
+        --label-file "../volatile/e_coli_mic_label.csv" \
+        --data-dir "../volatile/e_coli_mic/" \
+        --save-file "../volatile/var/rec-8-t10.save" \
+        --export-file "../volatile/var/pgse-result" \
         --workers $WORKERS_PER_NODE \
         --features 10000 \
         --dist 1 \
         --k 10 \
         --target 70 \
         --ext 2 \
-        --lr 0.001 \
+        --lr 0.01 \
         --num-rounds 6000 \
-        --folds 5 \
-        --ea-max 64 \
-        --ea-min 0.03
+        --folds 10
 
 echo "Finished running - goodbye from $HOSTNAME"
 

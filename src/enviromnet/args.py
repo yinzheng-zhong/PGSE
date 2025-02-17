@@ -9,8 +9,10 @@ parser.add_argument('--data-dir', type=str,
 parser.add_argument('--pre-kfold-info-file', type=str, default=None,
                     help="Path to the JSON file containing the pre-defined k-fold indices")
 parser.add_argument('--save-file', type=str,
+                    default='./default.save',
                     help="File path to save the selected segments. Used to recover the progress.")
 parser.add_argument('--export-file', type=str,
+                    default='./default-export',
                     help="File path to save the results")
 parser.add_argument('--k', type=int, default=10,
                     help="Initial size of k-mers")

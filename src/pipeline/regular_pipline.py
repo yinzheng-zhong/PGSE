@@ -47,6 +47,8 @@ class Pipeline:
 
             # Append fold results
             accumulated_results = pd.concat([accumulated_results, fold_results], ignore_index=True)
+            trained_model.save_model(f'{args.export_file}_regular_xgboost_fold_{i}')
+
 
         # Export final results and shutdown Ray
         accumulated_results.to_csv(f'{args.export_file}_regular_xgboost.csv', index=False)
