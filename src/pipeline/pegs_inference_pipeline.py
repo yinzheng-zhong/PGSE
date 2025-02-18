@@ -1,5 +1,4 @@
 from src.dataset.loader_inference import LoaderInference
-from src.enviromnet.ray_env import RayEnvManager
 import xgboost as xgb
 
 from src.segment import seg_pool
