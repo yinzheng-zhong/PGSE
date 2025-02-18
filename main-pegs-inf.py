@@ -1,6 +1,6 @@
 from src.pipeline.pegs_inference_pipeline import Pipeline
 
-MODEL_PATH = '../volatile/var/result-k6-CAZ-xgb_regular_xgboost_fold_0.model'
+MODEL_PATH = '../volatile/var/result-k6-CAZ-perf_fold_0.json'
 SEGMENT_PATH = '../volatile/var/result-k6-CAZ-perf_fold_0.txt'
 
 if __name__ == "__main__":

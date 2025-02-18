@@ -10,9 +10,6 @@ class Pipeline:
         self.model_path = model_path
         self.segment_path = segment_path
 
-        # Initialize Ray
-        RayEnvManager.initialize()
-
         self.model = None
         self._load()
 
