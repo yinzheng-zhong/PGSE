@@ -3,11 +3,11 @@ from unittest.mock import patch, MagicMock
 import numpy as np
 import pandas as pd
 
-from src.dataset.file_label import FileLabel
+from pgse.dataset.file_label import FileLabel
 
 
 class TestFileLabel(unittest.TestCase):
-    @patch('src.dataset.file_label.pd.read_csv')
+    @patch('pgse.dataset.file_label.pd.read_csv')
     def setUp(self, mock_read_csv):
         mock_data = pd.DataFrame({
             'files': ['file1', 'file2', 'file3', 'file4'],

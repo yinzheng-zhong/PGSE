@@ -1,6 +1,6 @@
 import os
 import ray
-from src.log import logger
+from pgse.log import logger
 
 
 class RayEnvManager:

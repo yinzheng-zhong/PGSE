@@ -1,14 +1,14 @@
 import os
 import ray
 
-from src.enviromnet.ray_env import RayEnvManager
-from src.log import logger
-from src.model.model_trainer import ModelTrainer
-from src.dataset.file_label import FileLabel
-from src.dataset.loader import Loader
-from src.pipeline.progress_manager import ProgressManager
-from src.segment.extender import Extender
-from src.segment import seg_pool
+from pgse.enviromnet.ray_env import RayEnvManager
+from pgse.log import logger
+from pgse.model.model_trainer import ModelTrainer
+from pgse.dataset.file_label import FileLabel
+from pgse.dataset.loader import Loader
+from pgse.pipeline.progress_manager import ProgressManager
+from pgse.segment.extender import Extender
+from pgse.segment import seg_pool
 
 
 class Pipeline:

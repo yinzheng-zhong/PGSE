@@ -2,7 +2,7 @@ import ctypes
 import numpy as np
 import os
 
-from src.algos.aho_corasick_base import AhoCorasickBase
+from pgse.algos.aho_corasick_base import AhoCorasickBase
 
 
 class AhoCorasickC(AhoCorasickBase):
@@ -18,8 +18,8 @@ class AhoCorasickC(AhoCorasickBase):
         possible_locations = [
             os.path.join(current_path, 'c-lib', 'aho_corasick.so'),
             '../../c-lib/aho_corasick.so',
-            '../c-lib/src/algos/aho_corasick.so',
-            './c-lib/src/algos/aho_corasick.so',
+            '../c-lib/pgse/algos/aho_corasick.so',
+            './c-lib/pgse/algos/aho_corasick.so',
         ]
         # try to load the library
         for location in possible_locations:

@@ -1,7 +1,7 @@
 from ray.core.generated.gcs_pb2 import OBJECT
 import ray
 
-from src.dataset.loader import Loader
+from pgse.dataset.loader import Loader
 
 TEST_SEGMENTS = ['atgtaaggcc', 'aaggcctt', 'cacatgaacc', 'ctgttgcaaa', 'ggcctttgaa', 'attcaaaggc', 'ttcaaaggcc',
                  'catgaaccca', 'tgtaaggcct', 'agttagcgat', 'cactgttgca', 'tgcaacagtg', 'gtaagcagag', 'gtgggccgta',
@@ -197,12 +197,12 @@ TEST_SEGMENTS = ['atgtaaggcc', 'aaggcctt', 'cacatgaacc', 'ctgttgcaaa', 'ggcctttg
 
 import unittest
 
-from src.genome.cache import Cache
-from src.genome.sequence import Sequence
-from src.segment import seg_pool
+from pgse.genome.cache import Cache
+from pgse.genome.sequence import Sequence
+from pgse.segment import seg_pool
 import numpy as np
 from time import time
-from src.genome import seq_manager
+from pgse.genome import seq_manager
 from unittest.mock import patch
 
 class MockLoader(Loader):

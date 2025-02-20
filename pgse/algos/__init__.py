@@ -1,6 +1,6 @@
-from src.algos.aho_corasick_c import AhoCorasickC as _AhoCorasickC
-from src.algos.aho_corasick_py import AhoCorasickPy as _AhoCorasickPy
-from src.log import logger
+from pgse.algos.aho_corasick_c import AhoCorasickC as _AhoCorasickC
+from pgse.algos.aho_corasick_py import AhoCorasickPy as _AhoCorasickPy
+from pgse.log import logger
 
 try:
     aho_corasick = _AhoCorasickC()

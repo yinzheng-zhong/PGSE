@@ -1,9 +1,9 @@
 import itertools
 
-from src.genome import canonicalize
-from src.segment import seg_pool
-from src.log import logger
-from src.segment.util import remove_duplicate_elements
+from pgse.genome import canonicalize
+from pgse.segment import seg_pool
+from pgse.log import logger
+from pgse.segment.util import remove_duplicate_elements
 
 
 class Extender:

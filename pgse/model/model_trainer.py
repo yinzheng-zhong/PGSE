@@ -3,10 +3,10 @@ import math
 import pandas as pd
 import xgboost
 
-from src.log import logger
-from src.model.util import essential_agreement_cus_metric
-from src.model.xgb import XGBoost
-from src.segment import seg_pool
+from pgse.log import logger
+from pgse.model.util import essential_agreement_cus_metric
+from pgse.model.xgb import XGBoost
+from pgse.segment import seg_pool
 
 # Constants
 DEFAULT_PARTITION_SIZE = 5000

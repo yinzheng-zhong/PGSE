@@ -1,13 +1,13 @@
 import numpy as np
 
-from src.dataset.file_label import FileLabel
+from pgse.dataset.file_label import FileLabel
 from tqdm import tqdm
 
-from src.genome import seq_manager
-from src.log import logger
-from src.genome.sequence import Sequence
+from pgse.genome import seq_manager
+from pgse.log import logger
+from pgse.genome.sequence import Sequence
 import ray
-from src.segment import seg_pool
+from pgse.segment import seg_pool
 
 
 class Loader:

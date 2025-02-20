@@ -4,7 +4,7 @@ import unittest
 import numpy as np
 from imblearn.over_sampling import RandomOverSampler
 from sklearn.utils import shuffle
-from src.model.util import oversample_minority_class
+from pgse.model.util import oversample_minority_class
 
 
 class TestUtil(unittest.TestCase):

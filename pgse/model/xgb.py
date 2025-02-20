@@ -7,7 +7,7 @@ import ray
 from tqdm import tqdm
 
 from time import time
-from src.log import logger
+from pgse.log import logger
 
 
 class XGBoost:

@@ -1,9 +1,9 @@
 import unittest
 from unittest.mock import MagicMock
 
-from src.genome.sequence import Sequence
+from pgse.genome.sequence import Sequence
 from time import time
-from src.segment import seg_pool
+from pgse.segment import seg_pool
 
 
 class TestSequence(unittest.TestCase):

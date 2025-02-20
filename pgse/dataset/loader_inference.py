@@ -2,10 +2,10 @@ import numpy as np
 import ray
 from tqdm import tqdm
 
-from src.dataset.loader import Loader
-from src.genome import seq_manager
-from src.log import logger
-from src.segment import seg_pool
+from pgse.dataset.loader import Loader
+from pgse.genome import seq_manager
+from pgse.log import logger
+from pgse.segment import seg_pool
 
 
 class LoaderInference(Loader):

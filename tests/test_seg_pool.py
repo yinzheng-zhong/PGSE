@@ -1,6 +1,6 @@
 import unittest
 
-from src.segment.segment_pool import SegmentPool
+from pgse.segment.segment_pool import SegmentPool
 
 
 class TestSegmentPool(unittest.TestCase):

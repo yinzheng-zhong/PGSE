@@ -1,6 +1,6 @@
 import unittest
 
-from src.genome.cache import Cache
+from pgse.genome.cache import Cache
 
 
 class TestCache(unittest.TestCase):

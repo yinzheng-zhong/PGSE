@@ -2,8 +2,8 @@ import json
 import os
 import pandas as pd
 
-from src.log import logger
-from src.segment import seg_pool
+from pgse.log import logger
+from pgse.segment import seg_pool
 
 # Constants
 DEFAULT_FEATURES_PRINT_COUNT = 20

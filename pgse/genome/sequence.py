@@ -1,8 +1,8 @@
 import numpy as np
 
-from src.genome import km, canonicalize
-from src.genome import get_complement
-from src.algos import aho_corasick
+from pgse.genome import km, canonicalize
+from pgse.genome import get_complement
+from pgse.algos import aho_corasick
 
 class Sequence:
     def __init__(

@@ -7,16 +7,48 @@ inhibitory concentration (MIC) of antibiotics. PGSE has higher accuracy, lower m
 pure k-mer based xgboost models. PGSE is also able to run on a distributed system.
 
 ## Installation
-Make sure Python is installed (3.9 or later) and install the required packages using pip:
+Make sure Python is installed (3.9 or later) and install the pgse from PyPI:
 ```bash
-pip install -r requirements.txt
+pip install pgse
 ```
 
 ## Usage
 ### Training
 
 #### Single node/machine
-To run PGSE on a local machine, use the following command as an example:
+Import the pipeline from the package and run the pipeline like this.
+```python
+# You can use your own argument parser or use the one provided by pgse.
+# Or instantiate the pipeline with the parameters directly from other variables.
+from pgse.enviromnet import args
+from pgse.pipeline.pgse_pipeline import Pipeline
+
+if __name__ == "__main__":
+    pipeline = Pipeline(
+        args.data_dir,
+        args.label_file,
+        args.pre_kfold_info_file,
+        args.save_file,
+        args.export_file,
+        args.k,
+        args.ext,
+        args.target,
+        args.features,
+        args.folds,
+        args.ea_min,
+        args.ea_max,
+        args.num_rounds,
+        args.lr,
+        args.dist,
+        args.nodes,
+        args.workers
+    )
+
+    pipeline.run()
+```
+
+
+Then, to run PGSE as a standalone program on a local machine, use the following command as an example:
 ```bash
 python3 main-pege.py \
         --label-file "../<path_to>/<you_labels>.csv" \
@@ -36,7 +68,7 @@ python3 main-pege.py \
         --ea-max $EA_MAX \
         --ea-min $EA_MIN
 ```
-* `--label-file` (Required): path to the label file
+* `--label-file` (Required): path to the .csv label file
 
     Here the label file is a csv file with the following format:
     ```csv
@@ -106,3 +138,57 @@ Here `-dist` is set to 0.
 
 ### Inferencing
 An example of how this can be done is provided in `main-pgse-inf.py`.
+
+```python
+from pgse.pipeline.pgse_inference_pipeline import Pipeline
+
+MODEL_PATH = '../volatile/var/result-k6-CAZ-perf_fold_0.json'
+SEGMENT_PATH = '../volatile/var/result-k6-CAZ-perf_fold_0.txt'
+
+if __name__ == "__main__":
+    # Instantiate the pipeline
+    pipeline = Pipeline(MODEL_PATH, SEGMENT_PATH)
+
+    # files as a list of paths to the fasta files
+    EG_1 = [
+        '../volatile/cgr/Sample_002-MOLMIC_B2.scaffolds.fna',
+        '../volatile/cgr/Sample_394-MOLMIC_H8.scaffolds.fna',
+        '../volatile/cgr/Sample_385-MOLMIC_G79.scaffolds.fna',
+        '../volatile/cgr/Sample_622-MOLMIC_K68.scaffolds.fna',
+        '../volatile/cgr/Sample_252-MOLMIC_F2.scaffolds.fna',
+        '../volatile/cgr/Sample_208-MOLMIC_E33.scaffolds.fna',
+        '../volatile/cgr/Sample_443-MOLMIC_H62.scaffolds.fna',
+        '../volatile/cgr/Sample_565-MOLMIC_J66.scaffolds.fna',
+        '../volatile/cgr/Sample_339-MOLMIC_G29.scaffolds.fna',
+        '../volatile/cgr/Sample_418-MOLMIC_H33.scaffolds.fna',
+    ]
+
+    result_1 = pipeline.run(EG_1)
+    print(result_1)
+
+    EG_2 = [
+        '../volatile/cgr/Sample_394-MOLMIC_H8.scaffolds.fna',
+        '../volatile/cgr/Sample_385-MOLMIC_G79.scaffolds.fna',
+        '../volatile/cgr/Sample_622-MOLMIC_K68.scaffolds.fna',
+        '../volatile/cgr/Sample_252-MOLMIC_F2.scaffolds.fna'
+    ]
+
+    result_2 = pipeline.run(EG_2)
+    print(result_2)
+```
+
+## For Development
+To build the package, run the following command:
+```bash
+rm -rf dist/ build/ pgse.egg-info/
+python -m build
+```
+Then upload the package to PyPI using:
+```bash
+python -m twine upload dist/*
+```
+
+To install the package locally, run:
+```bash
+pip install -e .
+```

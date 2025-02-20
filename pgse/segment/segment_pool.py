@@ -1,9 +1,9 @@
 import time
 import os
 import pickle
-from src.genome import km
-from src.log import logger
-from src.segment.util import remove_duplicate_elements
+from pgse.genome import km
+from pgse.log import logger
+from pgse.segment.util import remove_duplicate_elements
 
 
 class SegmentPool:

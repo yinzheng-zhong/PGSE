@@ -2,7 +2,7 @@ from itertools import product
 
 import numpy as np
 
-from src.genome.utils import get_complement, canonicalize
+from pgse.genome.utils import get_complement, canonicalize
 
 
 class Kmer:

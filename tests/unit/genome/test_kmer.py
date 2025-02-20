@@ -1,8 +1,8 @@
 import unittest
 
 
-from src.genome import canonicalize
-from src.genome.kmer import Kmer
+from pgse.genome import canonicalize
+from pgse.genome.kmer import Kmer
 
 
 class TestUtil(unittest.TestCase):

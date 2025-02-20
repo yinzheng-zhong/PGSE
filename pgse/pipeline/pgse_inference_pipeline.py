@@ -1,7 +1,7 @@
-from src.dataset.loader_inference import LoaderInference
+from pgse.dataset.loader_inference import LoaderInference
 import xgboost as xgb
 
-from src.segment import seg_pool
+from pgse.segment import seg_pool
 
 
 class Pipeline:

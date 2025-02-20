@@ -1,8 +1,8 @@
 import unittest
 import random
 
-from src.genome.sequence import Sequence
-from src.segment import seg_pool
+from pgse.genome.sequence import Sequence
+from pgse.segment import seg_pool
 
 
 class TestSequence(unittest.TestCase):
