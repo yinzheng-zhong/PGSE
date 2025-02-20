@@ -4,7 +4,6 @@ import ray
 from src.enviromnet.ray_env import RayEnvManager
 from src.log import logger
 from src.model.model_trainer import ModelTrainer
-from src.enviromnet import args
 from src.dataset.file_label import FileLabel
 from src.dataset.loader import Loader
 from src.pipeline.progress_manager import ProgressManager
@@ -13,15 +12,52 @@ from src.segment import seg_pool
 
 
 class Pipeline:
-    def __init__(self):
-        self.file_label = FileLabel(args.label_file, args.data_dir, args.pre_kfold_info_file)
+    def __init__(
+            self,
+            data_dir: str,
+            label_file: str,
+            pre_kfold_info_file: str = None,
+            save_file: str = './default.save',
+            export_file: str = './default.export',
+            k: int = 6,
+            ext: int = 2,
+            target: int = 70,
+            features: int = 10000,
+            folds: int = 0,
+            ea_min: float = None,
+            ea_max: float = None,
+            num_rounds: int = 1500,
+            lr: float = 0.03,
+            dist: bool = False,
+            nodes: int = 1,
+            workers: int = 8,
+    ):
+        self.data_dir = data_dir
+        self.label_file = label_file
+        self.pre_kfold_info_file = pre_kfold_info_file
+        self.save_file = save_file
+        self.export_file = export_file
+        self.k = k
+        self.ext = ext
+        self.target = target
+        self.features = features
+        self.folds = folds
+        self.ea_min = ea_min
+        self.ea_max = ea_max
+        self.dist = dist
+        self.nodes = nodes
+        self.num_rounds = num_rounds
+        self.lr = lr
+        self.workers = workers
+
+        self.file_label = FileLabel(self.label_file, self.data_dir, self.pre_kfold_info_file)
         self.extender = Extender()
         self.progress_manager = None
         self.model_trainer = None
 
     def extend_segments(self):
         try:
-            self.extender.extend_all_segs(args.ext)
+            self.extender.extend_all_segs(self.ext)
         except ValueError:
             logger.error("No segments could be extended. Stopping.")
             return False
@@ -29,20 +65,28 @@ class Pipeline:
         return True
 
     def run(self):
-        RayEnvManager.initialize()
+        RayEnvManager.initialize(self.dist, self.nodes, self.workers)
 
-        start_fold, accumulated_results = ProgressManager.load_fold_progress()
+        start_fold, accumulated_results = ProgressManager.load_fold_progress(self.save_file + '.progress')
 
-        for i in range(start_fold, args.folds if args.folds > 0 else 1):
+        for i in range(start_fold, self.folds if self.folds > 0 else 1):
             logger.info(f'==================== Fold {i + 1} ====================')
             loader = Loader(
                 self.file_label,
-                folds=args.folds,
+                folds=self.folds,
                 fold_index=i
             )
 
-            self.progress_manager = ProgressManager(loader)
-            self.model_trainer = ModelTrainer(loader)
+            self.progress_manager = ProgressManager(loader, self.save_file, self.k, self.ext)
+            self.model_trainer = ModelTrainer(
+                loader,
+                self.num_rounds,
+                self.workers,
+                self.lr,
+                self.features,
+                self.ea_min,
+                self.ea_max
+            )
 
             train_kmer, test_kmer, train_labels, test_labels = self.progress_manager.load_progress()
 
@@ -54,10 +98,10 @@ class Pipeline:
                 self.model_trainer.perform_feature_selection(xgb_result)
 
                 # Step 2: Attempt to extend segments
-                if seg_pool.get_current_max_length() >= args.target or not self.extend_segments():
+                if seg_pool.get_current_max_length() >= self.target or not self.extend_segments():
                     break
 
-                seg_pool.save(args.save_file)
+                seg_pool.save(self.save_file)
                 train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool()
 
             # Step 3: Train and test with selected segments
@@ -76,16 +120,16 @@ class Pipeline:
             # Append fold results
             accumulated_results = ProgressManager.append_results(fold_results, accumulated_results)
             # Save progress after each fold
-            self.progress_manager.save_fold_progress(i + 1, accumulated_results)
+            self.progress_manager.save_fold_progress(i + 1, accumulated_results, self.save_file + '.progress')
 
             try:
-                os.remove(args.save_file)
+                os.remove(self.save_file)
             except FileNotFoundError as e:
                 logger.error(e)
 
-            seg_pool.export(args.export_file + f'_fold_{i}.txt')
-            trained_model.save_model(args.export_file + f'_fold_{i}.json')
+            seg_pool.export(self.export_file + f'_fold_{i}.txt')
+            trained_model.save_model(self.export_file + f'_fold_{i}.json')
 
         # Export final results and shutdown Ray
-        accumulated_results.to_csv(f'{args.export_file}.csv')
+        accumulated_results.to_csv(f'{self.export_file}.csv')
         ray.shutdown()

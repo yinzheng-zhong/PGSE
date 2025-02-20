@@ -8,8 +8,6 @@ from tqdm import tqdm
 
 from time import time
 from src.log import logger
-from src.model.util import oversample_minority_class
-from sklearn.preprocessing import MinMaxScaler
 
 
 class XGBoost:

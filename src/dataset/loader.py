@@ -52,7 +52,7 @@ class Loader:
         if not self.test_files:
             return
 
-        logger.info('Loading test sequences...')
+        logger.info('Loading testing sequences...')
         test_sequences = [Loader._get_one_sequence.remote(file) for file in self.test_files]
         test_sequences = [ray.get(a) for a in tqdm(test_sequences)]
         seq_manager.add_test_sequences(test_sequences)

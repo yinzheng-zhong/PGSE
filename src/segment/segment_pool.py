@@ -47,6 +47,7 @@ class SegmentPool:
         :param k: int: The length of the k-mers.
         :param keep_read_error: bool: Include read errors if True.
         """
+        logger.info(f'Adding all {k}-mers to the segment pool')
         kmers = km.gen_canonical_kmers(k)
 
         self.current_max_length = k - extension
