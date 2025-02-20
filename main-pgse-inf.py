@@ -1,4 +1,4 @@
-from src.pipeline.pegs_inference_pipeline import Pipeline
+from src.pipeline.pgse_inference_pipeline import Pipeline
 
 MODEL_PATH = '../volatile/var/result-k6-CAZ-perf_fold_0.json'
 SEGMENT_PATH = '../volatile/var/result-k6-CAZ-perf_fold_0.txt'

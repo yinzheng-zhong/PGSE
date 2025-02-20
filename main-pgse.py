@@ -1,5 +1,5 @@
 from src.enviromnet import args
-from src.pipeline.pegs_pipeline import Pipeline
+from src.pipeline.pgse_pipeline import Pipeline
 
 if __name__ == "__main__":
     pipeline = Pipeline(

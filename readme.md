@@ -1,10 +1,10 @@
-# Progressive Enhancement of Genome Segments (PEGS)
+# Progressive Genome Segment Enhancement (PGSE)
 
 ## Overview
-PEGS is a tool for predictive tasks using
+PGSE is a tool for predictive tasks using
 whole genome sequences (WGS). Designed and implemented by Y Zhong and originally used for predicting the minimum
-inhibitory concentration (MIC) of antibiotics. PEGS has higher accuracy, lower memory consumption and shorter runtime compared to traditional
-pure k-mer based xgboost models. PEGS is also able to run on a distributed system.
+inhibitory concentration (MIC) of antibiotics. PGSE has higher accuracy, lower memory consumption and shorter runtime compared to traditional
+pure k-mer based xgboost models. PGSE is also able to run on a distributed system.
 
 ## Installation
 Make sure Python is installed (3.9 or later) and install the required packages using pip:
@@ -16,7 +16,7 @@ pip install -r requirements.txt
 ### Training
 
 #### Single node/machine
-To run PEGS on a local machine, use the following command as an example:
+To run PGSE on a local machine, use the following command as an example:
 ```bash
 python3 main-pege.py \
         --label-file "../<path_to>/<you_labels>.csv" \
@@ -47,11 +47,11 @@ python3 main-pege.py \
     ```
 
     The labels are the target values for the prediction task. The files are the file names (.fna files under `--data-dir`) containing the genome sequences.
-* `--data-dir` (Required): path to the data directory containing the .fna files. PEGS will be able to retrieve the genome sequences using this path and the
+* `--data-dir` (Required): path to the data directory containing the .fna files. PGSE will be able to retrieve the genome sequences using this path and the
 file names in the label file.
 * `--pre-kfold-info-file`: path to the predefined k-fold info JSON file.
-This is not required but will be useful if you want to compare PEGS with other systems. Without
-this, PEGS will split the data into k folds randomly using a fixed seed. E.g.
+This is not required but will be useful if you want to compare PGSE with other systems. Without
+this, PGSE will split the data into k folds randomly using a fixed seed. E.g.
     ```json
     {
         "fold_0": [
@@ -94,15 +94,15 @@ you want to see more accurate EA information from the console output during the 
 * `--ea-min`: Minimum number of censored essential agreement values. Similar to `--ea-max`.
 
 #### Distributed computation
-To run PEGS on a distributed system, you need to use
-your environment specific setup. There are multiple examples about running PEGS
+To run PGSE on a distributed system, you need to use
+your environment specific setup. There are multiple examples about running PGSE
 using Slurm under the slurm-scripts directory.
-* `job-pegs-array.sh`: Run PEGS on a cluster using Slurm with multiple nodes for multiple antibiotics using array jobs.
+* `job-pgse-array.sh`: Run PGSE on a cluster using Slurm with multiple nodes for multiple antibiotics using array jobs.
 Here `-dist` is set to 0 as each task is running separately.
-* `job-pegs-dist.sh`: Run PEGS on a cluster using Slurm with multiple nodes for a single antibiotic.
+* `job-pgse-dist.sh`: Run PGSE on a cluster using Slurm with multiple nodes for a single antibiotic.
 Here `-dist` is set to 1 as the task is running on different nodes.
-* `job-pegs-single.sh`: Run PEGS on a Slurm cluster with a single node for a single antibiotic.
+* `job-pgse-single.sh`: Run PGSE on a Slurm cluster with a single node for a single antibiotic.
 Here `-dist` is set to 0.
 
 ### Inferencing
-An example of how this can be done is provided in `main-pege-inf.py`.
+An example of how this can be done is provided in `main-pgse-inf.py`.

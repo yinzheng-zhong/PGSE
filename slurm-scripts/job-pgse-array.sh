@@ -31,7 +31,7 @@ echo "Starting processing for compound $COMPOUND on host $HOSTNAME"
 conda activate genome
 
 # Run the Python script with compound-specific files
-python3 main-pegs.py \
+python3 main-pgse.py \
         --label-file "../volatile/cgr_labels_new/cgr_label_${COMPOUND}.csv" \
         --data-dir "../volatile/cgr/" \
         --pre-kfold-info-file "../volatile/cgr_labels_new/cgr_label_${COMPOUND}_kfold.json" \
