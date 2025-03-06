@@ -50,7 +50,10 @@ def is_essential_agreement(
 
 
 def essential_agreement_cus_metric(preds, dtrain, min_after_log2=None, max_after_log2=None):
-    labels = dtrain.get_label()
+    try:
+        labels = dtrain.get_label()
+    except AttributeError:
+        labels = dtrain
     agreements = is_essential_agreement(labels, preds, min_after_log2, max_after_log2)
     agreement_rate = np.mean(agreements)
     return agreement_rate
