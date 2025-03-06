@@ -1,3 +1,5 @@
+import ray
+
 from pgse.dataset.loader_inference import LoaderInference
 import xgboost as xgb
 
@@ -22,5 +24,7 @@ class Pipeline:
 
         dtest = xgb.DMatrix(data)
         preds = self.model.predict(dtest)
+
+        ray.shutdown()
 
         return preds
