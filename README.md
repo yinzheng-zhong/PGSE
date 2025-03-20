@@ -56,7 +56,7 @@ python3 main-pgse.py \
         --pre-kfold-info-file "../<k_fold_information>.json" \
         --save-file "../<saved progress>.save" \
         --export-file "../<exported files>" \
-        --workers $WORKERS_PER_NODE \
+        --workers 8 \
         --features 10000 \
         --dist 0 \
         --k 6 \
