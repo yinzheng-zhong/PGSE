@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
 Then, to run PGSE as a standalone program on a local machine, use the following command as an example:
 ```bash
-python3 main-pege.py \
+python3 main-pgse.py \
         --label-file "../<path_to>/<you_labels>.csv" \
         --data-dir "../<you_data_dir>/" \
         --pre-kfold-info-file "../<k_fold_information>.json" \
@@ -65,8 +65,8 @@ python3 main-pege.py \
         --lr 0.001 \
         --num-rounds 6000 \
         --folds 5 \
-        --ea-max $EA_MAX \
-        --ea-min $EA_MIN
+        --ea-max 64 \
+        --ea-min 0
 ```
 * `--label-file` (Required): path to the .csv label file
 
