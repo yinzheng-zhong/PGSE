@@ -17,7 +17,7 @@ class Pipeline:
             data_dir: str,
             label_file: str,
             pre_kfold_info_file: str = None,
-            save_file: str = './default.save',
+            save_file: str = '',
             export_file: str = './default.export',
             k: int = 6,
             ext: int = 2,
@@ -52,7 +52,7 @@ class Pipeline:
 
         self.file_label = FileLabel(self.label_file, self.data_dir, self.pre_kfold_info_file)
         self.extender = Extender()
-        self.progress_manager = None
+        self.progress_manager = ProgressManager(self.save_file, self.k, self.ext)
         self.model_trainer = None
 
     def extend_segments(self):
@@ -67,7 +67,7 @@ class Pipeline:
     def run(self):
         RayEnvManager.initialize(self.dist, self.nodes, self.workers)
 
-        start_fold, accumulated_results = ProgressManager.load_fold_progress(self.save_file + '.progress')
+        start_fold, accumulated_results = self.progress_manager.load_fold_progress()
 
         for i in range(start_fold, self.folds if self.folds > 0 else 1):
             logger.info(f'==================== Fold {i + 1} ====================')
@@ -77,7 +77,6 @@ class Pipeline:
                 fold_index=i
             )
 
-            self.progress_manager = ProgressManager(loader, self.save_file, self.k, self.ext)
             self.model_trainer = ModelTrainer(
                 loader,
                 self.num_rounds,
@@ -88,7 +87,7 @@ class Pipeline:
                 self.ea_max
             )
 
-            train_kmer, test_kmer, train_labels, test_labels = self.progress_manager.load_progress()
+            train_kmer, test_kmer, train_labels, test_labels = self.progress_manager.load_round_progress(loader)
 
             while True:
                 logger.info(f'==================== Feature Selection ====================')
@@ -101,7 +100,7 @@ class Pipeline:
                 if seg_pool.get_current_max_length() >= self.target or not self.extend_segments():
                     break
 
-                seg_pool.save(self.save_file)
+                self.progress_manager.save_round_progress()
                 train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool()
 
             # Step 3: Train and test with selected segments
@@ -118,9 +117,9 @@ class Pipeline:
             logger.info(fold_results)
 
             # Append fold results
-            accumulated_results = ProgressManager.append_results(fold_results, accumulated_results)
+            accumulated_results = self.progress_manager.append_results(fold_results, accumulated_results)
             # Save progress after each fold
-            self.progress_manager.save_fold_progress(i + 1, accumulated_results, self.save_file + '.progress')
+            self.progress_manager.save_fold_progress(i + 1, accumulated_results)
 
             try:
                 os.remove(self.save_file)
