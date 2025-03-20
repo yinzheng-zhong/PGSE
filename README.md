@@ -71,11 +71,12 @@ python3 main-pgse.py \
 * `--label-file` (Required): path to the .csv label file
 
     Here the label file is a csv file with the following format:
-    ```csv
-    labels, files
-    7, file1.fna
-    7, file2.fna
-    6, file3.fna
+    ```text
+    | labels | files     |
+    | ------ | --------- |
+    | 7      | file1.fna |
+    | 7      | file2.fna |
+    | 6      | file3.fna |
     ```
 
     The labels are the target values for the prediction task. The files are the file names (.fna files under `--data-dir`) containing the genome sequences.
