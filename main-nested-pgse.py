@@ -7,8 +7,8 @@ import math
 
 from model.util import essential_agreement_cus_metric
 from pgse.enviromnet import args
-from pgse.pipeline.pgse_pipeline import Pipeline as PGSEPipeline
-from pgse.pipeline.pgse_inference_pipeline import Pipeline as PGSEInferencePipeline
+from pgse import TrainingPipeline as PGSEPipeline
+from pgse import InferencePipeline as PGSEInferencePipeline
 
 if __name__ == "__main__":
     # load label and k-fold info

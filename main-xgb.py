@@ -1,5 +1,5 @@
 from pgse.enviromnet import args
-from pgse.pipeline.regular_pipline import Pipeline
+from pgse import PureXGBPipeline as Pipeline
 
 if __name__ == "__main__":
     pipeline = Pipeline(

@@ -17,14 +17,16 @@ pip install pgse
 
 #### Single node/machine
 Import the pipeline from the package and run the pipeline like this.
+You can use your own argument parser or use the one provided by pgse.
+Or instantiate the pipeline with the parameters directly from other variables.
 ```python
 # You can use your own argument parser or use the one provided by pgse.
 # Or instantiate the pipeline with the parameters directly from other variables.
 from pgse.enviromnet import args
-from pgse.pipeline.pgse_pipeline import Pipeline
+from pgse import TrainingPipeline
 
 if __name__ == "__main__":
-    pipeline = Pipeline(
+    pipeline = TrainingPipeline(
         args.data_dir,
         args.label_file,
         args.pre_kfold_info_file,
@@ -48,7 +50,7 @@ if __name__ == "__main__":
 ```
 
 
-Then, to run PGSE as a standalone program on a local machine, use the following command as an example:
+Alternatively, to run PGSE as a standalone program on a local machine, download the project and use the following command as an example:
 ```bash
 python3 main-pgse.py \
         --label-file "../<path_to>/<you_labels>.csv" \
@@ -141,14 +143,14 @@ Here `-dist` is set to 0.
 An example of how this can be done is provided in `main-pgse-inf.py`.
 
 ```python
-from pgse.pipeline.pgse_inference_pipeline import Pipeline
+from pgse import InferencePipeline
 
 MODEL_PATH = '../volatile/var/result-k6-CAZ-perf_fold_0.json'
 SEGMENT_PATH = '../volatile/var/result-k6-CAZ-perf_fold_0.txt'
 
 if __name__ == "__main__":
     # Instantiate the pipeline
-    pipeline = Pipeline(MODEL_PATH, SEGMENT_PATH)
+    pipeline = InferencePipeline(MODEL_PATH, SEGMENT_PATH)
 
     # files as a list of paths to the fasta files
     EG_1 = [

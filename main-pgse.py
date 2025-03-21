@@ -1,8 +1,8 @@
 from pgse.enviromnet import args
-from pgse.pipeline.pgse_pipeline import Pipeline
+from pgse import TrainingPipeline
 
 if __name__ == "__main__":
-    pipeline = Pipeline(
+    pipeline = TrainingPipeline(
         args.data_dir,
         args.label_file,
         args.pre_kfold_info_file,
