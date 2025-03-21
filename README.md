@@ -19,34 +19,35 @@ pip install pgse
 Import the pipeline from the package and run the pipeline like this.
 You can use your own argument parser or use the one provided by pgse.
 Or instantiate the pipeline with the parameters directly from other variables.
+
 ```python
 # You can use your own argument parser or use the one provided by pgse.
 # Or instantiate the pipeline with the parameters directly from other variables.
-from pgse.enviromnet import args
+from pgse.environment import args
 from pgse import TrainingPipeline
 
 if __name__ == "__main__":
-    pipeline = TrainingPipeline(
-        args.data_dir,
-        args.label_file,
-        args.pre_kfold_info_file,
-        args.save_file,
-        args.export_file,
-        args.k,
-        args.ext,
-        args.target,
-        args.features,
-        args.folds,
-        args.ea_min,
-        args.ea_max,
-        args.num_rounds,
-        args.lr,
-        args.dist,
-        args.nodes,
-        args.workers
-    )
+  pipeline = TrainingPipeline(
+    args.data_dir,
+    args.label_file,
+    args.pre_kfold_info_file,
+    args.save_file,
+    args.export_file,
+    args.k,
+    args.ext,
+    args.target,
+    args.features,
+    args.folds,
+    args.ea_min,
+    args.ea_max,
+    args.num_rounds,
+    args.lr,
+    args.dist,
+    args.nodes,
+    args.workers
+  )
 
-    pipeline.run()
+  pipeline.run()
 ```
 
 
@@ -195,3 +196,25 @@ To install the package locally, run:
 ```bash
 pip install -e .
 ```
+
+## Q & A
+### Why do we perform feature partitioning?
+There are four reasons why feature partitioning is crucial in PGSE. 
+First, feature partitioning is used as a memory reduction technique.
+The model is trained on a subset of the features at a time, therefore, the memory consumption is reduced while maintained
+a relatively stable RAM usage regardless of the number of total features.
+Second, feature partitioning helps to parallelise the training process. Each partition can be trained on a different worker
+across different nodes. This is particularly useful as XGBoost training consumes most of the time in the training process.
+Third, from the experiments we have conducted, we found that feature dimensionality affects the model's optimal hyperparameters.
+For example, higher feature dimensionality requires a shallower tree depth in general.
+PGSE is a dynamic system that and the total number of features can be different in each round.
+Therefore, partitioning the features into similarly-sized sub-features can help to minimise the impact of the feature dimensionality on the model's hyperparameters.
+Finally, feature partitioning helps to preserve the feature importance information from XGBoost. Likely due to the
+pruning process, more feature importance information will be lost (become 0) if the dimensionality increases.
+
+### Why do we eliminate features?
+If segment `A` is extended into segment `B`, `A` becomes a subsequences of `B`. For pairs like `A` and `B`, we only need to keep the
+ones with higher feature importance. Extension and elimination are two crucial parts of the PGSE system, which grows the
+genome segments longer and the elimination process guarantees that the growth will stop eventually. Additionally, elimination
+guarantees the convergence of the system as the feature dimensionality will start decreasing at some point till
+all features stop growing.

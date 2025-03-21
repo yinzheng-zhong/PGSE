@@ -1,7 +1,10 @@
-from pgse.enviromnet import args
+from pgse.environment.args import get_parser
 from pgse import PureXGBPipeline as Pipeline
 
 if __name__ == "__main__":
+    parser = get_parser()
+    args = parser.parse_args()
+
     pipeline = Pipeline(
         args.data_dir,
         args.label_file,

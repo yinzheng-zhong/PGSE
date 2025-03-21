@@ -1,7 +1,7 @@
 import pandas as pd
 import ray
 
-from pgse.enviromnet.ray_env import RayEnvManager
+from pgse.environment.ray_env import RayEnvManager
 from pgse.log import logger
 from pgse.model.model_trainer import ModelTrainer
 from pgse.dataset.file_label import FileLabel

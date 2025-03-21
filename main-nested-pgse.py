@@ -1,16 +1,18 @@
 import os
-
+from pgse.environment.args import get_parser
 import pandas as pd
 import json
 
 import math
 
 from model.util import essential_agreement_cus_metric
-from pgse.enviromnet import args
 from pgse import TrainingPipeline as PGSEPipeline
 from pgse import InferencePipeline as PGSEInferencePipeline
 
 if __name__ == "__main__":
+    parser = get_parser()
+    args = parser.parse_args()
+
     # load label and k-fold info
     label_path = args.label_file
     k_fold_path = args.pre_kfold_info_file
