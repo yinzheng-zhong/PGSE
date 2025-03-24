@@ -18,15 +18,18 @@ pip install pgse
 #### Single node/machine
 Import the pipeline from the package and run the pipeline like this.
 You can use your own argument parser or use the one provided by pgse.
-Or instantiate the pipeline with the parameters directly from other variables.
+Also, you can instantiate the pipeline with a wrapper that provides the parameters directly.
 
 ```python
 # You can use your own argument parser or use the one provided by pgse.
-# Or instantiate the pipeline with the parameters directly from other variables.
-from pgse.environment import args
+# Or instantiate the pipeline with a wrapper that provides the parameters directly.
+from pgse.environment.args import get_parser
 from pgse import TrainingPipeline
 
 if __name__ == "__main__":
+  parser = get_parser()
+  args = parser.parse_args()
+
   pipeline = TrainingPipeline(
     args.data_dir,
     args.label_file,
