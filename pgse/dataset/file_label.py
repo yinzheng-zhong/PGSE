@@ -16,6 +16,12 @@ class FileLabel:
             data_dir,
             pre_kfold_info_file=None
     ):
+        """
+        FileLabel constructor.
+        :param label_file: Path to the CSV file containing the labels
+        :param data_dir: Directory containing the data files When it is a dictionary, it should be in the format of
+        {file1: label1, file2: label2, ...}
+        """
         self.label_file = label_file
         self.data_dir = data_dir
         self.pre_kfold_info_file = pre_kfold_info_file
@@ -25,7 +31,7 @@ class FileLabel:
         if isinstance(self.label_file, str):
             data = pd.read_csv(self.label_file, dtype=str)
         elif isinstance(self.label_file, dict):
-            data = pd.DataFrame(self.label_file)
+            data = pd.DataFrame(self.label_file.items(), columns=['files', 'labels'])
         else:
             raise ValueError('Invalid label file format')
 

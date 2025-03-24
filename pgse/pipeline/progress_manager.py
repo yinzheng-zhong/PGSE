@@ -27,7 +27,7 @@ class ProgressManager:
         self.k = k
         self.ext = ext
 
-        self.progress_file = self.save_file + '.progress'
+        self.progress_file = self.save_file + '.progress' if self.save_file else None
 
     def save_round_progress(self):
         """
