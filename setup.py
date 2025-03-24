@@ -8,10 +8,10 @@ with open(here / "requirements.txt", encoding="utf-8") as f:
 
 setup(
     name="pgse",
-    version="0.2.0",
+    version="0.3.1",
     author="Yinzheng Zhong",
     author_email="yinzheng.zhong@liverpool.ac.uk",
-    description="Progressive Enhancement of Genome Sequences (PGSE)",
+    description="Progressive Genome Sequence Enhancement (PGSE)",
     license_files="LICENSE",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
