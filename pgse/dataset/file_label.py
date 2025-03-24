@@ -10,14 +10,25 @@ from collections import Counter
 
 
 class FileLabel:
-    def __init__(self, label_file, data_dir, pre_kfold_info_file=None):
+    def __init__(
+            self,
+            label_file: str | dict,
+            data_dir,
+            pre_kfold_info_file=None
+    ):
         self.label_file = label_file
         self.data_dir = data_dir
         self.pre_kfold_info_file = pre_kfold_info_file
         self.label_lookup = self._load_label_lookup()
 
     def _load_label_lookup(self):
-        data = pd.read_csv(self.label_file, dtype=str)
+        if isinstance(self.label_file, str):
+            data = pd.read_csv(self.label_file, dtype=str)
+        elif isinstance(self.label_file, dict):
+            data = pd.DataFrame(self.label_file)
+        else:
+            raise ValueError('Invalid label file format')
+
         data['files'] = [os.path.join(self.data_dir, p) for p in data['files']]
         return data.set_index('files').to_dict()['labels']
 

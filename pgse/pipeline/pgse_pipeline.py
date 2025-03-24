@@ -15,7 +15,7 @@ class Pipeline:
     def __init__(
             self,
             data_dir: str,
-            label_file: str,
+            label_file: str | dict,
             pre_kfold_info_file: str = None,
             save_file: str = '',
             export_file: str = './default.export',

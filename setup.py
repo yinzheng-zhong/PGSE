@@ -8,7 +8,7 @@ with open(here / "requirements.txt", encoding="utf-8") as f:
 
 setup(
     name="pgse",
-    version="0.3.4",
+    version="0.4.0",
     author="Yinzheng Zhong",
     author_email="yinzheng.zhong@liverpool.ac.uk",
     description="Progressive Genome Sequence Enhancement (PGSE)",
@@ -21,6 +21,6 @@ setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.9",
+    python_requires=">=3.10",
     install_requires=requirements,
 )
