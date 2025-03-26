@@ -32,8 +32,8 @@ pgse <- function(x,
   nodes <- as.integer(nodes)
   workers <- as.integer(workers)
 
-  reticulate::py_run_string("import ray")
-  reticulate::py_run_string("ray.shutdown()")
+  # reticulate::py_run_string("import ray")
+  # reticulate::py_run_string("ray.shutdown()")
 
   pipeline <- pgse_module$TrainingPipeline(data_dir = x,
                                            label_file = labels,
