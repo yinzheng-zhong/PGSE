@@ -5,7 +5,7 @@ import json
 
 import math
 
-from model.util import essential_agreement_cus_metric
+from pgse.model.util import essential_agreement_cus_metric
 from pgse import TrainingPipeline as PGSEPipeline
 from pgse import InferencePipeline as PGSEInferencePipeline
 
