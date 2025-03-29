@@ -1,0 +1,29 @@
+predict.pgse_model <- function(object,
+                         newdata) {
+  pgse_module <- reticulate::import("pgse")
+  
+  tmp_model_file <- tempfile(fileext = ".json")
+  xgboost::xgb.save(object$model, tmp_model_file)
+  
+  tmp_segments_file <- tempfile(fileext = ".txt")
+  writeLines(object$segments, tmp_segments_file)
+  
+  pipeline <- pgse_module$InferencePipeline(model_path = tmp_model_file,
+                                            segment_path = tmp_segments_file)
+  pipeline$run(newdata)
+}
+
+predict.pgse_output <- function(object,
+                          newdata) {
+  if (length(object$models) == 1) {
+    return(predict(object$models[[1]], newdata))
+  }
+  message(
+  "Appear to be using a multi-model PGSE output,
+  probably from cross-validation. Predicting with each model.."
+  )
+  predictions <- lapply(object$models, \(m) {
+    predict(m, newdata)
+  })
+  return(predictions)
+}
