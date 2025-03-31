@@ -1,49 +1,28 @@
-validate_dir_paths_input <- function(x) {
-  if (length(x) == 0) {
-    stop("Input must be a directory or file/s.")
+validate_paths_input <- function(x) {
+  if (!is.character(x)) {
+    stop("x must be a character vector of file paths.")
   }
-  if (all(file.exists(x) & !dir.exists(x))) {
-    return()
+  if (any(dir.exists(x))) {
+    stop("The following paths are directories (not files): ",
+         paste(x[dir.exists(x)], collapse = ", "))
   }
-  if (dir.exists(x)) {
-    return()
+  if (!all(file.exists(x))) {
+    stop("The following files do not exist: ",
+         paste(x[!file.exists(x)], collapse = ", "))
   }
-  stop("Input must be a directory or file/s.")
 }
 
-process_labels <- function(labels, x) {
-  # try(
-  #   {
-  #     if (file.exists(labels)) {
-  #       return(labels)
-  #     }
-  #     if (!file.exists(labels)) {
-  #       if (length(x) == 1 & dir.exists(x)) {
-  #         return(NULL)
-  #       }
-  #     }
-  #   }
-  # )
-  
-  if (length(x) == 1 && dir.exists(x)) {
-    print(x)
-    tryCatch(
-      {
-        if (file.exists(labels)) {
-          return(labels)
-        }
-      },
-      error = function(e) {
-        return(NULL)
-      }
-    )
+process_labels <- function(labels, paths) {
+  if (length(labels) != length(paths)) {
+    stop("The number of labels does not match the number of paths.")
   }
   
   tmp_label_file <- tempfile(fileext = ".csv")
-  label_file <- data.frame(files = x,
-                             labels = labels)
+  label_file <- data.frame(files = paths,
+                           labels = labels)
+  
   write.csv(label_file, tmp_label_file, row.names = FALSE)
-  return(tmp_label_file)
+  tmp_label_file
   
 }
 
@@ -67,12 +46,8 @@ pgse <- function(x,
     stop("pre_kfold_info_file is not supported yet.")
   }
   
-  validate_dir_paths_input(x)
+  validate_paths_input(x)
   labels <- process_labels(labels, x)
-  
-  if (is.null(labels)) {
-    stop("Unable to process labels.")
-  }
   
   pgse_module <- reticulate::import("pgse")
   

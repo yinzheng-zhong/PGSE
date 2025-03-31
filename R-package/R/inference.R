@@ -27,3 +27,17 @@ predict.pgse_output <- function(object,
   })
   return(predictions)
 }
+
+pgse_api_inference <- function(model_path,
+                               segment_path,
+                               files,
+                               ...) {
+  pgse_module <- reticulate::import("pgse")
+  
+  # shutdown ray if it is running
+  reticulate::py_run_string("import ray; ray.shutdown()")
+  
+  pipeline <- pgse_module$InferencePipeline(model_path = model_path,
+                                            segment_path = segment_path)
+  pipeline$run(files)
+}
