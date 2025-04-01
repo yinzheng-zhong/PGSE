@@ -21,7 +21,7 @@ process_labels <- function(labels, paths) {
   label_file <- data.frame(files = paths,
                            labels = labels)
   
-  write.csv(label_file, tmp_label_file, row.names = FALSE)
+  utils::write.csv(label_file, tmp_label_file, row.names = FALSE)
   tmp_label_file
   
 }

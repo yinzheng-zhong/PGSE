@@ -16,14 +16,14 @@ predict.pgse_model <- function(object,
 predict.pgse_output <- function(object,
                           newdata) {
   if (length(object$models) == 1) {
-    return(predict(object$models[[1]], newdata))
+    return(stats::predict(object$models[[1]], newdata))
   }
   message(
   "Appear to be using a multi-model PGSE output,
   probably from cross-validation. Predicting with each model.."
   )
   predictions <- lapply(object$models, \(m) {
-    predict(m, newdata)
+    stats::predict(m, newdata)
   })
   return(predictions)
 }
