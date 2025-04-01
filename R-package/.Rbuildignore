@@ -1,5 +1,5 @@
 ^renv$
 ^renv\.lock$
-^PGSE\.R\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
+^R-package\.Rproj$
