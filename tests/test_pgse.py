@@ -1,8 +1,8 @@
 import unittest
 import os
-from tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory, TemporaryFile, NamedTemporaryFile
 from xgboost import Booster
-from pandas import DataFrame
+from pandas import DataFrame, read_csv
 
 from pgse import TrainingPipeline
 
@@ -10,16 +10,16 @@ from pgse import TrainingPipeline
 class TestTrainingPipeline(unittest.TestCase):
     def test_training_pipeline(self):
         with TemporaryDirectory() as tmp_dir:
-            pipeline = TrainingPipeline(data_dir = "resource/genomes/",
-                                        label_file = "resource/labels.csv",
+            pipeline = TrainingPipeline(data_dir="resource/genomes/",
+                                        label_file="resource/labels.csv",
                                         save_file=os.path.join(tmp_dir, "save"),
                                         export_file=os.path.join(tmp_dir, "export"))
             pipeline.run()
 
     def test_no_write_pipeline(self):
         with TemporaryDirectory() as tmp_dir:
-            pipeline = TrainingPipeline(data_dir = "resource/genomes/",
-                                        label_file = "resource/labels.csv",
+            pipeline = TrainingPipeline(data_dir="resource/genomes/",
+                                        label_file="resource/labels.csv",
                                         save_file=os.path.join(tmp_dir, "save"),
                                         export_file=os.path.join(tmp_dir, "export"))
             pipeline._suppress_write = True
@@ -29,8 +29,9 @@ class TestTrainingPipeline(unittest.TestCase):
             self.assertEqual(len(files), 0)
 
     def test_functional_pipeline(self):
-        pipeline = TrainingPipeline(data_dir = "resource/genomes/",
-                                    label_file = "resource/labels.csv")
+        pipeline = TrainingPipeline(data_dir="resource/genomes/",
+                                    label_file="resource/labels.csv",
+                                    folds=2)
         results = pipeline.train()
 
         self.assertIsInstance(results.segments, list)
@@ -45,3 +46,12 @@ class TestTrainingPipeline(unittest.TestCase):
             self.assertIsInstance(result, DataFrame)
             self.assertIn('Prediction', result)
             self.assertIn('Actual', result)
+
+        pipeline_abs_paths = TrainingPipeline(data_dir="",
+                                    label_file="resource/labels_full_paths.csv",
+                                              folds=2)
+        results_abs_paths = pipeline_abs_paths.train()
+        self.assertEqual(results.segments, results_abs_paths.segments)
+        for r, r_abs in zip(results.results, results_abs_paths.results):
+            self.assertEqual(list(r['Prediction']), list(r_abs['Prediction']))
+            self.assertEqual(list(r['Actual']), list(r_abs['Actual']))
