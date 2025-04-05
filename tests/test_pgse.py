@@ -47,6 +47,7 @@ class TestTrainingPipeline(unittest.TestCase):
             self.assertIn('Prediction', result)
             self.assertIn('Actual', result)
 
+        # test that absolute paths to .fna files give the same results
         pipeline_abs_paths = TrainingPipeline(data_dir="",
                                     label_file="resource/labels_full_paths.csv",
                                               folds=2)
