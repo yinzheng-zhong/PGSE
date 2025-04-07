@@ -1,6 +1,8 @@
 import os
 import ray
 
+from xgboost import  Booster
+
 from pgse.environment.ray_env import RayEnvManager
 from pgse.log import logger
 from pgse.model.model_trainer import ModelTrainer
@@ -9,6 +11,13 @@ from pgse.dataset.loader import Loader
 from pgse.pipeline.progress_manager import ProgressManager
 from pgse.segment.extender import Extender
 from pgse.segment import seg_pool
+
+
+class PGSEPipelineOutput:
+    def __init__(self, models, segments, results):
+        self.models = models
+        self.segments = segments
+        self.results = results
 
 
 class Pipeline:
@@ -55,6 +64,11 @@ class Pipeline:
         self.progress_manager = ProgressManager(self.save_file, self.k, self.ext)
         self.model_trainer = None
 
+        self.models: list[Booster] = []
+        self.segments: list[str] = []
+        self.results: list[dict] = []
+        self._suppress_write: bool = False
+
     def extend_segments(self):
         try:
             self.extender.extend_all_segs(self.ext)
@@ -100,7 +114,9 @@ class Pipeline:
                 if seg_pool.get_current_max_length() >= self.target or not self.extend_segments():
                     break
 
-                self.progress_manager.save_round_progress()
+                if not self._suppress_write:
+                    self.progress_manager.save_round_progress()
+
                 train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool()
 
             # Step 3: Train and test with selected segments
@@ -118,17 +134,38 @@ class Pipeline:
 
             # Append fold results
             accumulated_results = self.progress_manager.append_results(fold_results, accumulated_results)
+
+            # Update containers after each fold
+            self.models.append(trained_model)
+            self.segments.append(seg_pool.get_copy())
+            self.results.append(fold_results)
+
             # Save progress after each fold
-            self.progress_manager.save_fold_progress(i + 1, accumulated_results)
+            if not self._suppress_write:
+                self.progress_manager.save_fold_progress(i + 1, accumulated_results)
 
-            try:
-                os.remove(self.save_file)
-            except FileNotFoundError as e:
-                logger.error(e)
+                try:
+                    os.remove(self.save_file)
+                except FileNotFoundError as e:
+                    logger.error(e)
 
-            seg_pool.export(self.export_file + f'_fold_{i}.txt')
-            trained_model.save_model(self.export_file + f'_fold_{i}.json')
+                seg_pool.export(self.export_file + f'_fold_{i}.txt')
+                trained_model.save_model(self.export_file + f'_fold_{i}.json')
 
         # Export final results and shutdown Ray
-        accumulated_results.to_csv(f'{self.export_file}.csv')
+        if not self._suppress_write:
+            accumulated_results.to_csv(f'{self.export_file}.csv')
         ray.shutdown()
+
+    def train(self):
+        self._suppress_write = True
+
+        self.run()
+
+        return(
+            PGSEPipelineOutput(
+                models=self.models,
+                segments=self.segments,
+                results=self.results
+            )
+        )
