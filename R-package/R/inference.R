@@ -1,12 +1,10 @@
-#' Title
+#' Predict method for PGSE model
 #'
-#' @param object
-#' @param newdata
+#' @param object pgse_model object
+#' @param newdata character list of file paths to sequences
 #'
-#' @return
+#' @return array of predictions
 #' @export
-#'
-#' @examples
 predict.pgse_model <- function(object,
                          newdata) {
   pgse_module <- reticulate::import("pgse")
@@ -22,30 +20,56 @@ predict.pgse_model <- function(object,
   pipeline$run(newdata)
 }
 
-#' Title
+#' Predict method for PGSE output
 #'
-#' @param object
-#' @param newdata
+#' @param object pgse_output object
+#' @param newdata character list of file paths to sequences
 #'
-#' @return
+#' @return list of predictions (arrays)
 #' @export
-#'
-#' @examples
-predict.pgse_output <- function(object,
+predict.pgse_output_simple <- function(object,
                           newdata) {
-  if (length(object$models) == 1) {
-    return(stats::predict(object$models[[1]], newdata))
-  }
-  message(
-  "Appear to be using a multi-model PGSE output,
-  probably from cross-validation. Predicting with each model.."
-  )
-  predictions <- lapply(object$models, \(m) {
-    stats::predict(m, newdata)
-  })
-  return(predictions)
+  stats::predict(object$model, newdata)
+  # if (length(object$models) == 1) {
+  #   return(stats::predict(object$models[[1]], newdata))
+  # }
+  # message(
+  # "Appear to be using a multi-model PGSE output,
+  # probably from cross-validation. Predicting with each model.."
+  # )
+  # predictions <- lapply(object$models, \(m) {
+  #   stats::predict(m, newdata)
+  # })
+  # return(predictions)
 }
 
+#' Predict method for cross-validation PGSE output
+#'
+#' @param object pgse_output_cv object
+#' @param newdata character list of file paths to sequences
+#'
+#' @export
+predict.pgse_output_cv <- function(object,
+                                   newdata) {
+  lapply(object$models, \(m) {
+    stats::predict(m, newdata)
+  })
+}
+
+#' Low-level API wrapper for PGSE inference pipeline
+#'
+#' @param model_path path to the model file (usually .json)
+#' @param segment_path path to the segments file (usually .txt)
+#' @param files character vector of file paths to sequences
+#' @param ... additional arguments to pass to the pipeline
+#'
+#' @return array of predictions
+#' @export
+#'
+#' @description
+#' This is low-level wrapper around the Python PGSE inference pipeline.
+#' In general, it is recommended to use the `predict` method on
+#' `pgse()` instead.
 pgse_api_inference <- function(model_path,
                                segment_path,
                                files,
@@ -56,6 +80,7 @@ pgse_api_inference <- function(model_path,
   reticulate::py_run_string("import ray; ray.shutdown()")
 
   pipeline <- pgse_module$InferencePipeline(model_path = model_path,
-                                            segment_path = segment_path)
+                                            segment_path = segment_path,
+                                            ...)
   pipeline$run(files)
 }
