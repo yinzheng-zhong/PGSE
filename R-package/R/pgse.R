@@ -26,6 +26,26 @@ process_labels <- function(labels, paths) {
 
 }
 
+#' Run PGSE
+#'
+#' @param x character vector of file paths
+#' @param labels vector of labels
+#' @param pre_kfold_info_file path to pre-kfold info file [not supported yet]
+#' @param k initial $k$-mer length
+#' @param ext $p$ extension parameter
+#' @param target target number of features
+#' @param features number of features to select
+#' @param folds number of folds for cross-validation (0 for train test split)
+#' @param ea_min minimum essential agreement
+#' @param ea_max maximum essential agreement
+#' @param num_rounds number of rounds for XGBoost training
+#' @param lr learning rate for XGBoost
+#' @param dist logical, whether to use distributed training
+#' @param nodes number of nodes for distributed training
+#' @param workers number of workers for distributed training (or XGBoost)
+#'
+#' @return pgse_output_simple or pgse_output_cv object
+#' @export
 pgse <- function(x,
                  labels,
                  pre_kfold_info_file = NULL,
@@ -105,6 +125,29 @@ pgse <- function(x,
   return(output)
 }
 
+#' Low-level API for PGSE training pipeline
+#'
+#' @param x character vector of file paths
+#' @param labels vector of labels
+#' @param pre_kfold_info_file path to pre-kfold info file
+#' @param save_file path to save file
+#' @param export_file path to export file
+#' @param k initial $k$-mer length
+#' @param ext $p$ extension parameter
+#' @param target target number of features
+#' @param features number of features to select
+#' @param folds number of folds for cross-validation (0 for train test split)
+#' @param ea_min minimum essential agreement
+#' @param ea_max maximum essential agreement
+#' @param num_rounds number of rounds for XGBoost training
+#' @param lr learning rate for XGBoost
+#' @param dist logical, whether to use distributed training
+#' @param nodes number of nodes for distributed training
+#' @param workers number of workers for distributed training (or XGBoost)
+#' @param ... additional arguments to pass to the pipeline
+#'
+#' @return NULL (results are saved to disk)
+#' @export
 pgse_api_train <- function(x,
                            labels,
                            pre_kfold_info_file = NULL,
