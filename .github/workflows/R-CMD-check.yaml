@@ -31,7 +31,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: R-package/
+        working-directory: R-package
 
     steps:
       - uses: actions/checkout@v4
