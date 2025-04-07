@@ -40,9 +40,11 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
-      - name: Install pak
-        run: Rscript -e "install.packages(\"pak\")"
-        working-directory: .
+      env:
+        GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+        R_KEEP_PKG_SOURCE: yes
+        RENV_CONFIG_AUTOLOADER_ENABLED: "FALSE"
+
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
