@@ -40,6 +40,10 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
+      - name: Install pak
+        run: Rscript -e "install.packages(\"pak\")"
+        working-directory: .
+
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           working-directory: ./R-package
