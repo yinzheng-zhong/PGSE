@@ -37,8 +37,7 @@ devtools::install_github("yinzheng-zhong/PGSE", ref="r-package", subdir = "R-pac
 ```{r example}
 library(PGSE)
 library(MIC)
-set.seed(42
-         )
+set.seed(42)
 # create example genomes, each with length 1000. Odd genomes have the following
 # specific gene ACATGAGTACCAAAAA, which is associated with a high MIC
 # The even genomes have a low MIC
