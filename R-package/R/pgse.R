@@ -60,7 +60,7 @@ pgse <- function(x,
                  lr = 0.03,
                  dist = FALSE,
                  nodes = 1,
-                 workers = 8) {
+                 workers = 1) {
 
   if (!is.null(pre_kfold_info_file)) {
     stop("pre_kfold_info_file is not supported yet.")
@@ -164,7 +164,7 @@ pgse_api_train <- function(x,
                            lr = 0.03,
                            dist = FALSE,
                            nodes = 1,
-                           workers = 8,
+                           workers = 1,
                            ...) {
 
   pgse_module <- reticulate::import("pgse")
