@@ -1,4 +1,4 @@
-# Progressive Genome Segment Enhancement (PGSE)
+# Progressive Genome Sequence Enhancement (PGSE)
 
 ## Overview
 PGSE is a tool for predictive tasks using
@@ -7,7 +7,7 @@ inhibitory concentration (MIC) of antibiotics. PGSE has higher accuracy, lower m
 pure k-mer based xgboost models. PGSE is also able to run on a distributed system.
 
 ## Installation
-Make sure Python is installed (3.9 or later) and install the pgse from PyPI:
+Make sure Python is installed (3.10 or later) and install the pgse from PyPI:
 ```bash
 pip install pgse
 ```
