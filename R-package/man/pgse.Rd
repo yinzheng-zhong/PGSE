@@ -27,7 +27,7 @@ pgse(
 
 \item{labels}{vector of labels}
 
-\item{pre_kfold_info_file}{path to pre-kfold info file \link{not supported yet}}
+\item{pre_kfold_info_file}{path to pre-kfold info file (not supported yet)}
 
 \item{k}{initial $k$-mer length}
 

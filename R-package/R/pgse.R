@@ -30,7 +30,7 @@ process_labels <- function(labels, paths) {
 #'
 #' @param x character vector of file paths
 #' @param labels vector of labels
-#' @param pre_kfold_info_file path to pre-kfold info file [not supported yet]
+#' @param pre_kfold_info_file path to pre-kfold info file (not supported yet)
 #' @param k initial $k$-mer length
 #' @param ext $p$ extension parameter
 #' @param target target number of features
