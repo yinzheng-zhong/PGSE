@@ -122,9 +122,9 @@ preds <- predict(result,
                  names(data))
 
 # plot
-plot(preds ~ labels,
-     xlab = "Predicted MIC",
-     ylab = "Actual MIC",
+plot(preds, labels,
+     xlab = "Actual MIC",
+     ylab = "Predicted MIC",
      main = "PGSE predicted results")
 ```
 

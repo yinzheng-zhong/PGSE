@@ -6,9 +6,9 @@
 #'
 #' @export
 plot.pgse_output_simple <- function(x, y, ...) {
-  plot(x$result$Actual ~ x$result$Prediction,
-       xlab = "Predicted",
-       ylab = "Actual",
+  plot(x$result$Actual, x$result$Prediction,
+       xlab = "Actual",
+       ylab = "Predicted",
        main = "PGSE Model Predictions")
 }
 
@@ -21,8 +21,8 @@ plot.pgse_output_simple <- function(x, y, ...) {
 #' @export
 plot.pgse_output_cv <- function(x, y, ...) {
   results <- do.call(rbind, x$results)
-  plot(results$Actual ~ results$Prediction,
-       xlab = "Predicted",
-       ylab = "Actual",
+  plot(results$Actual, results$Prediction,
+       xlab = "Actual",
+       ylab = "Predicted",
        main = "PGSE Model Predictions")
 }
