@@ -16,16 +16,36 @@ process_labels <- function(labels, paths) {
   if (length(labels) != length(paths)) {
     stop("The number of labels does not match the number of paths.")
   }
-  
+
   tmp_label_file <- tempfile(fileext = ".csv")
   label_file <- data.frame(files = paths,
                            labels = labels)
-  
+
   utils::write.csv(label_file, tmp_label_file, row.names = FALSE)
   tmp_label_file
-  
+
 }
 
+#' Run PGSE
+#'
+#' @param x character vector of file paths
+#' @param labels vector of labels
+#' @param pre_kfold_info_file path to pre-kfold info file (not supported yet)
+#' @param k initial $k$-mer length
+#' @param ext $p$ extension parameter
+#' @param target target number of features
+#' @param features number of features to select
+#' @param folds number of folds for cross-validation (0 for train test split)
+#' @param ea_min minimum essential agreement
+#' @param ea_max maximum essential agreement
+#' @param num_rounds number of rounds for XGBoost training
+#' @param lr learning rate for XGBoost
+#' @param dist logical, whether to use distributed training
+#' @param nodes number of nodes for distributed training
+#' @param workers number of workers for distributed training (or XGBoost)
+#'
+#' @return pgse_output_simple or pgse_output_cv object
+#' @export
 pgse <- function(x,
                  labels,
                  pre_kfold_info_file = NULL,
@@ -40,17 +60,17 @@ pgse <- function(x,
                  lr = 0.03,
                  dist = FALSE,
                  nodes = 1,
-                 workers = 8) {
-  
+                 workers = 1) {
+
   if (!is.null(pre_kfold_info_file)) {
     stop("pre_kfold_info_file is not supported yet.")
   }
-  
+
   validate_paths_input(x)
   labels <- process_labels(labels, x)
-  
+
   pgse_module <- reticulate::import("pgse")
-  
+
   # shutdown ray if it is running
   reticulate::py_run_string("import ray; ray.shutdown()")
 
@@ -82,7 +102,7 @@ pgse <- function(x,
                                            nodes = nodes,
                                            workers = workers)
   pipe_out <- pipeline$train()
-  
+
   pgse_models <- Map(\(m, s) {
     tmp_model <- tempfile(fileext = ".json")
     m$save_model(tmp_model)
@@ -91,14 +111,43 @@ pgse <- function(x,
     class(pgse_model) <- append(class(pgse_model), "pgse_model", after = 0)
     pgse_model
   }, pipe_out$models, pipe_out$segments)
-  
+
+  if (length(pipe_out$results) == 1) {
+    output <- list(result = pipe_out$results[[1]],
+                   model = pgse_models[[1]])
+    class(output) <- append(class(output), "pgse_output_simple", after = 0)
+    return(output)
+  }
+
   output <- list(results = pipe_out$results,
                  models = pgse_models)
-  
-  class(output) <- append(class(output), "pgse_output", after = 0)
+  class(output) <- append(class(output), "pgse_output_cv", after = 0)
   return(output)
 }
 
+#' Low-level API for PGSE training pipeline
+#'
+#' @param x character vector of file paths
+#' @param labels vector of labels
+#' @param pre_kfold_info_file path to pre-kfold info file
+#' @param save_file path to save file
+#' @param export_file path to export file
+#' @param k initial $k$-mer length
+#' @param ext $p$ extension parameter
+#' @param target target number of features
+#' @param features number of features to select
+#' @param folds number of folds for cross-validation (0 for train test split)
+#' @param ea_min minimum essential agreement
+#' @param ea_max maximum essential agreement
+#' @param num_rounds number of rounds for XGBoost training
+#' @param lr learning rate for XGBoost
+#' @param dist logical, whether to use distributed training
+#' @param nodes number of nodes for distributed training
+#' @param workers number of workers for distributed training (or XGBoost)
+#' @param ... additional arguments to pass to the pipeline
+#'
+#' @return NULL (results are saved to disk)
+#' @export
 pgse_api_train <- function(x,
                            labels,
                            pre_kfold_info_file = NULL,
@@ -115,14 +164,14 @@ pgse_api_train <- function(x,
                            lr = 0.03,
                            dist = FALSE,
                            nodes = 1,
-                           workers = 8,
+                           workers = 1,
                            ...) {
-  
+
   pgse_module <- reticulate::import("pgse")
-  
+
   # shutdown ray if it is running
   reticulate::py_run_string("import ray; ray.shutdown()")
-  
+
   k <- as.integer(k)
   ext <- as.integer(ext)
   target <- as.integer(target)
@@ -132,7 +181,7 @@ pgse_api_train <- function(x,
   lr <- as.numeric(lr)
   nodes <- as.integer(nodes)
   workers <- as.integer(workers)
-  
+
   pipeline <- pgse_module$TrainingPipeline(data_dir = x,
                                            label_file = labels,
                                            pre_kfold_info_file = pre_kfold_info_file,
@@ -151,6 +200,6 @@ pgse_api_train <- function(x,
                                            nodes = nodes,
                                            workers = workers,
                                            ...)
-  
+
   pipeline$run()
 }
