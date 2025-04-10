@@ -21,7 +21,7 @@ You can install the development version of PGSE from
 
 ``` r
 install.packages("devtools")
-devtools::install_github("yinzheng-zhong/PGSE", ref="r-package", subdir = "R-package")
+devtools::install_github("yinzheng-zhong/PGSE", subdir = "R-package")
 ```
 
 ## Examples
@@ -122,7 +122,7 @@ preds <- predict(result,
                  names(data))
 
 # plot
-plot(preds, labels,
+plot(labels, preds,
      xlab = "Actual MIC",
      ylab = "Predicted MIC",
      main = "PGSE predicted results")
