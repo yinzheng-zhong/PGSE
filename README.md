@@ -1,21 +1,51 @@
-# Progressive Genome Sequence Enhancement (PGSE)
+# Progressive Genome Segment Enhancement (PGSE)
 
 ## Overview
-PGSE is a tool for predictive tasks using
-whole genome sequences (WGS). Designed and implemented by Y Zhong and originally used for predicting the minimum
-inhibitory concentration (MIC) of antibiotics. PGSE has higher accuracy, lower memory consumption and shorter runtime compared to traditional
-pure k-mer based xgboost models. PGSE is also able to run on a distributed system.
+
+PGSE is an algorithm for predicting phenotypes from
+whole genome sequencing (WGS) data. It was intiially developed for the prediction
+of antimicrobial minimum inhibitory concentration (MIC) in bacterial strains.
+PGSE has higher accuracy, lower memory consumption, and shorter runtime compared
+to traditional $k$-mer based XGBoost models.
+PGSE is also able to run on distributed systems.
 
 ## Installation
-Make sure Python is installed (3.10 or later) and install the pgse from PyPI:
+
+### PyPi
+
+Make sure Python is installed (3.9 or later) and install `pgse` from PyPI:
+
 ```bash
 pip install pgse
 ```
 
+### Conda
+
+To use in a conda environment:
+
+```bash
+conda create -n pgse python=3.11
+conda activate pgse
+python -m pip install pgse
+```
+
+`pgse` is now available to import.
+
+### R
+
+To use PGSE through R, install the package in an R session using:
+
+```r
+install.packages("devtools")
+devtools::install_github("yinzheng-zhong/PGSE", subdir = "R-package")
+```
+
 ## Usage
+
 ### Training
 
 #### Single node/machine
+
 Import the pipeline from the package and run the pipeline like this.
 You can use your own argument parser or use the one provided by pgse.
 Also, you can instantiate the pipeline with a wrapper that provides the parameters directly.
@@ -133,6 +163,7 @@ you want to see more accurate EA information from the console output during the 
 * `--ea-min`: Minimum number of censored essential agreement values. Similar to `--ea-max`.
 
 #### Distributed computation
+
 To run PGSE on a distributed system, you need to use
 your environment specific setup. There are multiple examples about running PGSE
 using Slurm under the slurm-scripts directory.
@@ -144,6 +175,7 @@ Here `-dist` is set to 1 as the task is running on different nodes.
 Here `-dist` is set to 0.
 
 ### Inferencing
+
 An example of how this can be done is provided in `main-pgse-inf.py`.
 
 ```python
@@ -184,7 +216,13 @@ if __name__ == "__main__":
     print(result_2)
 ```
 
+### R package
+
+To use PGSE through the R package, consult the package
+[documentation](https://github.com/yinzheng-zhong/PGSE/tree/main/R-package/).
+
 ## For Development
+
 To build the package, run the following command:
 ```bash
 rm -rf dist/ build/ pgse.egg-info/
@@ -200,8 +238,23 @@ To install the package locally, run:
 pip install -e .
 ```
 
+## Contributors
+
+Dr Yinzheng (William) Zhong, Univerisity of Liverpool (algorithm design & Python implementation)
+Dr Alessandro Gerada, University of Liverpool (conceptualisation, R package, funding)
+Prof William Hope, University of Liverpool (conceptualisation, funding, supervision)
+
+## Acknowledgements
+
+This work was funded, in part, by UKRI and the Wellcome trust.
+
+This work was undertaken on Barkla, part of the High Performance Computing
+facilities at the Univeristy of Liverpool, UK.
+
 ## Q & A
+
 ### Why do we perform feature partitioning?
+
 There are four reasons why feature partitioning is crucial in PGSE. 
 First, feature partitioning is used as a memory reduction technique.
 The model is trained on a subset of the features at a time, therefore, the memory consumption is reduced while maintained
@@ -216,6 +269,7 @@ Finally, feature partitioning helps to preserve the feature importance informati
 pruning process, more feature importance information will be lost (become 0) if the dimensionality increases.
 
 ### Why do we eliminate features?
+
 If segment `A` is extended into segment `B`, `A` becomes a subsequences of `B`. For pairs like `A` and `B`, we only need to keep the
 ones with higher feature importance. Extension and elimination are two crucial parts of the PGSE system, which grows the
 genome segments longer and the elimination process guarantees that the growth will stop eventually. Additionally, elimination
