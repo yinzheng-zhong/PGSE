@@ -15,5 +15,6 @@ Imports:
     reticulate
 Suggests: 
     testthat (>= 3.0.0),
-    xgboost
+    xgboost,
+    vctrs
 Config/testthat/edition: 3
