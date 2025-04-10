@@ -8,7 +8,11 @@
 [![R-CMD-check](https://github.com/yinzheng-zhong/PGSE/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/yinzheng-zhong/PGSE/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
-The goal of PGSE is to …
+R `PGSE` is primarily a wrapper around the
+[`pgse`](https://github.com/yinzheng-zhong/PGSE/) Python package. It has
+a set of S3 implementations to allow seamless use in R. An low-level
+wrapper around the Python training and inference pipelines is also
+provided.
 
 ## Installation
 
@@ -121,9 +125,7 @@ preds <- predict(result,
 plot(preds ~ labels,
      xlab = "Predicted MIC",
      ylab = "Actual MIC",
-     main = "PGSE results",
-     pch = 19,
-     col = ifelse(labels > 0, "red", "blue"))
+     main = "PGSE predicted results")
 ```
 
 <img src="man/figures/README-example2-1.png" width="100%" />
