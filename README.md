@@ -1,11 +1,13 @@
-# Progressive Genome Sequence Enhancement (PGSE)
+# Progressive Genome Segment Enhancement (PGSE)
 
 ## Overview
 
-PGSE is a tool for predictive tasks using
-whole genome sequences (WGS). Designed and implemented by Y Zhong and originally used for predicting the minimum
-inhibitory concentration (MIC) of antibiotics. PGSE has higher accuracy, lower memory consumption and shorter runtime compared to traditional
-pure k-mer based xgboost models. PGSE is also able to run on a distributed system.
+PGSE is an algorithm for predicting phenotypes from
+whole genome sequencing (WGS) data. It was intiially developed for the prediction
+of antimicrobial minimum inhibitory concentration (MIC) in bacterial strains.
+PGSE has higher accuracy, lower memory consumption, and shorter runtime compared
+to traditional $k$-mer based XGBoost models.
+PGSE is also able to run on distributed systems.
 
 ## Installation
 
@@ -235,6 +237,19 @@ To install the package locally, run:
 ```bash
 pip install -e .
 ```
+
+## Contributors
+
+Dr Yinzheng (William) Zhong, Univerisity of Liverpool (algorithm design & Python implementation)
+Dr Alessandro Gerada, University of Liverpool (conceptualisation, R package, funding)
+Prof William Hope, University of Liverpool (conceptualisation, funding, supervision)
+
+## Acknowledgements
+
+This work was funded, in part, by UKRI and the Wellcome trust.
+
+This work was undertaken on Barkla, part of the High Performance Computing
+facilities at the Univeristy of Liverpool, UK.
 
 ## Q & A
 
