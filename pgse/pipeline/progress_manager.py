@@ -63,7 +63,7 @@ class ProgressManager:
         logger.info(f"Progress saved at fold {fold_index}.")
 
     def load_fold_progress(self):
-        if os.path.exists(self.progress_file):
+        if self.progress_file and os.path.exists(self.progress_file):
             with open(self.progress_file, 'r') as f:
                 progress_data = json.load(f)
                 fold_index = progress_data['fold_index']

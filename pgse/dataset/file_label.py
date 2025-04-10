@@ -35,7 +35,7 @@ class FileLabel:
         else:
             raise ValueError('Invalid label file format')
 
-        data['files'] = [os.path.join(self.data_dir, p) for p in data['files']]
+        data['files'] = [p if os.path.exists(p) else os.path.join(self.data_dir, p) for p in data['files']]
         return data.set_index('files').to_dict()['labels']
 
     def _perform_train_test_split(self, files, labels, test_size, random_state):

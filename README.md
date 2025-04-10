@@ -1,4 +1,4 @@
-# Progressive Genome Segment Enhancement (PGSE)
+# Progressive Genome Sequence Enhancement (PGSE)
 
 ## Overview
 
