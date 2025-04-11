@@ -39,7 +39,7 @@ library(PGSE)
 library(MIC)
 set.seed(42)
 # create example genomes, each with length 1000. Odd genomes have the following
-# specific gene ACATGAGTACCAAAAA, which is associated with a high MIC
+# specific gene ACATGAGTACCA, which is associated with a high MIC
 # The even genomes have a low MIC
 genomes <- list()
 n <- 100
@@ -75,7 +75,6 @@ names(data) <- tmp_files
 # run PGSE
 result <- pgse(x = names(data),
                labels = unlist(data))
-
 
 # plot
 plot(result)
