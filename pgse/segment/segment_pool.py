@@ -104,6 +104,10 @@ class SegmentPool:
         elif filename.endswith('.csv'):
             if importance_scores is not None:
                 # DataFrame with segments and their importance scores
+                # pad the importance scores to match the length of segments
+                if len(importance_scores) < len(self.segments):
+                    importance_scores += [0] * (len(self.segments) - len(importance_scores))
+
                 df = pd.DataFrame({'Segment': self.segments, 'Importance': importance_scores})
             else:
                 # DataFrame with segments only
