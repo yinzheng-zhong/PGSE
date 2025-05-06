@@ -4,7 +4,7 @@ import pickle
 from pgse.genome import km
 from pgse.log import logger
 from pgse.segment.util import remove_duplicate_elements
-
+import pandas as pd
 
 class SegmentPool:
     def __init__(
@@ -90,16 +90,26 @@ class SegmentPool:
         logger.info(f'Set last length: {self.last_length}')
         logger.info(f'Set current max length: {self.current_max_length}')
 
-    def export(self, filename: str):
+    def export(self, filename: str, importance_scores: [float] = None):
         """
         Save the segments table to a file.
         :param filename: str: The name of the file to save the lookup table.
         """
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
-        with open(filename, 'w') as f:
-            for item in self.segments:
-                f.write("%s\n" % item)
+        if filename.endswith('.txt'):
+            with open(filename, 'w') as f:
+                for item in self.segments:
+                    f.write("%s\n" % item)
+        elif filename.endswith('.csv'):
+            if importance_scores is not None:
+                # DataFrame with segments and their importance scores
+                df = pd.DataFrame({'Segment': self.segments, 'Importance': importance_scores})
+            else:
+                # DataFrame with segments only
+                df = pd.DataFrame({'Segment': self.segments})
+
+            df.to_csv(filename, index=False)
 
         logger.info(f'Exported {len(self.segments)} segments to {filename}')
 
@@ -108,8 +118,12 @@ class SegmentPool:
         Load the segments table from a file.
         :param filename: str: The name of the file to load the lookup table.
         """
-        with open(filename, 'r') as f:
-            self.segments = f.read().splitlines()
+        if filename.endswith('.txt'):
+            with open(filename, 'r') as f:
+                self.segments = f.read().splitlines()
+        elif filename.endswith('.csv'):
+            df = pd.read_csv(filename)
+            self.segments = df['Segment'].tolist()
 
         logger.info(f'Imported {len(self.segments)} segments from {filename}')
 
