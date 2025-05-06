@@ -4,7 +4,7 @@
 \alias{predict.pgse_output_cv}
 \title{Predict method for cross-validation PGSE output}
 \usage{
-\method{predict}{pgse_output_cv}(object, newdata, workers = 1L)
+\method{predict}{pgse_output_cv}(object, newdata, workers = 1L, ...)
 }
 \arguments{
 \item{object}{pgse_output_cv object}
@@ -12,6 +12,8 @@
 \item{newdata}{character list of file paths to sequences}
 
 \item{workers}{number of workers to use for inference}
+
+\item{...}{additional arguments to pass to the pipeline}
 }
 \description{
 Predict method for cross-validation PGSE output
