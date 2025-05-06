@@ -22,7 +22,8 @@ class ModelTrainer:
             lr=0.03,
             features=10000,
             ea_min=None,
-            ea_max=None
+            ea_max=None,
+            device='cpu'
     ):
         self.loader = loader
         self.num_rounds = num_rounds
@@ -31,6 +32,7 @@ class ModelTrainer:
         self.features = features
         self.ea_min = ea_min
         self.ea_max = ea_max
+        self.device = device
 
     def run_xgboost(
             self,
@@ -48,7 +50,8 @@ class ModelTrainer:
             use_partition=use_partition,
             base_learning_rate=self.lr,
             custom_metric=custom_metric,
-            early_stopping_rounds=20
+            early_stopping_rounds=20,
+            device=self.device
         )
         return xgb.run(train_kmer, test_kmer, train_labels, test_labels)
 
