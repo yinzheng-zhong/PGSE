@@ -4,12 +4,14 @@
 \alias{predict.pgse_output_simple}
 \title{Predict method for PGSE output}
 \usage{
-\method{predict}{pgse_output_simple}(object, newdata)
+\method{predict}{pgse_output_simple}(object, newdata, workers = 1L)
 }
 \arguments{
 \item{object}{pgse_output object}
 
 \item{newdata}{character list of file paths to sequences}
+
+\item{workers}{number of workers to use for inference}
 }
 \value{
 list of predictions (arrays)

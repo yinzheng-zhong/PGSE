@@ -4,7 +4,7 @@
 \alias{pgse_api_inference}
 \title{Low-level API wrapper for PGSE inference pipeline}
 \usage{
-pgse_api_inference(model_path, segment_path, files, ...)
+pgse_api_inference(model_path, segment_path, files, workers = 1L, ...)
 }
 \arguments{
 \item{model_path}{path to the model file (usually .json)}
@@ -12,6 +12,8 @@ pgse_api_inference(model_path, segment_path, files, ...)
 \item{segment_path}{path to the segments file (usually .txt)}
 
 \item{files}{character vector of file paths to sequences}
+
+\item{workers}{number of workers to use for inference}
 
 \item{...}{additional arguments to pass to the pipeline}
 }

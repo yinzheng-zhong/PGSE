@@ -2,11 +2,13 @@
 #'
 #' @param object pgse_model object
 #' @param newdata character list of file paths to sequences
-#'
+#' @param workers number of workers to use for inference
 #' @return array of predictions
 #' @export
 predict.pgse_model <- function(object,
-                         newdata) {
+                               newdata,
+                               workers = 1L) {
+  workers <- check_workers(workers)
   pgse_module <- reticulate::import("pgse")
 
   tmp_model_file <- tempfile(fileext = ".json")
@@ -16,7 +18,8 @@ predict.pgse_model <- function(object,
   writeLines(object$segments, tmp_segments_file)
 
   pipeline <- pgse_module$InferencePipeline(model_path = tmp_model_file,
-                                            segment_path = tmp_segments_file)
+                                            segment_path = tmp_segments_file,
+                                            workers = workers)
   pipeline$run(newdata)
 }
 
@@ -24,35 +27,30 @@ predict.pgse_model <- function(object,
 #'
 #' @param object pgse_output object
 #' @param newdata character list of file paths to sequences
+#' @param workers number of workers to use for inference
 #'
 #' @return list of predictions (arrays)
 #' @export
 predict.pgse_output_simple <- function(object,
-                          newdata) {
-  stats::predict(object$model, newdata)
-  # if (length(object$models) == 1) {
-  #   return(stats::predict(object$models[[1]], newdata))
-  # }
-  # message(
-  # "Appear to be using a multi-model PGSE output,
-  # probably from cross-validation. Predicting with each model.."
-  # )
-  # predictions <- lapply(object$models, \(m) {
-  #   stats::predict(m, newdata)
-  # })
-  # return(predictions)
+                                       newdata,
+                                       workers = 1L) {
+  workers <- check_workers(workers)
+  stats::predict(object$model, newdata, workers = workers)
 }
 
 #' Predict method for cross-validation PGSE output
 #'
 #' @param object pgse_output_cv object
 #' @param newdata character list of file paths to sequences
+#' @param workers number of workers to use for inference
 #'
 #' @export
 predict.pgse_output_cv <- function(object,
-                                   newdata) {
+                                   newdata,
+                                   workers = 1L) {
+  workers <- check_workers(workers)
   lapply(object$models, \(m) {
-    stats::predict(m, newdata)
+    stats::predict(m, newdata, workers = workers)
   })
 }
 
@@ -61,6 +59,7 @@ predict.pgse_output_cv <- function(object,
 #' @param model_path path to the model file (usually .json)
 #' @param segment_path path to the segments file (usually .txt)
 #' @param files character vector of file paths to sequences
+#' @param workers number of workers to use for inference
 #' @param ... additional arguments to pass to the pipeline
 #'
 #' @return array of predictions
@@ -73,7 +72,9 @@ predict.pgse_output_cv <- function(object,
 pgse_api_inference <- function(model_path,
                                segment_path,
                                files,
+                               workers = 1L,
                                ...) {
+  workers <- check_workers(workers)
   pgse_module <- reticulate::import("pgse")
 
   # shutdown ray if it is running

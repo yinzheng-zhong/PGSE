@@ -49,18 +49,18 @@ process_labels <- function(labels, paths) {
 pgse <- function(x,
                  labels,
                  pre_kfold_info_file = NULL,
-                 k = 6,
-                 ext = 2,
-                 target = 70,
-                 features = 10000,
-                 folds = 0,
+                 k = 6L,
+                 ext = 2L,
+                 target = 70L,
+                 features = 10000L,
+                 folds = 0L,
                  ea_min = NULL,
                  ea_max = NULL,
-                 num_rounds = 1500,
+                 num_rounds = 1500L,
                  lr = 0.03,
                  dist = FALSE,
-                 nodes = 1,
-                 workers = 1) {
+                 nodes = 1L,
+                 workers = 1L) {
 
   if (!is.null(pre_kfold_info_file)) {
     stop("pre_kfold_info_file is not supported yet.")
@@ -153,18 +153,18 @@ pgse_api_train <- function(x,
                            pre_kfold_info_file = NULL,
                            save_file = "",
                            export_file = "./default.export",
-                           k = 6,
-                           ext = 2,
-                           target = 70,
-                           features = 10000,
-                           folds = 0,
+                           k = 6L,
+                           ext = 2L,
+                           target = 70L,
+                           features = 10000L,
+                           folds = 0L,
                            ea_min = NULL,
                            ea_max = NULL,
-                           num_rounds = 1500,
+                           num_rounds = 1500L,
                            lr = 0.03,
                            dist = FALSE,
-                           nodes = 1,
-                           workers = 1,
+                           nodes = 1L,
+                           workers = 1L,
                            ...) {
 
   pgse_module <- reticulate::import("pgse")
@@ -180,7 +180,7 @@ pgse_api_train <- function(x,
   num_rounds <- as.integer(num_rounds)
   lr <- as.numeric(lr)
   nodes <- as.integer(nodes)
-  workers <- as.integer(workers)
+  workers <- check_workers(workers)
 
   pipeline <- pgse_module$TrainingPipeline(data_dir = x,
                                            label_file = labels,

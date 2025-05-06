@@ -4,12 +4,14 @@
 \alias{predict.pgse_model}
 \title{Predict method for PGSE model}
 \usage{
-\method{predict}{pgse_model}(object, newdata)
+\method{predict}{pgse_model}(object, newdata, workers = 1L)
 }
 \arguments{
 \item{object}{pgse_model object}
 
 \item{newdata}{character list of file paths to sequences}
+
+\item{workers}{number of workers to use for inference}
 }
 \value{
 array of predictions
