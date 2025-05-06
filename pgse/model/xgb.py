@@ -21,7 +21,8 @@ class XGBoost:
             use_partition: bool = False,
             num_cpu_per_node: int = 8,
             custom_metric=None,
-            early_stopping_rounds: int = 20
+            early_stopping_rounds: int = 20,
+            device: str = 'cpu'
     ):
         """
         Initialize XGBoost model with parameters
@@ -40,7 +41,7 @@ class XGBoost:
             'objective': 'reg:squarederror',
             'max_depth': max_depth,
             'tree_method': 'hist',
-            # 'device': 'cuda',
+            'device': device,
             'learning_rate': base_learning_rate,
             'nthread': num_cpu_per_node  # Use multiple threads per worker
         }

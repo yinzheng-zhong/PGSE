@@ -40,6 +40,7 @@ class Pipeline:
             dist: bool = False,
             nodes: int = 1,
             workers: int = 8,
+            device: str = 'cpu'
     ):
         self.data_dir = data_dir
         self.label_file = label_file
@@ -58,6 +59,7 @@ class Pipeline:
         self.num_rounds = num_rounds
         self.lr = lr
         self.workers = workers
+        self.device = device
 
         self.file_label = FileLabel(self.label_file, self.data_dir, self.pre_kfold_info_file)
         self.extender = Extender()
@@ -98,7 +100,8 @@ class Pipeline:
                 self.lr,
                 self.features,
                 self.ea_min,
-                self.ea_max
+                self.ea_max,
+                device=self.device
             )
 
             train_kmer, test_kmer, train_labels, test_labels = self.progress_manager.load_round_progress(loader)

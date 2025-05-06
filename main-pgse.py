@@ -22,6 +22,7 @@ if __name__ == "__main__":
         args.lr,
         args.dist,
         args.nodes,
-        args.workers
+        args.workers,
+        device=args.device,
     )
     pipeline.run()

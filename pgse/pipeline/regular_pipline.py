@@ -26,6 +26,7 @@ class Pipeline:
             dist: bool = False,
             nodes: int = 1,
             workers: int = 8,
+            device: str = 'cpu'
     ):
         self.data_dir = data_dir
         self.label_file = label_file
@@ -41,6 +42,7 @@ class Pipeline:
         self.dist = dist
         self.nodes = nodes
         self.workers = workers
+        self.device = device
 
         self.file_label = FileLabel(self.label_file, self.data_dir, self.pre_kfold_info_file)
 
@@ -64,7 +66,8 @@ class Pipeline:
                 self.workers,
                 self.lr,
                 self.ea_min,
-                self.ea_max
+                self.ea_max,
+                self.device
             )
 
             # Load k-mer dataset

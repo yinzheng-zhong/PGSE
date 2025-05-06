@@ -5,7 +5,7 @@ SEGMENT_PATH = '../volatile/var/result-k6-CAZ-perf_fold_0.txt'
 
 if __name__ == "__main__":
     # Instantiate the pipeline and keep it
-    pipeline = Pipeline(MODEL_PATH, SEGMENT_PATH)
+    pipeline = Pipeline(MODEL_PATH, SEGMENT_PATH, workers=8)
 
     # every time you want to run the pipeline to predict, just call the run method with
     # files as a list of paths to the fasta files
