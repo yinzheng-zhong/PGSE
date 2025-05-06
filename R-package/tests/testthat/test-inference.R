@@ -38,7 +38,7 @@ test_that("low-level API inference", {
   export_file_names <- tools::file_path_sans_ext(basename(export_file))
 
   segment_file_names_full <- file.path(dirname(export_file),
-                                       paste0(export_file_names, "_fold_", fold_indices, ".txt"))
+                                       paste0(export_file_names, "_fold_", fold_indices, "_segs", ".csv"))
 
   model_file_names_full <- file.path(dirname(export_file),
                                      paste0(export_file_names, "_fold_", fold_indices, ".json"))
