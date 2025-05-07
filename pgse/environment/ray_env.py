@@ -6,6 +6,9 @@ from pgse.log import logger
 class RayEnvManager:
     @staticmethod
     def initialize(dist: bool, nodes: int, workers: int):
+        # skip if already initialized
+        if ray.is_initialized():
+            return
         os.environ["RAY_LOG_TO_STDERR"] = "0"
         os.environ["RAY_LOG_LEVEL"] = "ERROR"
 
