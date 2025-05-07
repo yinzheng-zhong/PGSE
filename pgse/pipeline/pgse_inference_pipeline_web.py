@@ -4,8 +4,8 @@ from pgse.pipeline.pgse_inference_pipeline import Pipeline as InferencePipeline
 
 
 class Pipeline(InferencePipeline):
-    def __init__(self, model_path: str, segment_path: str):
-        super().__init__(model_path, segment_path)
+    def __init__(self, model_path: str, segment_path: str, workers: int = 8):
+        super().__init__(model_path, segment_path, workers)
 
     def run(self, files: [str]):
         loader = LoaderInference(files)
