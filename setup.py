@@ -8,7 +8,7 @@ with open(here / "requirements.txt", encoding="utf-8") as f:
 
 setup(
     name="pgse",
-    version="0.6.0",
+    version="0.6.1",
     author="Yinzheng Zhong",
     author_email="yinzheng.zhong@liverpool.ac.uk",
     description="Progressive Genome Segment Enhancement (PGSE)",
