@@ -90,10 +90,11 @@ class SegmentPool:
         logger.info(f'Set last length: {self.last_length}')
         logger.info(f'Set current max length: {self.current_max_length}')
 
-    def export(self, filename: str, importance_scores: [float] = None):
+    def export(self, filename: str, importance_scores: pd.DataFrame):
         """
         Save the segments table to a file.
         :param filename: str: The name of the file to save the lookup table.
+        :param importance_scores: pd.DataFrame: The importance scores of the segments. id, importance
         """
         os.makedirs(os.path.dirname(filename), exist_ok=True)
 
@@ -108,7 +109,11 @@ class SegmentPool:
                 if len(importance_scores) < len(self.segments):
                     importance_scores += [0] * (len(self.segments) - len(importance_scores))
 
-                df = pd.DataFrame({'Segment': self.segments, 'Importance': importance_scores})
+                # if i is in id, get the importance score. Else, 0
+                # Create scores list: get importance score if i is in index, else 0
+                scores = [importance_scores.get(i, 0) for i in range(len(self.segments))]
+
+                df = pd.DataFrame({'Segment': self.segments, 'Importance': scores})
             else:
                 # DataFrame with segments only
                 df = pd.DataFrame({'Segment': self.segments})

@@ -152,7 +152,7 @@ class Pipeline:
                 except FileNotFoundError as e:
                     logger.error(e)
 
-                importance_scores = importance_df['Importance'].tolist()
+                importance_scores = importance_df['Importance']
                 seg_pool.export(self.export_file + f'_fold_{i}_segs.csv', importance_scores=importance_scores)
                 trained_model.save_model(self.export_file + f'_fold_{i}.json')
 
