@@ -106,11 +106,8 @@ class SegmentPool:
             if importance_scores is not None:
                 # DataFrame with segments and their importance scores
                 # pad the importance scores to match the length of segments
-                if len(importance_scores) < len(self.segments):
-                    importance_scores += [0] * (len(self.segments) - len(importance_scores))
 
                 # if i is in id, get the importance score. Else, 0
-                # Create scores list: get importance score if i is in index, else 0
                 scores = [importance_scores.get(i, 0) for i in range(len(self.segments))]
 
                 df = pd.DataFrame({'Segment': self.segments, 'Importance': scores})
