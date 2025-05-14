@@ -24,8 +24,8 @@ setup(
     python_requires=">=3.10",
     install_requires=requirements,
     package_data={'pgse': [
-        'c_lib/aho_corasick.so'
-        'c_lib/aho_corasick.dylib'
+        'c_lib/aho_corasick.so',
+        'c_lib/aho_corasick.dylib',
         'c_lib/aho_corasick.dll'
     ]},  # Include the pre-built library
 )
