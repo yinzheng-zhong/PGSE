@@ -7,4 +7,4 @@ try:
 except FileNotFoundError:
     aho_corasick = _AhoCorasickPy()
     logger.warning("Could not find the shared Aho-Corasick C library. Using Python implementation instead." +
-                   " C lib is a few time faster so it's recommended to compile the code in c-lib.")
+                   " C lib is a few time faster so it's recommended to compile the code in c_lib.")

@@ -1,6 +1,8 @@
 import ctypes
-import numpy as np
 import os
+
+import numpy as np
+import sys
 
 from pgse.algos.aho_corasick_base import AhoCorasickBase
 
@@ -11,35 +13,32 @@ class AhoCorasickC(AhoCorasickBase):
         self.lib = self._load_lib()
 
     def _load_lib(self):
-        lib = None
+        # Determine the library name based on the platform
+        if sys.platform.startswith('linux'):
+            lib_name = 'aho_corasick.so'
+        elif sys.platform.startswith('darwin'):
+            lib_name = 'aho_corasick.dylib'
+        elif sys.platform.startswith('win32'):
+            lib_name = 'aho_corasick.dll'
+        else:
+            raise RuntimeError("Unsupported platform")
 
-        current_path = os.getcwd()
+        # Get the path relative to this module
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        lib_path = os.path.join(current_dir, '..', 'c_lib', lib_name)
 
-        possible_locations = [
-            os.path.join(current_path, 'c-lib', 'aho_corasick.so'),
-            '../../c-lib/aho_corasick.so',
-            '../c-lib/pgse/algos/aho_corasick.so',
-            './c-lib/pgse/algos/aho_corasick.so',
-        ]
-        # try to load the library
-        for location in possible_locations:
-            try:
-                lib = ctypes.CDLL(location)
-                break
-            except OSError as a:
-                a = a
-                pass
+        try:
+            lib = ctypes.CDLL(lib_path)
+        except OSError as e:
+            raise FileNotFoundError(f"Could not load shared library at {lib_path}: {e}")
 
-        if lib is None:
-            raise FileNotFoundError("Could not find the shared library")
-
-        # count_segments function.
+        # Define function signature
         lib.count_segments.argtypes = [
             ctypes.POINTER(ctypes.c_char_p),  # nodes
-            ctypes.c_int,  # num_nodes
+            ctypes.c_int,                     # num_nodes
             ctypes.POINTER(ctypes.c_char_p),  # segments
-            ctypes.c_int,  # num_segments
-            ctypes.POINTER(ctypes.c_int)  # result_counts
+            ctypes.c_int,                     # num_segments
+            ctypes.POINTER(ctypes.c_int)      # result_counts
         ]
         lib.count_segments.restype = None
 
