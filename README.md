@@ -3,7 +3,7 @@
 ## Overview
 
 PGSE is an algorithm for predicting phenotypes from
-whole genome sequencing (WGS) data. It was intiially developed for the prediction
+whole genome sequencing (WGS) data. It was initially developed for the prediction
 of antimicrobial minimum inhibitory concentration (MIC) in bacterial strains.
 PGSE has higher accuracy, lower memory consumption, and shorter runtime compared
 to traditional $k$-mer based XGBoost models.
