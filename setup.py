@@ -8,7 +8,7 @@ with open(here / "requirements.txt", encoding="utf-8") as f:
 
 setup(
     name="pgse",
-    version="0.6.3",
+    version="0.8.0",
     author="Yinzheng Zhong",
     author_email="yinzheng.zhong@liverpool.ac.uk",
     description="Progressive Genome Segment Enhancement (PGSE)",
@@ -28,4 +28,10 @@ setup(
         'c_lib/aho_corasick.dylib',
         'c_lib/aho_corasick.dll'
     ]},  # Include the pre-built library
+    entry_points={
+        'console_scripts': [
+            'pgse-train = pgse.cli:train',
+            'pgse-predict = pgse.cli:predict',
+        ],
+    },
 )

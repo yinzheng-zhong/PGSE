@@ -3,7 +3,7 @@
 ## Overview
 
 PGSE is an algorithm for predicting phenotypes from
-whole genome sequencing (WGS) data. It was initially developed for the prediction
+whole genome sequencing (WGS) data. It was intiially developed for the prediction
 of antimicrobial minimum inhibitory concentration (MIC) in bacterial strains.
 PGSE has higher accuracy, lower memory consumption, and shorter runtime compared
 to traditional $k$-mer based XGBoost models.
@@ -92,9 +92,9 @@ if __name__ == "__main__":
 ```
 
 
-Alternatively, to run PGSE as a standalone program on a local machine, download the project and use the following command as an example:
+Alternatively, to run PGSE as a standalone program on a local machine, install the package and use the following command as an example:
 ```bash
-python3 main-pgse.py \
+pgse-train \
         --label-file "../<path_to>/<you_labels>.csv" \
         --data-dir "../<you_data_dir>/" \
         --pre-kfold-info-file "../<k_fold_information>.json" \
@@ -190,7 +190,7 @@ An example of how this can be done is provided in `main-pgse-inf.py`.
 from pgse import InferencePipeline
 
 MODEL_PATH = '../volatile/var/result-k6-CAZ-perf_fold_0.json'
-SEGMENT_PATH = '../volatile/var/result-k6-CAZ-perf_fold_0.txt'
+SEGMENT_PATH = '../volatile/var/result-k6-CAZ-perf_fold_0.csv'
 
 if __name__ == "__main__":
     # Instantiate the pipeline
@@ -223,6 +223,18 @@ if __name__ == "__main__":
     result_2 = pipeline.run(EG_2)
     print(result_2)
 ```
+
+To run the inference pipeline as a standalone program, install the package and use the following command as an example:
+```shell
+pgse-predict \
+        --model-file "../<path_to_model>.json" \
+        --segment-file "../<path_to_segment>.csv" \
+        --data-dir "../<you_data_dir>/" \
+        --workers 8
+```
+
+
+```bash
 
 ### R package
 

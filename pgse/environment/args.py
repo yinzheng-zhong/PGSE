@@ -15,6 +15,12 @@ def get_parser():
     parser.add_argument('--export-file', type=str,
                         default='./default-export',
                         help="File path to save the results")
+    parser.add_argument('--model-file', type=str,
+                        default=None,
+                        help="File path to save the trained model")
+    parser.add_argument('--segments-file', type=str,
+                        default=None,
+                        help="File path to save the segments")
     parser.add_argument('--k', type=int, default=10,
                         help="Initial size of k-mers")
     parser.add_argument('--ext', type=int, default=2,

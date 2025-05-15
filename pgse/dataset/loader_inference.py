@@ -9,7 +9,7 @@ from pgse.segment import seg_pool
 
 
 class LoaderInference(Loader):
-    def __init__(self, files: [str]):
+    def __init__(self, files: list[str]):
         super().__init__(None)
         self.test_files = files
 

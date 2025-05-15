@@ -27,7 +27,7 @@ class Pipeline:
         self.model = xgb.Booster(params=self.model_params, model_file=self.model_path)
         seg_pool.import_segments(self.segment_path)
 
-    def run(self, files: [str]):
+    def run(self, files: list[str]):
         loader = LoaderInference(files)
         data = loader.get_dataset_from_pool()
 
