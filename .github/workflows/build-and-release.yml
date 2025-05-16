@@ -31,7 +31,7 @@ jobs:
         id: check_version
         run: |
           git checkout HEAD^ -- setup.py
-          PREV_VERSION=$(python -c "import setup; print(setup.version)" || echo "0.0.0")
+          PREV_VERSION=$("0.0.0" || echo "0.0.0")  # dummy value for now for testing
           CURRENT_VERSION="${{ steps.current_version.outputs.current_version }}"
           if [ "$PREV_VERSION" != "$CURRENT_VERSION" ]; then
             echo "version_changed=true" >> $GITHUB_OUTPUT
@@ -107,9 +107,9 @@ jobs:
 
       - name: Move compiled libraries
         run: |
-          cp artifacts/shared-lib-ubuntu-latest/pgse/c_lib/aho_corasick.so pgse/c_lib/
-          cp artifacts/shared-lib-macos-latest/pgse/c_lib/aho_corasick.dylib pgse/c_lib/
-          cp artifacts/shared-lib-windows-latest/pgse/c_lib/aho_corasick.dll pgse/c_lib/
+          cp artifacts/shared-lib-ubuntu-latest/aho_corasick.so pgse/c_lib/
+          cp artifacts/shared-lib-macos-latest/aho_corasick.dylib pgse/c_lib/
+          cp artifacts/shared-lib-windows-latest/aho_corasick.dll pgse/c_lib/
 
       - name: Install build dependencies
         run: pip install build wheel twine
