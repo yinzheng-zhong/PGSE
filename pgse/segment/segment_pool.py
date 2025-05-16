@@ -71,7 +71,9 @@ class SegmentPool:
         Save the SegmentPool instance to a file using pickle.
         :param filename: str: The name of the file to save the instance.
         """
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        dir_path = os.path.dirname(filename)
+        if dir_path:
+            os.makedirs(dir_path, exist_ok=True)
         with open(filename, 'wb') as f:
             pickle.dump(self.__dict__, f)
 
@@ -96,7 +98,9 @@ class SegmentPool:
         :param filename: str: The name of the file to save the lookup table.
         :param importance_scores: pd.DataFrame: The importance scores of the segments. id, importance
         """
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        dir_path = os.path.dirname(filename)
+        if dir_path:
+            os.makedirs(dir_path, exist_ok=True)
 
         if filename.endswith('.txt'):
             with open(filename, 'w') as f:
