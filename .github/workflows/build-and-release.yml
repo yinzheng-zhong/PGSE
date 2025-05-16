@@ -149,6 +149,9 @@ jobs:
           name: wheel
           path: dist
 
+      - name: Install Twine
+        run: pip install twine
+
       - name: Upload to PyPI
         env:
           TWINE_USERNAME: __token__
