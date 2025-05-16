@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version_changed: ${{ steps.check_version.outputs.version_changed }}
+      current_version: ${{ steps.current_version.outputs.current_version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -31,7 +32,7 @@ jobs:
         id: check_version
         run: |
           git checkout HEAD^ -- setup.py
-          PREV_VERSION=$("0.0.0" || echo "0.0.0")  # dummy value for now for testing
+          PREV_VERSION=$(python setup.py --version || echo "0.0.0")
           CURRENT_VERSION="${{ steps.current_version.outputs.current_version }}"
           if [ "$PREV_VERSION" != "$CURRENT_VERSION" ]; then
             echo "version_changed=true" >> $GITHUB_OUTPUT
@@ -148,6 +149,34 @@ jobs:
         with:
           name: wheel
           path: dist
+
+      - name: Get wheel file details
+        id: get_wheel
+        run: |
+          WHEEL_FILE=$(ls dist/*.whl)
+          echo "wheel_file=$WHEEL_FILE" >> $GITHUB_OUTPUT
+          echo "wheel_name=$(basename $WHEEL_FILE)" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.check_version.outputs.current_version }}
+          release_name: Release v${{ needs.check_version.outputs.current_version }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.get_wheel.outputs.wheel_file }}
+          asset_name: ${{ steps.get_wheel.outputs.wheel_name }}
+          asset_content_type: application/zip
 
       - name: Install Twine
         run: pip install twine
