@@ -24,7 +24,7 @@ jobs:
       - name: Extract current version
         id: current_version
         run: |
-          VERSION=$(python -c "import setup; print(setup.version)")
+          VERSION=$(python setup.py --version)
           echo "current_version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Check previous version

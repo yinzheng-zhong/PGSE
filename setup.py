@@ -1,5 +1,5 @@
-import pathlib
 from setuptools import setup, find_packages
+import pathlib
 
 # Read the contents of requirements.txt
 here = pathlib.Path(__file__).parent.resolve()
@@ -12,7 +12,7 @@ setup(
     author="Yinzheng Zhong",
     author_email="yinzheng.zhong@liverpool.ac.uk",
     description="Progressive Genome Segment Enhancement (PGSE)",
-    license_files="LICENSE",
+    license_files=["LICENSE"],
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/yinzheng-zhong/pgse",
@@ -27,7 +27,7 @@ setup(
         'c_lib/aho_corasick.so',
         'c_lib/aho_corasick.dylib',
         'c_lib/aho_corasick.dll'
-    ]},  # Include the pre-built library
+    ]},
     entry_points={
         'console_scripts': [
             'pgse-train = pgse.cli:train',
