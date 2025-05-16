@@ -1,8 +1,8 @@
 import unittest
 import os
-from tempfile import TemporaryDirectory, TemporaryFile, NamedTemporaryFile
+from tempfile import TemporaryDirectory
 from xgboost import Booster
-from pandas import DataFrame, read_csv
+from pandas import DataFrame
 
 from pgse import TrainingPipeline
 
