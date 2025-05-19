@@ -1,5 +1,9 @@
 name: Build and Release
 
+permissions:  # Allow correct permissions for the GITHUB_TOKEN
+  contents: write
+  packages: write
+
 on:
   push:
     branches:
