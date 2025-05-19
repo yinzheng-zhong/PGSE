@@ -44,6 +44,11 @@ jobs:
             echo "version_changed=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Debug captured versions
+        run: |
+          echo ">>> step.current_version.outputs.current_version = '${{ steps.current_version.outputs.current_version }}'"
+          echo ">>> step.check_version.outputs.version_changed   = '${{ steps.check_version.outputs.version_changed }}'"
+
   compile:
     needs: check_version
     if: needs.check_version.outputs.version_changed == 'true'
@@ -160,6 +165,10 @@ jobs:
           WHEEL_FILE=$(ls dist/*.whl)
           echo "wheel_file=$WHEEL_FILE" >> $GITHUB_OUTPUT
           echo "wheel_name=$(basename $WHEEL_FILE)" >> $GITHUB_OUTPUT
+
+      - name: Debug job output
+        run: |
+          echo ">>> needs.check_version.outputs.current_version = '${{ needs.check_version.outputs.current_version }}'"
 
       - name: Create Release
         id: create_release
