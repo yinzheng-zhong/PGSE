@@ -142,7 +142,7 @@ jobs:
           pgse-predict --model-file "action_fold_0.json" --segments-file "action_fold_0_segs.csv" --data-dir "tests/resource/genomes"
 
   release:
-    needs: build_and_test
+    needs: [build_and_test, check_version]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
