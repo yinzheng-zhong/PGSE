@@ -47,7 +47,7 @@ def predict():
     input_files = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith('.fna') or f.endswith('.fasta')]
 
     pipeline = InferencePipeline(args.model_file, args.segments_file, workers=args.workers)
-    results = 2 ** pipeline.run(input_files)
+    results = pipeline.run(input_files)
 
     # format the results for printing
     formatted_results = []
