@@ -148,11 +148,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
       - name: Download wheel artifact
         uses: actions/download-artifact@v4
         with:
@@ -190,6 +185,11 @@ jobs:
           asset_path: ${{ steps.get_wheel.outputs.wheel_file }}
           asset_name: ${{ steps.get_wheel.outputs.wheel_name }}
           asset_content_type: application/zip
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
       - name: Install Twine
         run: pip install twine
