@@ -81,16 +81,16 @@ jobs:
 
       - name: Compile shared library (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: gcc -shared -fPIC -o pgse/c_lib/aho_corasick.so pgse/c_lib/aho_corasick.c
+        run: gcc -shared -O3 -fPIC -o pgse/c_lib/aho_corasick.so pgse/c_lib/aho_corasick.c
 
       - name: Compile universal shared library (macOS)
         if: matrix.os == 'macos-latest'
-        run: clang -shared -fPIC -arch x86_64 -arch arm64 -o pgse/c_lib/aho_corasick.dylib pgse/c_lib/aho_corasick.c
+        run: clang -shared -O3 -fPIC -arch x86_64 -arch arm64 -o pgse/c_lib/aho_corasick.dylib pgse/c_lib/aho_corasick.c
 
       - name: Compile shared library (Windows)
         if: matrix.os == 'windows-latest'
         shell: msys2 {0}
-        run: gcc -shared -o pgse/c_lib/aho_corasick.dll pgse/c_lib/aho_corasick.c
+        run: gcc -shared -O3 -o pgse/c_lib/aho_corasick.dll pgse/c_lib/aho_corasick.c
 
       - name: Upload compiled library
         uses: actions/upload-artifact@v4
