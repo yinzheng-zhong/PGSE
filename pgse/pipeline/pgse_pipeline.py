@@ -147,10 +147,11 @@ class Pipeline:
             if not self._suppress_write:
                 self.progress_manager.save_fold_progress(i + 1, accumulated_results)
 
-                try:
-                    os.remove(self.save_file)
-                except FileNotFoundError as e:
-                    logger.error(e)
+                if self.save_file:
+                    try:
+                        os.remove(self.save_file)
+                    except FileNotFoundError as e:
+                        logger.error(e)
 
                 importance_scores = importance_df['Importance']
                 seg_pool.export(self.export_file + f'_fold_{i}_segs.csv', importance_scores=importance_scores)
