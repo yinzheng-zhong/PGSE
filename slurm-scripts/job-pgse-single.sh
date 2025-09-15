@@ -20,7 +20,7 @@ echo "Starting running on host $HOSTNAME"
 conda activate genome
 
 # Change this to the your paths
-python3 main-pgse.py \
+pgse-train \
         --label-file "../volatile/cgr_labels/cgr_label_CAZ.csv" \
         --data-dir "../volatile/cgr/" \
         --save-file "../volatile/var/CAZ.save" \
