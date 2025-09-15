@@ -36,7 +36,14 @@ class FileLabel:
             raise ValueError('Invalid label file format')
 
         data['files'] = [p if os.path.exists(p) else os.path.join(self.data_dir, p) for p in data['files']]
-        return data.set_index('files').to_dict()['labels']
+
+        # check if all files exist, remove those that do not exist
+        kept = data[data['files'].apply(os.path.exists)]
+        removed = data[~data['files'].apply(os.path.exists)]
+        if len(removed) > 0:
+            logger.warning(f'ignored data with missing files:\n{removed}')
+
+        return kept.set_index('files').to_dict()['labels']
 
     def _perform_train_test_split(self, files, labels, test_size, random_state):
         """
