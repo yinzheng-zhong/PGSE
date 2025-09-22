@@ -8,11 +8,12 @@ with open(here / "requirements.txt", encoding="utf-8") as f:
 
 setup(
     name="pgse",
-    version="0.8.4",
+    version="0.8.5",
     author="Yinzheng Zhong",
     author_email="yinzheng.zhong@liverpool.ac.uk",
     description="Progressive Genome Segment Enhancement (PGSE)",
-    license_files=["LICENSE"],
+    license="PolyForm Noncommercial License 1.0.0",
+    license_files=["LICENSE.md"],
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/yinzheng-zhong/pgse",
