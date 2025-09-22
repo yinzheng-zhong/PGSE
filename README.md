@@ -17,6 +17,10 @@ Dr Alessandro Gerada, University of Liverpool (conceptualisation, R package, fun
 
 Prof William Hope, University of Liverpool (conceptualisation, funding, supervision)
 
+## License
+
+This project is licensed under the PolyForm Noncommercial License 1.0.0. See the [LICENSE.md](LICENSE.md) file for details.
+
 ## Installation
 
 ### PyPi
