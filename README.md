@@ -17,6 +17,17 @@ Dr Alessandro Gerada, University of Liverpool (conceptualisation, R package, fun
 
 Prof William Hope, University of Liverpool (conceptualisation, funding, supervision)
 
+## Citation
+```
+@article{gerada2026prediction,
+  title={Prediction of antimicrobial minimum inhibitory concentration from bacterial genomes using a scalable and interpretable machine learning approach},
+  author={Gerada, Alessandro and Zhong, Yinzheng and Harper, Nicholas and Velluva, Anoop and Reza, Nada and Dubey, Vineet and Howard, Alex and Green, Peter L and Paterson, Steve and Hope, William},
+  journal={npj Antimicrobials and Resistance},
+  year={2026},
+  publisher={Nature Publishing Group}
+}
+```
+
 ## License
 
 This project is licensed under the PolyForm Noncommercial License 1.0.0. See the [LICENSE.md](LICENSE.md) file for details.
