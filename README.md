@@ -30,17 +30,27 @@ Prof William Hope, University of Liverpool (conceptualisation, funding, supervis
 
 ## License
 
-This project is licensed under the PolyForm Noncommercial License 1.0.0. See the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See the [LICENSE](LICENSE) file for details.
 
 ## Installation
 
-### PyPi
+### PyPI
 
-Make sure Python is installed (3.9 or later) and install `pgse` from PyPI:
+Make sure Python 3.10 or later is installed, then install `pgse` from PyPI with
+[uv](https://docs.astral.sh/uv/):
+
+```bash
+uv pip install pgse
+```
+
+or with pip:
 
 ```bash
 pip install pgse
 ```
+
+The published wheels bundle the prebuilt Aho-Corasick shared library for Linux,
+macOS, and Windows, so no C compiler is required for a normal install.
 
 ### Conda
 
@@ -184,6 +194,64 @@ This name will be used to store the selected genome segments in an .txt file and
 * `--ea-max`: Maximum number of censored essential agreement values. Don't need this unless
 you want to see more accurate EA information from the console output during the training.
 * `--ea-min`: Minimum number of censored essential agreement values. Similar to `--ea-max`.
+* `--alphabet`: the set of characters the input is made of, given as a single string. Defaults to
+DNA (`atgc`). See [Alphabets](#alphabets) below.
+* `--case-sensitive`: `0` (default) folds everything to lower case, `1` treats upper and lower case
+as distinct characters.
+* `--complement`: the complement used to canonicalise segments, one character per character of
+`--alphabet`. See [Alphabets](#alphabets) below.
+
+#### Alphabets
+
+PGSE is not limited to DNA. The alphabet is the set of characters the input is made of, and
+everything outside it is dropped while reading the input files. Any symbolic text can therefore be
+used, for example plain text:
+
+```bash
+pgse-train \
+        --label-file "../<path_to>/<you_labels>.csv" \
+        --data-dir "../<you_data_dir>/" \
+        --alphabet "abcdefghijklmnopqrstuvwxyz " \
+        --case-sensitive 0 \
+        --k 3 \
+        --target 12
+```
+
+The same options are available on the Python API:
+
+```python
+from pgse import TrainingPipeline
+
+pipeline = TrainingPipeline(
+    data_dir='...',
+    label_file='...',
+    k=3,
+    target=12,
+    alphabet='abcdefghijklmnopqrstuvwxyz ',
+    case_sensitive=False
+)
+```
+
+Three things follow from the alphabet:
+
+* **Case sensitivity.** By default the alphabet is case-insensitive: the input is folded to lower
+case, so `A` and `a` are the same character. With `--case-sensitive 1` nothing is folded and the
+alphabet has to list every character you want to keep, e.g.
+`"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ "`.
+* **Canonicalisation.** DNA segments are counted on both strands, so a segment and its reverse
+complement are the same feature. This only makes sense when the alphabet has a complement.
+`--complement` defaults to reverse complementing for the DNA alphabet and to no canonicalisation for
+any other alphabet, which is almost always what you want. To set one explicitly, give one character
+per character of `--alphabet` (`--alphabet augc --complement uacg` for RNA), or pass an empty string
+to switch it off.
+* **k-mer size.** The number of initial k-mers is `len(alphabet) ** k`, so a larger alphabet needs a
+smaller `--k`. The 27-character alphabet above yields about 20k 3-mers, roughly the same as DNA with
+`--k 7`.
+
+Inference has to use the same alphabet as training, since the exported segments are counted against
+it. Pass the same `--alphabet`, `--case-sensitive` and `--complement` values to `pgse-predict`;
+if the segments do not fit the alphabet, PGSE fails with an error rather than predicting on
+all-zero counts.
 
 #### Distributed computation
 
@@ -248,6 +316,9 @@ pgse-predict \
         --workers 8
 ```
 
+If the model was trained on a non-DNA alphabet, pass the same `--alphabet`, `--case-sensitive` and
+`--complement` values that were used for training. See [Alphabets](#alphabets).
+
 
 ```bash
 
@@ -258,20 +329,40 @@ To use PGSE through the R package, consult the package
 
 ## For Development
 
-To build the package, run the following command:
+PGSE uses [uv](https://docs.astral.sh/uv/) for packaging and dependency
+management. All project metadata and dependencies live in `pyproject.toml`.
+
+Clone the repository and create a synced environment. This installs the runtime
+and `dev` dependencies and performs an editable install of `pgse`:
 ```bash
-rm -rf dist/ build/ pgse.egg-info/
-python -m build
-```
-Then upload the package to PyPI using:
-```bash
-python -m twine upload dist/*
+uv sync
 ```
 
-To install the package locally, run:
+The editable install compiles the Aho-Corasick C library
+(`pgse/c_lib/aho_corasick.c`) for your platform as part of the install, so the
+fast C implementation is used automatically. This requires a C compiler
+(`cc`/`gcc`/`clang`; set the `CC` environment variable to choose one). If no
+compiler is available the install still succeeds and PGSE transparently falls
+back to the slower pure-Python implementation.
+
+To run an editable install on its own:
 ```bash
-pip install -e .
+uv pip install -e .
 ```
+
+To build the distribution artifacts (the wheel bundles the compiled library):
+```bash
+uv build
+```
+
+Run the tests with:
+```bash
+uv run pytest
+```
+
+Releases to PyPI are automated by GitHub Actions: when the `version` in
+`pyproject.toml` changes on `main`, the workflow compiles the library for all
+three platforms, builds the wheel, and publishes it.
 
 ## Acknowledgements
 

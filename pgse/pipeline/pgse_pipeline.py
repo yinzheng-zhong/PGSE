@@ -1,9 +1,12 @@
 import os
+from typing import Optional
+
 import ray
 
 from xgboost import  Booster
 
 from pgse.environment.ray_env import RayEnvManager
+from pgse.etc.alphabet import AUTO, Alphabet, AlphabetArg, ComplementArg, set_alphabet
 from pgse.log import logger
 from pgse.model.model_trainer import ModelTrainer
 from pgse.dataset.file_label import FileLabel
@@ -25,7 +28,7 @@ class Pipeline:
             self,
             data_dir: str,
             label_file: str | dict,
-            pre_kfold_info_file: str = None,
+            pre_kfold_info_file: Optional[str] = None,
             save_file: str = '',
             export_file: str = './default.export',
             k: int = 6,
@@ -33,15 +36,32 @@ class Pipeline:
             target: int = 70,
             features: int = 10000,
             folds: int = 0,
-            ea_min: float = None,
-            ea_max: float = None,
+            ea_min: Optional[float] = None,
+            ea_max: Optional[float] = None,
             num_rounds: int = 1500,
             lr: float = 0.03,
             dist: bool = False,
             nodes: int = 1,
             workers: int = 8,
-            device: str = 'cpu'
-    ):
+            device: str = 'cpu',
+            alphabet: AlphabetArg = None,
+            case_sensitive: bool = False,
+            complement: ComplementArg = AUTO
+    ) -> None:
+        """
+        :param alphabet: str or Alphabet: The characters the sequences are made of.
+            Defaults to DNA ('atgc'). Pass e.g. 'abcdefghijklmnopqrstuvwxyz ' to run
+            PGSE over plain text.
+        :param case_sensitive: bool: Treat upper and lower case as distinct characters.
+        :param complement: The complement used to canonicalise segments. Defaults to
+            reverse complementing for DNA and to no canonicalisation for any other
+            alphabet. Pass None to switch it off explicitly.
+        """
+        # Install the alphabet first: everything downstream reads it, including the
+        # segment extender and the Ray workers.
+        self.alphabet: Alphabet = set_alphabet(alphabet, case_sensitive=case_sensitive, complement=complement)
+        logger.info(f'Using {self.alphabet}')
+
         self.data_dir = data_dir
         self.label_file = label_file
         self.pre_kfold_info_file = pre_kfold_info_file

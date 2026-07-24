@@ -1,0 +1,5 @@
+>document_1  A plain-text "sequence" used to check non-DNA alphabets.
+The cat sat on the mat.
+It sat there, quietly, for 42 minutes!
+>document_2
+The dog barked.

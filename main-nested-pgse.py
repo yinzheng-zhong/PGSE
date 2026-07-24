@@ -73,7 +73,10 @@ if __name__ == "__main__":
             lr=args.lr,
             dist=False,
             nodes=args.nodes,
-            workers=args.workers
+            workers=args.workers,
+            alphabet=args.alphabet,
+            case_sensitive=bool(args.case_sensitive),
+            complement=args.complement
         )
 
         # run pipeline
@@ -95,6 +98,9 @@ if __name__ == "__main__":
         pgse_inference_pipe = PGSEInferencePipeline(
             model_path=export_files[i] + '_fold_0.json',
             segment_path=export_files[i] + '_fold_0.txt',
+            alphabet=args.alphabet,
+            case_sensitive=bool(args.case_sensitive),
+            complement=args.complement
         )
 
         # run inference

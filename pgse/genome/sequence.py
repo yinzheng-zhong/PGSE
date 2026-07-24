@@ -1,21 +1,24 @@
 import numpy as np
 
-from pgse.genome import km, canonicalize
+from pgse.etc.alphabet import get_alphabet
+from pgse.genome import canonicalize
 from pgse.genome import get_complement
+from pgse.genome.kmer import Kmer
 from pgse.algos import aho_corasick
 
 class Sequence:
     def __init__(
             self,
             filepath: str,
-            keep_read_error=False,
-            concatenate_nodes=False
-    ):
-        self.filepath = filepath
-        self.keep_read_error = keep_read_error
-        self.concatenate_nodes = concatenate_nodes
-        self._nodes = []
-        self._complement_nodes = []
+            keep_read_error: bool = False,
+            concatenate_nodes: bool = False
+    ) -> None:
+        self.filepath: str = filepath
+        self.keep_read_error: bool = keep_read_error
+        self.concatenate_nodes: bool = concatenate_nodes
+        self._km: Kmer = Kmer(keep_read_error=keep_read_error)
+        self._nodes: list[str] = []
+        self._complement_nodes: list[str] = []
         self._read_sequence()
 
     def __len__(self):
@@ -34,7 +37,7 @@ class Sequence:
     def len_nodes(self):
         return len(self._nodes)
 
-    def _read_sequence(self):
+    def _read_sequence(self) -> None:
         with open(self.filepath, 'r') as f:
             string = f.read().split('\n')
 
@@ -44,15 +47,13 @@ class Sequence:
         # read the contigs between the headers
         contigs_multi_rows = [string[i+1:j] for i, j in zip(headers, headers[1:]+[None])]
 
-        # concatenate the contigs and convert to lowercase
-        contigs = [''.join(contig).lower() for contig in contigs_multi_rows]
-
-        if self.keep_read_error:
-            # change any character other than 'a', 't', 'g', 'c' to 'n' in each contig
-            contigs = [''.join([c if c in 'atgc' else 'n' for c in contig]) for contig in contigs]
-        else:
-            # remove any character other than 'a', 't', 'g', 'c' in each contig
-            contigs = [''.join([c for c in contig if c in 'atgc']) for contig in contigs]
+        # concatenate the contigs, fold the case if the alphabet is case-insensitive,
+        # and drop (or flag) anything outside the alphabet
+        alphabet = get_alphabet()
+        contigs = [
+            alphabet.sanitise(''.join(contig), keep_read_error=self.keep_read_error)
+            for contig in contigs_multi_rows
+        ]
 
         if self.concatenate_nodes:
             self._nodes = [''.join(contigs)]
@@ -61,18 +62,17 @@ class Sequence:
             self._nodes = contigs
             self._complement_nodes = [get_complement(contig) for contig in contigs]
 
-    def get_kmer_count(self, k: int):
+    def get_kmer_count(self, k: int) -> np.ndarray:
         """
         Bin count for k-mers across all contigs. Faster than the lookup table with sequence matching.
         :param k: int: The length of the k-mers.
         :param no_consecutive: bool: Deprecated.
         """
-        base = 5 if self.keep_read_error else 4
-        n = base ** k  # number of possible k-mers
+        n = self._km.base ** k  # number of possible k-mers
 
         # Iterate through each node and count k-mers
         counts = [
-            km.kmer_mapping(canonicalize(node[i:i + k]))
+            self._km.kmer_mapping(canonicalize(node[i:i + k]))
             for node in self._nodes if len(node) >= k
             for i in range(len(node) - k + 1)
         ]

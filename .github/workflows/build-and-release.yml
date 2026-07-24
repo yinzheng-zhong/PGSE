@@ -29,14 +29,14 @@ jobs:
       - name: Extract current version
         id: current_version
         run: |
-          VERSION=$(python setup.py --version)
+          VERSION=$(grep -E '^version = ' pyproject.toml | head -1 | sed -E 's/^version = "(.*)"/\1/')
           echo "current_version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Check previous version
         id: check_version
         run: |
-          git checkout HEAD^ -- setup.py
-          PREV_VERSION=$(python setup.py --version || echo "0.0.0")
+          git checkout HEAD^ -- pyproject.toml
+          PREV_VERSION=$(grep -E '^version = ' pyproject.toml | head -1 | sed -E 's/^version = "(.*)"/\1/' || echo "0.0.0")
           CURRENT_VERSION="${{ steps.current_version.outputs.current_version }}"
           if [ "$PREV_VERSION" != "$CURRENT_VERSION" ]; then
             echo "version_changed=true" >> $GITHUB_OUTPUT

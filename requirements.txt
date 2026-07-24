@@ -1,9 +1,0 @@
-ray~=2.46.0
-numpy~=2.2.6
-xgboost~=3.0.4
-pandas~=2.3.1
-imbalanced-learn~=0.13.0
-scikit-learn~=1.6.1
-setuptools~=80.9.0
-colorlog~=6.9.0
-tqdm~=4.67.1

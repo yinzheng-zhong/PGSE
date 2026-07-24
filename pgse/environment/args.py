@@ -1,7 +1,10 @@
 import argparse
 import os
 
-def get_parser():
+from pgse.etc.alphabet import AUTO, DNA_CHARS
+
+
+def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument('--label-file', type=str,
                         help="Path to the CSV file containing the labels")
@@ -51,4 +54,16 @@ def get_parser():
                         help="Flag to enable oversampling of the minority class")
     parser.add_argument('--verbose', type=int, default=0,
                         help="0: Error, 1: Warning, 2: Info, 3: Debug")
+    parser.add_argument('--alphabet', type=str, default=DNA_CHARS,
+                        help="The set of characters the sequences are made of, given as a single "
+                             "string. Defaults to DNA ('atgc'). Anything outside the alphabet is "
+                             "dropped when reading the input.")
+    parser.add_argument('--case-sensitive', type=int, default=0,
+                        help="Flag to treat upper and lower case as distinct characters. "
+                             "0 (default) folds everything to lower case.")
+    parser.add_argument('--complement', type=str, default=AUTO,
+                        help="Complement used to canonicalise segments, given as one character per "
+                             "character of --alphabet (e.g. 'tacg' for 'atgc'). Defaults to reverse "
+                             "complementing for DNA and to no canonicalisation otherwise. "
+                             "Pass an empty string to switch it off.")
     return parser
