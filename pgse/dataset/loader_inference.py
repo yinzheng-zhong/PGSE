@@ -24,8 +24,11 @@ class LoaderInference(Loader):
 
     def get_dataset_from_pool(self) -> np.ndarray:
         logger.info('Counting segments for test...')
-        alphabet = get_alphabet()
-        tasks = [Loader._get_one_extended_dataset.remote(seq, seg_pool, alphabet) for seq in seq_manager.test_sequences]
+        # One shared copy of the pool in the object store, not one per task. See
+        # Loader.get_dataset_from_pool.
+        pool_ref = ray.put(seg_pool)
+        alphabet_ref = ray.put(get_alphabet())
+        tasks = [Loader._get_one_extended_dataset.remote(seq, pool_ref, alphabet_ref) for seq in seq_manager.test_sequences]
         data = np.asarray([ray.get(task) for task in tqdm(tasks, desc='Counting segments for train/test')], dtype=np.float32)
 
         return data

@@ -53,7 +53,7 @@ class Loader:
 
     def _get_train_seq(self):
         logger.info('Loading training sequences...')
-        alphabet = get_alphabet()
+        alphabet = ray.put(get_alphabet())
         train_sequences = [Loader._get_one_sequence.remote(file, alphabet) for file in self.train_files]
         train_sequences = [ray.get(a) for a in tqdm(train_sequences)]
         seq_manager.add_train_sequences(train_sequences)
@@ -63,7 +63,7 @@ class Loader:
             return
 
         logger.info('Loading testing sequences...')
-        alphabet = get_alphabet()
+        alphabet = ray.put(get_alphabet())
         test_sequences = [Loader._get_one_sequence.remote(file, alphabet) for file in self.test_files]
         test_sequences = [ray.get(a) for a in tqdm(test_sequences)]
         seq_manager.add_test_sequences(test_sequences)
@@ -85,7 +85,7 @@ class Loader:
 
         logger.info(f'Getting k-mer dataset for k={k}...')
 
-        alphabet = get_alphabet()
+        alphabet = ray.put(get_alphabet())
         train_kmer = [Loader._get_one_kmer_dataset.remote(seq, k, alphabet) for seq in seq_manager.train_sequences]
         test_kmer = [Loader._get_one_kmer_dataset.remote(seq, k, alphabet) for seq in seq_manager.test_sequences]
 
@@ -111,9 +111,17 @@ class Loader:
         logger.info(f'Counting segments to generate the dataset...')
 
         # Combine training and testing sequences to maximise parallelism.
-        alphabet = get_alphabet()
         all_sequences = seq_manager.train_sequences + seq_manager.test_sequences
-        tasks = [Loader._get_one_extended_dataset.remote(seq, seg_pool, alphabet) for seq in all_sequences]
+
+        # Put the segment pool into the object store ONCE. Passing it straight to
+        # .remote() would serialise a full copy per task (tens of thousands of
+        # identical multi-MB objects), which floods the object store and spills to
+        # disk. Ray dereferences these refs automatically, so the remote function
+        # still receives the objects themselves.
+        pool_ref = ray.put(seg_pool)
+        alphabet_ref = ray.put(get_alphabet())
+
+        tasks = [Loader._get_one_extended_dataset.remote(seq, pool_ref, alphabet_ref) for seq in all_sequences]
 
         # Fetch the results for all tasks in parallel.
         all_data = np.asarray([ray.get(task) for task in tqdm(tasks, desc='Counting segments for train/test')], dtype=np.float32)
