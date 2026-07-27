@@ -9,6 +9,12 @@ from tqdm import tqdm
 from time import time
 from pgse.log import logger
 
+# Cores allocated to each partition's XGBoost worker when partitioning is on.
+# Ray therefore runs about (workers // CORES_PER_PARTITION) partitions at once,
+# each XGBoost using this many threads. The final, non-partitioned model is the
+# exception: it gets the whole worker pool instead (see __init__).
+CORES_PER_PARTITION = 8
+
 
 class XGBoost:
     def __init__(
@@ -37,13 +43,22 @@ class XGBoost:
         self.custom_metric = custom_metric
         self.early_stopping_rounds = early_stopping_rounds
 
+        # num_cpu_per_node is the whole Ray pool (the --workers value). When we
+        # partition, cap each partition to a small fixed number of cores so many
+        # run concurrently; the single final model keeps the whole pool. Clamp to
+        # the pool size so a partition never reserves more cores than exist, which
+        # would leave the task pending forever.
+        self.cores_per_task = (
+            min(CORES_PER_PARTITION, num_cpu_per_node) if use_partition else num_cpu_per_node
+        )
+
         self.params = {
             'objective': 'reg:squarederror',
             'max_depth': max_depth,
             'tree_method': 'hist',
             'device': device,
             'learning_rate': base_learning_rate,
-            'nthread': num_cpu_per_node  # Use multiple threads per worker
+            'nthread': self.cores_per_task  # threads per partition worker
         }
 
     def _create_dmatrix(self, data: np.ndarray, label: np.ndarray) -> xgb.DMatrix:
@@ -158,7 +173,11 @@ class XGBoost:
 
         feature_partitions = self._create_partitions(train_x.shape[1])
 
-        logger.info(f'Training {len(feature_partitions)} partitions of features')
+        logger.info(
+            f'Training {len(feature_partitions)} partitions of features, '
+            f'{self.cores_per_task} core(s) each '
+            f'(~{max(self.num_cpu_per_node // self.cores_per_task, 1)} concurrent)'
+        )
 
         tasks = []
         for split in feature_partitions:
@@ -166,7 +185,7 @@ class XGBoost:
             test_x_split = test_x[:, split]
 
             task_ref = self._train_one_partition.options(
-                num_cpus=self.num_cpu_per_node,
+                num_cpus=self.cores_per_task,
                 # num_gpus=1
             ).remote(
                 self,
