@@ -27,7 +27,10 @@ def train():
         args.dist,
         args.nodes,
         args.workers,
-        device=args.device
+        device=args.device,
+        alphabet=args.alphabet,
+        case_sensitive=bool(args.case_sensitive),
+        complement=args.complement
     )
     pipeline.run()
 
@@ -46,7 +49,14 @@ def predict():
     # discover the list of files in the input directory
     input_files = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith('.fna') or f.endswith('.fasta')]
 
-    pipeline = InferencePipeline(args.model_file, args.segments_file, workers=args.workers)
+    pipeline = InferencePipeline(
+        args.model_file,
+        args.segments_file,
+        workers=args.workers,
+        alphabet=args.alphabet,
+        case_sensitive=bool(args.case_sensitive),
+        complement=args.complement
+    )
     results = pipeline.run(input_files)
 
     # format the results for printing

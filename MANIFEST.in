@@ -1,1 +1,4 @@
-include requirements.txt
+include README.md
+include LICENSE
+include _build_backend.py
+recursive-include pgse/c_lib *.c

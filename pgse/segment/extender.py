@@ -1,5 +1,6 @@
 import itertools
 
+from pgse.etc.alphabet import get_alphabet
 from pgse.genome import canonicalize
 from pgse.segment import seg_pool
 from pgse.log import logger
@@ -10,11 +11,16 @@ class Extender:
     def __init__(
             self,
             keep_read_error: bool = False
-    ):
-        self.keep_read_error = keep_read_error
-        self.nucleotides = ['a', 't', 'g', 'c']
-        if self.keep_read_error:
-            self.nucleotides.append('n')
+    ) -> None:
+        self.keep_read_error: bool = keep_read_error
+
+    @property
+    def nucleotides(self) -> list[str]:
+        """
+        The characters segments are extended with. Read from the active alphabet so
+        that changing the alphabet after construction is picked up.
+        """
+        return get_alphabet().characters(self.keep_read_error)
 
     def _extend_one_seg(self, sequence: str, length: int):
         # generate all possible extensions

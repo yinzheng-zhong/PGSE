@@ -1,6 +1,7 @@
 # Function to check if a sequence is canonical
 from pgse.algos.aho_corasick_base import AhoCorasickBase
 from pgse.algos.utils import get_complement,  is_canonical
+from pgse.etc.alphabet import get_alphabet
 
 
 # Trie Node class for the Aho-Corasick automaton
@@ -16,13 +17,27 @@ class AhoCorasickPy(AhoCorasickBase):
         super().__init__()
 
     # Build the automaton
-    def build_automaton(self, segments):
-        # Preprocess segments to get canonical forms
-        patterns = []  # Patterns to insert into the automaton
-        pattern_indices = []  # Corresponding indices in the segments list
+    def build_automaton(self, segments: list[str]) -> 'TrieNode':
+        # Preprocess segments to get canonical forms. Alphabets without a complement
+        # return the segment itself, so every segment is inserted exactly once.
+        patterns: list[str] = []  # Patterns to insert into the automaton
+        pattern_indices: list[int] = []  # Corresponding indices in the segments list
+
+        alphabet = get_alphabet()
+
+        allowed = alphabet.char_set
+        if alphabet.unknown_char is not None:
+            allowed = allowed | {alphabet.unknown_char}
 
         for idx, segment in enumerate(segments):
-            segment = segment.lower()
+            segment = alphabet.normalise(segment)
+
+            # A segment that is empty, or that contains a character the alphabet does
+            # not have, can never match. An empty one would otherwise hang its output
+            # off the root of the trie and match at every position.
+            if not segment or any(char not in allowed for char in segment):
+                continue
+
             complement = get_complement(segment)
             if is_canonical(segment, complement):
                 patterns.append(segment)
@@ -47,7 +62,7 @@ class AhoCorasickPy(AhoCorasickBase):
 
         # Build failure links
         from collections import deque
-        queue = deque()
+        queue: deque = deque()
         # Set failure links of root's immediate children to root
         for child in root.children.values():
             child.fail = root
@@ -85,16 +100,17 @@ class AhoCorasickPy(AhoCorasickBase):
         return result_counts
 
     # Main function to count segments in nodes using Aho-Corasick algorithm
-    def count_segments(self, nodes, segments):
+    def count_segments(self, nodes: list[str], segments: list[str]) -> list[int]:
         # Build the automaton with canonical patterns
         root = self.build_automaton(segments)
 
         # Initialize result counts
-        result_counts = [0] * len(segments)
+        result_counts: list[int] = [0] * len(segments)
 
         # Search each node's text
+        alphabet = get_alphabet()
         for node_text in nodes:
-            node_text = node_text.lower()
+            node_text = alphabet.normalise(node_text)
             self._search_automaton(root, node_text, result_counts)
 
         return result_counts

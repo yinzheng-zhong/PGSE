@@ -19,7 +19,10 @@ if __name__ == "__main__":
         args.lr,
         args.dist,
         args.nodes,
-        args.workers
+        args.workers,
+        alphabet=args.alphabet,
+        case_sensitive=bool(args.case_sensitive),
+        complement=args.complement
     )
 
     pipeline.run()

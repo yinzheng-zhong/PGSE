@@ -24,5 +24,8 @@ if __name__ == "__main__":
         args.nodes,
         args.workers,
         device=args.device,
+        alphabet=args.alphabet,
+        case_sensitive=bool(args.case_sensitive),
+        complement=args.complement,
     )
     pipeline.run()
