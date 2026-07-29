@@ -108,6 +108,7 @@ class FileLabel:
             return train_files, test_files, np.array(train_labels, dtype=np.float32), np.array(test_labels, dtype=np.float32)
 
         if num_folds <= 0:
+            # cast to int only to give stratify discrete class labels (not a feature conversion)
             return self._perform_train_test_split(files, labels.astype(np.int32), test_size, random_state)
         else:
             try:
