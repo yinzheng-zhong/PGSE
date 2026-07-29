@@ -1,6 +1,7 @@
 import os
 from typing import Optional
 
+import numpy as np
 import ray
 
 from xgboost import  Booster
@@ -46,7 +47,9 @@ class Pipeline:
             device: str = 'cpu',
             alphabet: AlphabetArg = None,
             case_sensitive: bool = False,
-            complement: ComplementArg = AUTO
+            complement: ComplementArg = AUTO,
+            uint16: bool = False,
+            sparse: bool = False
     ) -> None:
         """
         :param alphabet: str or Alphabet: The characters the sequences are made of.
@@ -56,6 +59,11 @@ class Pipeline:
         :param complement: The complement used to canonicalise segments. Defaults to
             reverse complementing for DNA and to no canonicalisation for any other
             alphabet. Pass None to switch it off explicitly.
+        :param uint16: Store segment counts as uint16 instead of float32, halving the
+            count-matrix footprint. Lossless for counts up to 65535 (saturated above).
+        :param sparse: Store the count matrix as a sparse CSR matrix. For short
+            sequences (e.g. SMILES) the matrix is almost all zeros, so this saves
+            orders of magnitude. The same setting must be used at predict time.
         """
         # Install the alphabet first: everything downstream reads it, including the
         # segment extender and the Ray workers.
@@ -80,6 +88,8 @@ class Pipeline:
         self.lr = lr
         self.workers = workers
         self.device = device
+        self.count_dtype = np.uint16 if uint16 else np.float32
+        self.sparse = sparse
 
         self.file_label = FileLabel(self.label_file, self.data_dir, self.pre_kfold_info_file)
         self.extender = Extender()
@@ -110,7 +120,9 @@ class Pipeline:
             loader = Loader(
                 self.file_label,
                 folds=self.folds,
-                fold_index=i
+                fold_index=i,
+                count_dtype=self.count_dtype,
+                sparse=self.sparse
             )
 
             self.model_trainer = ModelTrainer(

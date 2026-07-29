@@ -21,6 +21,7 @@ classifiers = [
 dependencies = [
     "ray~=2.46.0",
     "numpy~=2.2.6",
+    "scipy~=1.15",
     "xgboost~=3.0.4",
     "pandas~=2.3.1",
     "imbalanced-learn~=0.13.0",

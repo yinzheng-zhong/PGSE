@@ -13,17 +13,20 @@ class Pipeline(InferencePipeline):
             workers: int = 8,
             alphabet: AlphabetArg = None,
             case_sensitive: bool = False,
-            complement: ComplementArg = AUTO
+            complement: ComplementArg = AUTO,
+            uint16: bool = False,
+            sparse: bool = False
     ) -> None:
         super().__init__(
             model_path, segment_path, workers,
-            alphabet=alphabet, case_sensitive=case_sensitive, complement=complement
+            alphabet=alphabet, case_sensitive=case_sensitive, complement=complement,
+            uint16=uint16, sparse=sparse
         )
 
     def run(self, files: list[str]) -> np.ndarray:
         assert self.model is not None, 'The model failed to load.'
 
-        loader = LoaderInference(files)
+        loader = LoaderInference(files, count_dtype=self.count_dtype, sparse=self.sparse)
         data = loader.get_dataset_from_pool()
 
         dtest = xgb.DMatrix(data)

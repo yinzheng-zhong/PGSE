@@ -66,4 +66,11 @@ def get_parser() -> argparse.ArgumentParser:
                              "character of --alphabet (e.g. 'tacg' for 'atgc'). Defaults to reverse "
                              "complementing for DNA and to no canonicalisation otherwise. "
                              "Pass an empty string to switch it off.")
+    parser.add_argument('--uint16', type=int, default=0,
+                        help="Flag to store segment counts as uint16 instead of float32, halving the "
+                             "count-matrix memory. Lossless for counts up to 65535 (saturated above).")
+    parser.add_argument('--sparse', type=int, default=0,
+                        help="Flag to store the count matrix as a sparse CSR matrix. Big saving for "
+                             "short/sparse sequences (e.g. SMILES). The same flag must be used for "
+                             "training and prediction.")
     return parser
