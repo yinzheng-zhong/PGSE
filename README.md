@@ -385,11 +385,11 @@ uv sync
 ```
 
 The editable install compiles the native counting kernel (the Rust crate under
-`native/`, built into the package as `pgse._native`) as part of the install, so the
-fast path is used automatically. This requires a Rust toolchain — install one from
-[rustup.rs](https://rustup.rs). The extension is marked optional, so if no toolchain
-is available the install still succeeds and PGSE transparently falls back to the
-slower pure-Python counter.
+`native/`, built into the package as `pgse._native`) as part of the install. This
+**requires a Rust toolchain** — install one from [rustup.rs](https://rustup.rs). The
+build fails loudly if it is missing rather than silently shipping an install without
+the extension, so every install has the fast path. (A pure-Python counter still
+exists as a runtime safety net, and logs a warning if it is ever used.)
 
 To run an editable install on its own:
 ```bash

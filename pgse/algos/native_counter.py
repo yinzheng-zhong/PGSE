@@ -17,13 +17,22 @@ import scipy.sparse as sp
 from tqdm import tqdm
 
 from pgse.etc.alphabet import Alphabet, get_alphabet
+from pgse.log import logger
 
-try:  # The extension is optional: without it PGSE falls back to the Python counter.
+try:
     from pgse import _native  # type: ignore
     _HAVE_NATIVE = True
-except ImportError:  # pragma: no cover - exercised only where the wheel lacks the ext.
+except ImportError:  # pragma: no cover - only where the extension was not built.
     _native = None  # type: ignore
     _HAVE_NATIVE = False
+    # Installs are meant to build the extension (optional = false in pyproject), so
+    # reaching here means something is wrong. Warn loudly rather than silently taking
+    # the much slower Python path.
+    logger.warning(
+        'The native counting kernel (pgse._native) is not available; falling back to '
+        'the much slower pure-Python counter. Install a Rust toolchain '
+        '(https://rustup.rs) and reinstall PGSE to build it.'
+    )
 
 UINT16_MAX = int(np.iinfo(np.uint16).max)
 
