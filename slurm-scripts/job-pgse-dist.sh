@@ -50,7 +50,7 @@ for ((i = 1; i <= worker_num; i++)); do
 done
 
 # Change this to the your paths
-python3 main-pgse.py \
+pgse-train \
         --label-file "../volatile/e_coli_mic_label.csv" \
         --data-dir "../volatile/e_coli_mic/" \
         --save-file "../volatile/var/rec-8-t10.save" \

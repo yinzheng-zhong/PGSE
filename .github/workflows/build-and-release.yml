@@ -43,63 +43,53 @@ jobs:
           else
             echo "version_changed=false" >> $GITHUB_OUTPUT
           fi
+          git checkout HEAD -- pyproject.toml
 
       - name: Debug captured versions
         run: |
           echo ">>> step.current_version.outputs.current_version = '${{ steps.current_version.outputs.current_version }}'"
           echo ">>> step.check_version.outputs.version_changed   = '${{ steps.check_version.outputs.version_changed }}'"
 
-  compile:
+  # One abi3 wheel per platform, each bundling the compiled Rust counting kernel
+  # (pgse._native). cibuildwheel installs Rust in the manylinux container (see
+  # [tool.cibuildwheel.linux] in pyproject.toml); on the macOS/Windows runners Rust
+  # is installed on the host below.
+  build_wheels:
     needs: check_version
     if: needs.check_version.outputs.version_changed == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up GCC (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        uses: egor-tensin/setup-gcc@v1
+      - name: Install Rust (host runner)
+        if: matrix.os != 'ubuntu-latest'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          version: latest
-          platform: x64
+          python-version: '3.11'
 
-      - name: Set up Clang (macOS)
-        if: matrix.os == 'macos-latest'
-        run: brew install llvm
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel
 
-      - name: Set up MinGW (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: mingw-w64-x86_64-gcc
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
 
-      - name: Compile shared library (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: gcc -shared -O3 -fPIC -o pgse/c_lib/aho_corasick.so pgse/c_lib/aho_corasick.c
-
-      - name: Compile universal shared library (macOS)
-        if: matrix.os == 'macos-latest'
-        run: clang -shared -O3 -fPIC -arch x86_64 -arch arm64 -o pgse/c_lib/aho_corasick.dylib pgse/c_lib/aho_corasick.c
-
-      - name: Compile shared library (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: msys2 {0}
-        run: gcc -shared -O3 -o pgse/c_lib/aho_corasick.dll pgse/c_lib/aho_corasick.c
-
-      - name: Upload compiled library
+      - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: shared-lib-${{ matrix.os }}
-          path: pgse/c_lib/aho_corasick.*
+          name: wheels-${{ matrix.os }}
+          path: wheelhouse/*.whl
 
-  build_and_test:
-    needs: compile
+  build_sdist:
+    needs: check_version
+    if: needs.check_version.outputs.version_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -110,81 +100,36 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Download compiled libraries
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
+      - name: Build sdist
+        run: pipx run build --sdist
 
-      - name: Move compiled libraries
-        run: |
-          cp artifacts/shared-lib-ubuntu-latest/aho_corasick.so pgse/c_lib/
-          cp artifacts/shared-lib-macos-latest/aho_corasick.dylib pgse/c_lib/
-          cp artifacts/shared-lib-windows-latest/aho_corasick.dll pgse/c_lib/
-
-      - name: Install build dependencies
-        run: pip install build wheel twine
-
-      - name: Build wheel
-        run: python -m build --wheel
-
-      - name: Upload wheel artifact
+      - name: Upload sdist
         uses: actions/upload-artifact@v4
         with:
-          name: wheel
-          path: dist/*.whl
-
-      - name: Install wheel
-        run: pip install dist/*.whl
-
-      - name: Run tests
-        run: |
-          pgse-train --label-file "tests/resource/labels.csv" --data-dir "tests/resource/genomes" --save-file "action.save" --export-file "action" --folds 2
-          pgse-predict --model-file "action_fold_0.json" --segments-file "action_fold_0_segs.csv" --data-dir "tests/resource/genomes"
+          name: sdist
+          path: dist/*.tar.gz
 
   release:
-    needs: [build_and_test, check_version]
+    needs: [build_wheels, build_sdist, check_version]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download wheel artifact
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: wheel
           path: dist
+          merge-multiple: true
 
-      - name: Get wheel file details
-        id: get_wheel
-        run: |
-          WHEEL_FILE=$(ls dist/*.whl)
-          echo "wheel_file=$WHEEL_FILE" >> $GITHUB_OUTPUT
-          echo "wheel_name=$(basename $WHEEL_FILE)" >> $GITHUB_OUTPUT
+      - name: List distributions
+        run: ls -R dist
 
-      - name: Debug job output
-        run: |
-          echo ">>> needs.check_version.outputs.current_version = '${{ needs.check_version.outputs.current_version }}'"
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.check_version.outputs.current_version }}
-          release_name: Release v${{ needs.check_version.outputs.current_version }}
-          draft: false
-          prerelease: false
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
+          name: Release v${{ needs.check_version.outputs.current_version }}
+          files: dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.get_wheel.outputs.wheel_file }}
-          asset_name: ${{ steps.get_wheel.outputs.wheel_name }}
-          asset_content_type: application/zip
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -198,4 +143,4 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload dist/*.whl
+        run: twine upload dist/*

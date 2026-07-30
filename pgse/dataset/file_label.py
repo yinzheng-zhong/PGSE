@@ -36,21 +36,31 @@ class FileLabel:
             raise ValueError('Invalid label file format')
 
         data['files'] = [p if os.path.exists(p) else os.path.join(self.data_dir, p) for p in data['files']]
-        return data.set_index('files').to_dict()['labels']
 
-    def _perform_train_test_split(self, files, labels, test_size, random_state):
+        # check if all files exist, remove those that do not exist
+        kept = data[data['files'].apply(os.path.exists)]
+        removed = data[~data['files'].apply(os.path.exists)]
+        if len(removed) > 0:
+            logger.warning(f'ignored data with missing files:\n{removed}')
+
+        return kept.set_index('files').to_dict()['labels']
+
+    def _perform_train_test_split(self, files, labels, test_size, random_state, stratify=None):
         """
         :param files: List of filenames
-        :param labels: Corresponding labels
+        :param labels: Corresponding labels. Returned unchanged, so pass the real
+            (possibly continuous/regression) labels here.
         :param test_size: Test data proportion
         :param random_state: Random State
+        :param stratify: Discrete labels used ONLY to stratify the split. Kept separate
+            from ``labels`` so the returned labels are never the discretised copy.
         :return: train_files, test_files, train_labels, test_labels
         """
         try:
             return train_test_split(
                 files,
                 labels,
-                stratify=labels,
+                stratify=stratify,
                 test_size=test_size,
                 random_state=random_state
             )
@@ -101,7 +111,11 @@ class FileLabel:
             return train_files, test_files, np.array(train_labels, dtype=np.float32), np.array(test_labels, dtype=np.float32)
 
         if num_folds <= 0:
-            return self._perform_train_test_split(files, labels.astype(np.int32), test_size, random_state)
+            # Stratify on a discrete (int) copy of the labels, but return the ORIGINAL
+            # labels.
+            return self._perform_train_test_split(
+                files, labels, test_size, random_state, stratify=labels.astype(np.int32)
+            )
         else:
             try:
                 k_fold_instance = StratifiedKFold(n_splits=num_folds, shuffle=True, random_state=random_state)

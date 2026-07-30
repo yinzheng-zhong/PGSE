@@ -49,8 +49,10 @@ or with pip:
 pip install pgse
 ```
 
-The published wheels bundle the prebuilt Aho-Corasick shared library for Linux,
-macOS, and Windows, so no C compiler is required for a normal install.
+The published wheels bundle the compiled native counting kernel (a Rust extension)
+for Linux, macOS, and Windows.
+Segment counting runs through this kernel; if it is ever unavailable (e.g. a source
+install without a Rust toolchain) PGSE falls back to a slower pure-Python counter.
 
 ### Conda
 
@@ -200,6 +202,14 @@ DNA (`atgc`). See [Alphabets](#alphabets) below.
 as distinct characters.
 * `--complement`: the complement used to canonicalise segments, one character per character of
 `--alphabet`. See [Alphabets](#alphabets) below.
+* `--uint16`: `0` (default) stores the segment-count matrix as `float32`; `1` stores it as `uint16`,
+halving the memory. Lossless for counts up to 65535 (larger counts are saturated). See
+[Reducing memory usage](#reducing-memory-usage) below.
+* `--sparse`: `0` (default) stores the count matrix densely; `1` stores it as a sparse CSR matrix.
+For short, sparse inputs (e.g. SMILES strings) the matrix is almost entirely zeros, so this can save
+orders of magnitude. XGBoost reads the unstored zeros of a CSR matrix as *missing* values (not as
+`0`), so the **same value must be used at prediction time**. See
+[Reducing memory usage](#reducing-memory-usage) below.
 
 #### Alphabets
 
@@ -252,6 +262,41 @@ Inference has to use the same alphabet as training, since the exported segments 
 it. Pass the same `--alphabet`, `--case-sensitive` and `--complement` values to `pgse-predict`;
 if the segments do not fit the alphabet, PGSE fails with an error rather than predicting on
 all-zero counts.
+
+#### Reducing memory usage
+
+The segment-count matrix (one row per sample, one column per segment) is the largest object PGSE
+holds in memory. Two optional flags shrink it; they are independent and can be combined. Both default
+to off, so existing runs are unaffected.
+
+* `--uint16 1` stores counts as 16-bit integers instead of 32-bit floats, halving the matrix. Counts
+are non-negative integers, so this is lossless up to 65535; any larger count is saturated to 65535.
+* `--sparse 1` stores the matrix as a sparse CSR matrix. This is the big lever for **short inputs
+where most segments are absent from most samples** — for example SMILES strings, where each row has
+only tens of non-zero counts out of thousands or millions of columns, making the matrix >99% zeros.
+For long, dense inputs such as bacterial genomes the matrix is not sparse, so leave this off.
+
+```bash
+pgse-train \
+        --label-file "../<path_to>/<your_labels>.csv" \
+        --data-dir "../<your_data_dir>/" \
+        --alphabet "..." \
+        --sparse 1 \
+        --uint16 1
+```
+
+The same options are available on the Python API as `sparse=True` and `uint16=True`:
+
+```python
+from pgse import TrainingPipeline
+
+pipeline = TrainingPipeline(data_dir='...', label_file='...', sparse=True, uint16=True)
+```
+
+> **Important:** `--sparse` must match between training and prediction. In a sparse matrix, unstored
+> zeros are read by XGBoost as *missing* values, whereas in a dense matrix a count of zero is an
+> explicit `0`. Training dense and predicting sparse (or vice versa) shifts the predictions. `--uint16`
+> has no such constraint. Pass the same values to `pgse-predict` (see below).
 
 #### Distributed computation
 
@@ -317,7 +362,8 @@ pgse-predict \
 ```
 
 If the model was trained on a non-DNA alphabet, pass the same `--alphabet`, `--case-sensitive` and
-`--complement` values that were used for training. See [Alphabets](#alphabets).
+`--complement` values that were used for training. See [Alphabets](#alphabets). If training used
+`--sparse 1`, prediction must use it too — see [Reducing memory usage](#reducing-memory-usage).
 
 
 ```bash
@@ -332,25 +378,33 @@ To use PGSE through the R package, consult the package
 PGSE uses [uv](https://docs.astral.sh/uv/) for packaging and dependency
 management. All project metadata and dependencies live in `pyproject.toml`.
 
+**Prerequisite: a Rust toolchain.** Building from source compiles the native
+counting kernel (the Rust crate under `native/`, built into the package as
+`pgse._native`), so you need `cargo`/`rustc` on your `PATH`. Install them from
+[rustup.rs](https://rustup.rs):
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# rustup only updates PATH for *new* shells, so load it into the current one
+# (or open a new shell) before installing:
+. "$HOME/.cargo/env"
+```
+The build fails loudly if the toolchain is missing rather than silently shipping an
+install without the extension, so every install has the fast path. (A pure-Python
+counter still exists as a runtime safety net, and logs a warning if it is ever used.)
+
 Clone the repository and create a synced environment. This installs the runtime
-and `dev` dependencies and performs an editable install of `pgse`:
+and `dev` dependencies and performs an editable install of `pgse`, compiling the
+Rust kernel as part of it:
 ```bash
 uv sync
 ```
-
-The editable install compiles the Aho-Corasick C library
-(`pgse/c_lib/aho_corasick.c`) for your platform as part of the install, so the
-fast C implementation is used automatically. This requires a C compiler
-(`cc`/`gcc`/`clang`; set the `CC` environment variable to choose one). If no
-compiler is available the install still succeeds and PGSE transparently falls
-back to the slower pure-Python implementation.
 
 To run an editable install on its own:
 ```bash
 uv pip install -e .
 ```
 
-To build the distribution artifacts (the wheel bundles the compiled library):
+To build the distribution artifacts (the wheel bundles the compiled kernel):
 ```bash
 uv build
 ```
@@ -361,8 +415,10 @@ uv run pytest
 ```
 
 Releases to PyPI are automated by GitHub Actions: when the `version` in
-`pyproject.toml` changes on `main`, the workflow compiles the library for all
-three platforms, builds the wheel, and publishes it.
+`pyproject.toml` changes on `main`, the workflow uses
+[cibuildwheel](https://cibuildwheel.pypa.io/) to build one abi3 wheel per platform
+(Linux, macOS, Windows; each valid for CPython 3.10+), builds an sdist, and
+publishes them.
 
 ## Acknowledgements
 

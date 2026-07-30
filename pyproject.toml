@@ -1,11 +1,10 @@
 [build-system]
-requires = ["setuptools>=77", "wheel"]
-build-backend = "_build_backend"
-backend-path = ["."]
+requires = ["setuptools>=77", "wheel", "setuptools-rust>=1.9,<2"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "pgse"
-version = "0.9.1"
+version = "0.10.3"
 description = "Progressive Genome Segment Enhancement (PGSE)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -21,6 +20,7 @@ classifiers = [
 dependencies = [
     "ray~=2.46.0",
     "numpy~=2.2.6",
+    "scipy~=1.15",
     "xgboost~=3.0.4",
     "pandas~=2.3.1",
     "imbalanced-learn~=0.13.0",
@@ -48,7 +48,34 @@ dev = [
 [tool.setuptools.packages.find]
 include = ["pgse", "pgse.*"]
 
-[tool.setuptools.package-data]
-# Ship both the prebuilt shared libraries and the C source (so it can be
-# recompiled from an installed copy).
-pgse = ["c_lib/*.so", "c_lib/*.dylib", "c_lib/*.dll", "c_lib/*.c"]
+# The native Aho-Corasick counting kernel (Rust). Built into the package as
+# `pgse._native`. optional = false makes any build FAIL if a Rust toolchain is not
+# available. `py-limited-api` matches the abi3-py310 feature in
+# native/Cargo.toml, so a single wheel per platform covers CPython 3.10+.
+[[tool.setuptools-rust.ext-modules]]
+target = "pgse._native"
+path = "native/Cargo.toml"
+binding = "PyO3"
+py-limited-api = true
+optional = false
+
+[tool.cibuildwheel]
+# One abi3 wheel per platform (built on 3.10, valid for 3.10+). musllinux, PyPy and
+# 32-bit are not targeted.
+build = "cp310-*"
+skip = "*-musllinux* pp* *_i686 *-win32"
+build-frontend = "build"
+# Prove the compiled kernel is present and correct on every wheel.
+test-requires = "pytest"
+test-command = "python -c \"from pgse import _native; assert _native.SegmentMatcher(['ab','abc'], None).n_segments == 2\" && python -m pytest {project}/tests/unit/test_native_counting.py {project}/tests/unit/test_counting_alphabet.py -q"
+
+[tool.cibuildwheel.linux]
+# manylinux containers have no Rust; install it once per container.
+before-all = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal"
+environment = { PATH = "$HOME/.cargo/bin:$PATH" }
+
+# macOS builds the runner's native architecture only (arm64 on macos-latest). This
+# avoids cross-compiling the Rust extension, which is the least reliable path; add an
+# Intel runner (macos-13) to the workflow matrix if x86_64 wheels are needed.
+[tool.cibuildwheel.macos]
+archs = ["native"]

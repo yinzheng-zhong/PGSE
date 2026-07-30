@@ -1,17 +1,19 @@
 import numpy as np
-import ray
-from tqdm import tqdm
 
-from pgse.dataset.loader import Loader
-from pgse.etc.alphabet import get_alphabet
+from pgse.dataset.loader import Dataset, Loader
 from pgse.genome import seq_manager
 from pgse.log import logger
-from pgse.segment import seg_pool
 
 
 class LoaderInference(Loader):
-    def __init__(self, files: list[str]):
-        super().__init__(None)
+    def __init__(
+            self,
+            files: list[str],
+            count_dtype: np.dtype = np.float32,
+            sparse: bool = False,
+            workers: int = 8
+    ):
+        super().__init__(None, count_dtype=count_dtype, sparse=sparse, workers=workers)
         self.test_files = files
 
         self._get_test_seq()
@@ -22,10 +24,6 @@ class LoaderInference(Loader):
     def _get_train_seq(self):
         pass
 
-    def get_dataset_from_pool(self) -> np.ndarray:
+    def get_dataset_from_pool(self) -> Dataset:
         logger.info('Counting segments for test...')
-        alphabet = get_alphabet()
-        tasks = [Loader._get_one_extended_dataset.remote(seq, seg_pool, alphabet) for seq in seq_manager.test_sequences]
-        data = np.asarray([ray.get(task) for task in tqdm(tasks, desc='Counting segments for train/test')], dtype=np.float32)
-
-        return data
+        return self._count_dataset(seq_manager.test_sequences, 'Counting segments for test')

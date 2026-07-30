@@ -30,7 +30,9 @@ def train():
         device=args.device,
         alphabet=args.alphabet,
         case_sensitive=bool(args.case_sensitive),
-        complement=args.complement
+        complement=args.complement,
+        uint16=bool(args.uint16),
+        sparse=bool(args.sparse)
     )
     pipeline.run()
 
@@ -55,7 +57,9 @@ def predict():
         workers=args.workers,
         alphabet=args.alphabet,
         case_sensitive=bool(args.case_sensitive),
-        complement=args.complement
+        complement=args.complement,
+        uint16=bool(args.uint16),
+        sparse=bool(args.sparse)
     )
     results = pipeline.run(input_files)
 

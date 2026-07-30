@@ -37,6 +37,11 @@ class Sequence:
     def len_nodes(self):
         return len(self._nodes)
 
+    @property
+    def nodes(self) -> list[str]:
+        """The contigs/scaffolds, already case-normalised and restricted to the alphabet."""
+        return self._nodes
+
     def _read_sequence(self) -> None:
         with open(self.filepath, 'r') as f:
             string = f.read().split('\n')
