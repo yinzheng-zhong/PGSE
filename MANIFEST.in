@@ -1,4 +1,11 @@
 include README.md
 include LICENSE
-include _build_backend.py
-recursive-include pgse/c_lib *.c
+
+# Ship the Rust crate in the sdist so it can be compiled from source.
+include native/Cargo.toml
+include native/Cargo.lock
+recursive-include native/src *.rs
+
+# Never ship build output.
+prune native/target
+global-exclude *.so *.dylib *.dll *.pyc

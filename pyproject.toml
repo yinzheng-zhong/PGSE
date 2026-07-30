@@ -1,11 +1,10 @@
 [build-system]
-requires = ["setuptools>=77", "wheel"]
-build-backend = "_build_backend"
-backend-path = ["."]
+requires = ["setuptools>=77", "wheel", "setuptools-rust>=1.9,<2"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "pgse"
-version = "0.10.0"
+version = "0.10.1"
 description = "Progressive Genome Segment Enhancement (PGSE)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -49,7 +48,36 @@ dev = [
 [tool.setuptools.packages.find]
 include = ["pgse", "pgse.*"]
 
-[tool.setuptools.package-data]
-# Ship both the prebuilt shared libraries and the C source (so it can be
-# recompiled from an installed copy).
-pgse = ["c_lib/*.so", "c_lib/*.dylib", "c_lib/*.dll", "c_lib/*.c"]
+# The native Aho-Corasick counting kernel (Rust). Built into the package as
+# `pgse._native`. `optional` keeps a source install working without a Rust toolchain:
+# PGSE then falls back to the pure-Python counter. Release wheels always contain it
+# (the cibuildwheel test step below imports it and fails the build otherwise).
+# `py-limited-api` matches the abi3-py310 feature in native/Cargo.toml, so a single
+# wheel per platform covers CPython 3.10+.
+[[tool.setuptools-rust.ext-modules]]
+target = "pgse._native"
+path = "native/Cargo.toml"
+binding = "PyO3"
+py-limited-api = true
+optional = true
+
+[tool.cibuildwheel]
+# One abi3 wheel per platform (built on 3.10, valid for 3.10+). musllinux, PyPy and
+# 32-bit are not targeted.
+build = "cp310-*"
+skip = "*-musllinux* pp* *_i686 *-win32"
+build-frontend = "build"
+# Prove the compiled kernel is present and correct on every wheel.
+test-requires = "pytest"
+test-command = "python -c \"from pgse import _native; assert _native.SegmentMatcher(['ab','abc'], None).n_segments == 2\" && python -m pytest {project}/tests/unit/test_native_counting.py {project}/tests/unit/test_counting_alphabet.py -q"
+
+[tool.cibuildwheel.linux]
+# manylinux containers have no Rust; install it once per container.
+before-all = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal"
+environment = { PATH = "$HOME/.cargo/bin:$PATH" }
+
+[tool.cibuildwheel.macos]
+# Build both architectures. setuptools-rust reads ARCHFLAGS (set by cibuildwheel per
+# wheel) to pick the Rust target, so both targets must be installed.
+archs = ["x86_64", "arm64"]
+before-all = "rustup target add x86_64-apple-darwin aarch64-apple-darwin"

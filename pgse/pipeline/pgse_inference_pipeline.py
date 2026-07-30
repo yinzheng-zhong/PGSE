@@ -38,6 +38,7 @@ class Pipeline:
         self.segment_path: str = segment_path
         self.count_dtype = np.uint16 if uint16 else np.float32
         self.sparse: bool = sparse
+        self.workers: int = workers
         self.alphabet: Alphabet = set_alphabet(alphabet, case_sensitive=case_sensitive, complement=complement)
         logger.info(f'Using {self.alphabet}')
 
@@ -76,7 +77,7 @@ class Pipeline:
     def run(self, files: list[str]) -> np.ndarray:
         assert self.model is not None, 'The model failed to load.'
 
-        loader = LoaderInference(files, count_dtype=self.count_dtype, sparse=self.sparse)
+        loader = LoaderInference(files, count_dtype=self.count_dtype, sparse=self.sparse, workers=self.workers)
         data = loader.get_dataset_from_pool()
 
         dtest = xgb.DMatrix(data)

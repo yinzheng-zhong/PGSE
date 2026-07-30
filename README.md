@@ -49,8 +49,10 @@ or with pip:
 pip install pgse
 ```
 
-The published wheels bundle the prebuilt Aho-Corasick shared library for Linux,
-macOS, and Windows, so no C compiler is required for a normal install.
+The published wheels bundle the compiled native counting kernel (a Rust extension)
+for Linux, macOS, and Windows.
+Segment counting runs through this kernel; if it is ever unavailable (e.g. a source
+install without a Rust toolchain) PGSE falls back to a slower pure-Python counter.
 
 ### Conda
 
@@ -382,19 +384,19 @@ and `dev` dependencies and performs an editable install of `pgse`:
 uv sync
 ```
 
-The editable install compiles the Aho-Corasick C library
-(`pgse/c_lib/aho_corasick.c`) for your platform as part of the install, so the
-fast C implementation is used automatically. This requires a C compiler
-(`cc`/`gcc`/`clang`; set the `CC` environment variable to choose one). If no
-compiler is available the install still succeeds and PGSE transparently falls
-back to the slower pure-Python implementation.
+The editable install compiles the native counting kernel (the Rust crate under
+`native/`, built into the package as `pgse._native`) as part of the install, so the
+fast path is used automatically. This requires a Rust toolchain — install one from
+[rustup.rs](https://rustup.rs). The extension is marked optional, so if no toolchain
+is available the install still succeeds and PGSE transparently falls back to the
+slower pure-Python counter.
 
 To run an editable install on its own:
 ```bash
 uv pip install -e .
 ```
 
-To build the distribution artifacts (the wheel bundles the compiled library):
+To build the distribution artifacts (the wheel bundles the compiled kernel):
 ```bash
 uv build
 ```
@@ -405,8 +407,10 @@ uv run pytest
 ```
 
 Releases to PyPI are automated by GitHub Actions: when the `version` in
-`pyproject.toml` changes on `main`, the workflow compiles the library for all
-three platforms, builds the wheel, and publishes it.
+`pyproject.toml` changes on `main`, the workflow uses
+[cibuildwheel](https://cibuildwheel.pypa.io/) to build one abi3 wheel per platform
+(Linux, macOS, Windows; each valid for CPython 3.10+), builds an sdist, and
+publishes them.
 
 ## Acknowledgements
 

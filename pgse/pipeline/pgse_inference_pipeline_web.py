@@ -26,7 +26,7 @@ class Pipeline(InferencePipeline):
     def run(self, files: list[str]) -> np.ndarray:
         assert self.model is not None, 'The model failed to load.'
 
-        loader = LoaderInference(files, count_dtype=self.count_dtype, sparse=self.sparse)
+        loader = LoaderInference(files, count_dtype=self.count_dtype, sparse=self.sparse, workers=self.workers)
         data = loader.get_dataset_from_pool()
 
         dtest = xgb.DMatrix(data)

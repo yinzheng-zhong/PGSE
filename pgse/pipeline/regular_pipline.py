@@ -67,7 +67,10 @@ class Pipeline:
             loader = Loader(
                 self.file_label,
                 folds=self.folds,
-                fold_index=i
+                fold_index=i,
+                workers=self.workers,
+                dist=self.dist,
+                nodes=self.nodes
             )
 
             model_trainer = ModelTrainer(

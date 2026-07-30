@@ -122,7 +122,10 @@ class Pipeline:
                 folds=self.folds,
                 fold_index=i,
                 count_dtype=self.count_dtype,
-                sparse=self.sparse
+                sparse=self.sparse,
+                workers=self.workers,
+                dist=self.dist,
+                nodes=self.nodes
             )
 
             self.model_trainer = ModelTrainer(
