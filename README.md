@@ -378,18 +378,26 @@ To use PGSE through the R package, consult the package
 PGSE uses [uv](https://docs.astral.sh/uv/) for packaging and dependency
 management. All project metadata and dependencies live in `pyproject.toml`.
 
+**Prerequisite: a Rust toolchain.** Building from source compiles the native
+counting kernel (the Rust crate under `native/`, built into the package as
+`pgse._native`), so you need `cargo`/`rustc` on your `PATH`. Install them from
+[rustup.rs](https://rustup.rs):
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# rustup only updates PATH for *new* shells, so load it into the current one
+# (or open a new shell) before installing:
+. "$HOME/.cargo/env"
+```
+The build fails loudly if the toolchain is missing rather than silently shipping an
+install without the extension, so every install has the fast path. (A pure-Python
+counter still exists as a runtime safety net, and logs a warning if it is ever used.)
+
 Clone the repository and create a synced environment. This installs the runtime
-and `dev` dependencies and performs an editable install of `pgse`:
+and `dev` dependencies and performs an editable install of `pgse`, compiling the
+Rust kernel as part of it:
 ```bash
 uv sync
 ```
-
-The editable install compiles the native counting kernel (the Rust crate under
-`native/`, built into the package as `pgse._native`) as part of the install. This
-**requires a Rust toolchain** — install one from [rustup.rs](https://rustup.rs). The
-build fails loudly if it is missing rather than silently shipping an install without
-the extension, so every install has the fast path. (A pure-Python counter still
-exists as a runtime safety net, and logs a warning if it is ever used.)
 
 To run an editable install on its own:
 ```bash
