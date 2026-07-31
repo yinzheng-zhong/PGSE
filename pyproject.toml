@@ -67,7 +67,7 @@ skip = "*-musllinux* pp* *_i686 *-win32"
 build-frontend = "build"
 # Prove the compiled kernel is present and correct on every wheel.
 test-requires = "pytest"
-test-command = "python -c \"from pgse import _native; assert _native.SegmentMatcher(['ab','abc'], None).n_segments == 2\" && python -m pytest {project}/tests/unit/test_native_counting.py {project}/tests/unit/test_counting_alphabet.py -q"
+test-command = "python -c \"from pgse import _native; assert _native.SegmentMatcher(['ab','abc'], None).n_segments == 2\" && python -m pytest {project}/tests/unit/test_native_counting.py {project}/tests/unit/test_counting_alphabet.py {project}/tests/unit/test_lazy_imports.py -q"
 
 [tool.cibuildwheel.linux]
 # manylinux containers have no Rust; install it once per container.
