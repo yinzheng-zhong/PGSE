@@ -9,7 +9,6 @@ from pgse.model.xgb import XGBoost
 from pgse.segment import seg_pool
 
 # Constants
-DEFAULT_PARTITION_SIZE = 5000
 DEFAULT_FEATURES_PRINT_COUNT = 20
 
 
@@ -23,7 +22,8 @@ class ModelTrainer:
             features=10000,
             ea_min=None,
             ea_max=None,
-            device='cpu'
+            device='cpu',
+            partition_size_target=5000
     ):
         self.loader = loader
         self.num_rounds = num_rounds
@@ -33,6 +33,7 @@ class ModelTrainer:
         self.ea_min = ea_min
         self.ea_max = ea_max
         self.device = device
+        self.partition_size_target = partition_size_target
 
     def run_xgboost(
             self,
@@ -44,7 +45,7 @@ class ModelTrainer:
             custom_metric=None
     ) -> tuple[pd.DataFrame, pd.DataFrame, xgboost.Booster]:
         xgb = XGBoost(
-            partition_size=DEFAULT_PARTITION_SIZE,
+            partition_size_target=self.partition_size_target,
             boost_rounds=self.num_rounds,
             num_cpu_per_node=self.workers,
             use_partition=use_partition,

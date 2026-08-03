@@ -76,7 +76,8 @@ if __name__ == "__main__":
             workers=args.workers,
             alphabet=args.alphabet,
             case_sensitive=bool(args.case_sensitive),
-            complement=args.complement
+            complement=args.complement,
+            partition_size_target=args.partition_size_target
         )
 
         # run pipeline

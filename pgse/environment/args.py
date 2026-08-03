@@ -38,6 +38,9 @@ def get_parser() -> argparse.ArgumentParser:
                         help="Number of nodes allocated. Used with distributed processing only.")
     parser.add_argument('--features', type=int, default=10000,
                         help="Number of top features to select based on importance")
+    parser.add_argument('--partition-size-target', type=int, default=5000,
+                        help="Target number of features per XGBoost partition during feature "
+                             "selection.")
     parser.add_argument('--lr', type=float, default=0.03,
                         help="Learning rate for the XGBoost model")
     parser.add_argument('--dist', type=int, default=0,

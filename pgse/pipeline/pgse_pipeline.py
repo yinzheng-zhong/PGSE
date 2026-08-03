@@ -49,7 +49,8 @@ class Pipeline:
             case_sensitive: bool = False,
             complement: ComplementArg = AUTO,
             uint16: bool = False,
-            sparse: bool = False
+            sparse: bool = False,
+            partition_size_target: int = 5000
     ) -> None:
         """
         :param alphabet: str or Alphabet: The characters the sequences are made of.
@@ -64,6 +65,9 @@ class Pipeline:
         :param sparse: Store the count matrix as a sparse CSR matrix. For short
             sequences (e.g. SMILES) the matrix is almost all zeros, so this saves
             orders of magnitude. The same setting must be used at predict time.
+        :param partition_size_target: Target features per XGBoost partition during feature
+            selection. Partitions are evenly sized, so the actual size lands between this and
+            twice this. 0 or less trains a single partition over all features.
         """
         # Install the alphabet first: everything downstream reads it, including the
         # segment extender and the Ray workers.
@@ -90,6 +94,7 @@ class Pipeline:
         self.device = device
         self.count_dtype = np.uint16 if uint16 else np.float32
         self.sparse = sparse
+        self.partition_size_target = partition_size_target
 
         self.file_label = FileLabel(self.label_file, self.data_dir, self.pre_kfold_info_file)
         self.extender = Extender()
@@ -136,7 +141,8 @@ class Pipeline:
                 self.features,
                 self.ea_min,
                 self.ea_max,
-                device=self.device
+                device=self.device,
+                partition_size_target=self.partition_size_target
             )
 
             train_kmer, test_kmer, train_labels, test_labels = self.progress_manager.load_round_progress(loader)

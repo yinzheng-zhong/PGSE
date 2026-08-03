@@ -32,7 +32,8 @@ def train():
         case_sensitive=bool(args.case_sensitive),
         complement=args.complement,
         uint16=bool(args.uint16),
-        sparse=bool(args.sparse)
+        sparse=bool(args.sparse),
+        partition_size_target=args.partition_size_target
     )
     pipeline.run()
 

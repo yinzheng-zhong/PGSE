@@ -78,9 +78,9 @@ class Pipeline:
                 self.num_rounds,
                 self.workers,
                 self.lr,
-                self.ea_min,
-                self.ea_max,
-                self.device
+                ea_min=self.ea_min,
+                ea_max=self.ea_max,
+                device=self.device
             )
 
             # Load k-mer dataset

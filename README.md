@@ -129,6 +129,7 @@ pgse-train \
         --export-file "../<exported files>" \
         --workers 8 \
         --features 10000 \
+        --partition-size-target 5000 \
         --dist 0 \
         --k 6 \
         --target 70 \
@@ -186,6 +187,11 @@ this, PGSE will split the data into k folds randomly using a fixed seed. E.g.
 This name will be used to store the selected genome segments in an .txt file and the trained model in a .json file.
 * `--workers`: number of workers per node.
 * `--features`: Maximum number of features to keep after the feature importance calculation and ranking.
+* `--partition-size-target`: Target number of features in each XGBoost partition during feature
+selection (default `5000`). Partitions are evenly sized, so the actual size lands between this and
+twice this. See [Why do we perform feature partitioning?](#why-do-we-perform-feature-partitioning)
+below. Larger partitions use more memory per worker and give each model a wider view of the
+features; `0` or less trains a single model over all features.
 * `--dist`: Using distributed computation or not. 0 for running on a single node/machine, 1 for running on multiple nodes.
 * `--k`: initial k-mer size.
 * `--target`: Maximum segment length to extend to.
@@ -447,6 +453,9 @@ PGSE is a dynamic system that and the total number of features can be different 
 Therefore, partitioning the features into similarly-sized sub-features can help to minimise the impact of the feature dimensionality on the model's hyperparameters.
 Finally, feature partitioning helps to preserve the feature importance information from XGBoost. Likely due to the
 pruning process, more feature importance information will be lost (become 0) if the dimensionality increases.
+
+The size of each partition is set with `--partition-size-target` (or `partition_size_target=` on
+`TrainingPipeline`), which defaults to 5000 features.
 
 ### Why do we eliminate features?
 
