@@ -3,7 +3,7 @@ from typing import Optional
 
 import numpy as np
 
-from pgse.etc.alphabet import Alphabet, get_alphabet
+from pgse.dataset.alphabet import Alphabet, get_alphabet
 from pgse.genome.utils import canonicalize
 
 

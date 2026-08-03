@@ -6,7 +6,7 @@ import scipy.sparse as sp
 from pgse.dataset.file_label import FileLabel
 from tqdm import tqdm
 
-from pgse.etc.alphabet import Alphabet, get_alphabet, set_alphabet
+from pgse.dataset.alphabet import Alphabet, get_alphabet, set_alphabet
 from pgse.genome import seq_manager
 from pgse.log import logger
 from pgse.genome.sequence import Sequence

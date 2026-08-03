@@ -7,7 +7,7 @@ import ray
 from xgboost import  Booster
 
 from pgse.environment.ray_env import RayEnvManager
-from pgse.etc.alphabet import AUTO, Alphabet, AlphabetArg, ComplementArg, set_alphabet
+from pgse.dataset.alphabet import AUTO, Alphabet, AlphabetArg, ComplementArg, set_alphabet
 from pgse.log import logger
 from pgse.model.model_trainer import ModelTrainer
 from pgse.dataset.file_label import FileLabel

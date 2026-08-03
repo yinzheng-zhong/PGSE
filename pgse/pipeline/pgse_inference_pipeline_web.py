@@ -1,7 +1,7 @@
 from pgse.dataset.loader_inference import LoaderInference
 import numpy as np
 import xgboost as xgb
-from pgse.etc.alphabet import AUTO, AlphabetArg, ComplementArg
+from pgse.dataset.alphabet import AUTO, AlphabetArg, ComplementArg
 from pgse.pipeline.pgse_inference_pipeline import Pipeline as InferencePipeline
 
 

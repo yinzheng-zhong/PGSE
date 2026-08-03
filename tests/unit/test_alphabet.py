@@ -1,6 +1,6 @@
 import unittest
 
-from pgse.etc.alphabet import Alphabet, DNA, get_alphabet, reset_alphabet, set_alphabet
+from pgse.dataset.alphabet import Alphabet, DNA, get_alphabet, reset_alphabet, set_alphabet
 
 
 class TestAlphabet(unittest.TestCase):

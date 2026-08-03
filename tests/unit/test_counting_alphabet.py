@@ -2,7 +2,7 @@ import unittest
 
 from pgse.algos import aho_corasick
 from pgse.algos.aho_corasick_py import AhoCorasickPy
-from pgse.etc.alphabet import Alphabet, reset_alphabet, set_alphabet
+from pgse.dataset.alphabet import Alphabet, reset_alphabet, set_alphabet
 
 
 class TestCountingWithAlphabets(unittest.TestCase):

@@ -1,7 +1,7 @@
 import argparse
 import os
 
-from pgse.etc.alphabet import AUTO, DNA_CHARS
+from pgse.dataset.alphabet import AUTO, DNA_CHARS
 
 
 def get_parser() -> argparse.ArgumentParser:
