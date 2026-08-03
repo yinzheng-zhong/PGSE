@@ -9,11 +9,6 @@ natural language, or any other symbolic text.
 A single :class:`Alphabet` instance is active at a time (see :func:`get_alphabet` /
 :func:`set_alphabet`). The default is the original DNA alphabet, so existing code
 and saved models keep behaving exactly as before.
-
-Reverse complementing is a property of the alphabet rather than of the algorithms.
-When an alphabet has no complement mapping (the usual case for non-DNA text),
-:meth:`Alphabet.get_complement` returns the sequence unchanged, which makes
-canonicalisation a no-op and lets every call site stay branch-free.
 """
 
 from typing import Iterable, Mapping, Optional, Union
