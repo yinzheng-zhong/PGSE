@@ -73,6 +73,9 @@ def _get_object_store_memory() -> Optional[int]:
 
 
 class RayEnvManager:
+    # Whether PGSE, rather than the host application, called ray.init().
+    _started_by_pgse: bool = False
+
     @staticmethod
     def initialize(dist: bool, nodes: int, workers: int):
         # skip if already initialized
@@ -96,3 +99,13 @@ class RayEnvManager:
                 object_store_memory=object_store_memory,
                 log_to_driver=True
             )
+
+        RayEnvManager._started_by_pgse = True
+
+    @staticmethod
+    def shutdown() -> None:
+        """Shut Ray down, unless the host application was the one that started it."""
+        if RayEnvManager._started_by_pgse and ray.is_initialized():
+            ray.shutdown()
+
+        RayEnvManager._started_by_pgse = False

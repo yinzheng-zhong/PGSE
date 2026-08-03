@@ -92,37 +92,6 @@ class SegmentPool:
         logger.info(f'Set last length: {self.last_length}')
         logger.info(f'Set current max length: {self.current_max_length}')
 
-    def export(self, filename: str, importance_scores: pd.DataFrame):
-        """
-        Save the segments table to a file.
-        :param filename: str: The name of the file to save the lookup table.
-        :param importance_scores: pd.DataFrame: The importance scores of the segments. id, importance
-        """
-        dir_path = os.path.dirname(filename)
-        if dir_path:
-            os.makedirs(dir_path, exist_ok=True)
-
-        if filename.endswith('.txt'):
-            with open(filename, 'w') as f:
-                for item in self.segments:
-                    f.write("%s\n" % item)
-        elif filename.endswith('.csv'):
-            if importance_scores is not None:
-                # DataFrame with segments and their importance scores
-                # pad the importance scores to match the length of segments
-
-                # if i is in id, get the importance score. Else, 0
-                scores = [importance_scores.get(i, 0) for i in range(len(self.segments))]
-
-                df = pd.DataFrame({'Segment': self.segments, 'Importance': scores})
-            else:
-                # DataFrame with segments only
-                df = pd.DataFrame({'Segment': self.segments})
-
-            df.to_csv(filename, index=False)
-
-        logger.info(f'Exported {len(self.segments)} segments to {filename}')
-
     def import_segments(self, filename: str):
         """
         Load the segments table from a file.

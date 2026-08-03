@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as npt
 
 from pgse.dataset.loader import Dataset, Loader
 from pgse.genome import seq_manager
@@ -9,7 +10,7 @@ class LoaderInference(Loader):
     def __init__(
             self,
             files: list[str],
-            count_dtype: np.dtype = np.float32,
+            count_dtype: npt.DTypeLike = np.float32,
             sparse: bool = False,
             workers: int = 8
     ):

@@ -77,49 +77,81 @@ devtools::install_github("yinzheng-zhong/PGSE", subdir = "R-package")
 
 ## Usage
 
+PGSE can be used either as a library, from your own Python program, or as a standalone
+command-line program. Both do the same work; the sections below give each in turn, for
+training and then for prediction.
+
 ### Training
 
-#### Single node/machine
+#### As a library
 
-Import the pipeline from the package and run the pipeline like this.
-You can use your own argument parser or use the one provided by pgse.
-Also, you can instantiate the pipeline with a wrapper that provides the parameters directly.
+`TrainingPipeline.train()` runs the whole pipeline in memory and hands back everything
+it produced. It writes nothing: no models, no segment lists, no results, no log files
+and no progress files, whatever paths were passed to the constructor. Use it when PGSE
+is one step inside a larger program.
 
 ```python
-# You can use your own argument parser or use the one provided by pgse.
-# Or instantiate the pipeline with a wrapper that provides the parameters directly.
-from pgse.environment.args import get_parser
 from pgse import TrainingPipeline
 
-if __name__ == "__main__":
-  parser = get_parser()
-  args = parser.parse_args()
+result = TrainingPipeline(
+    data_dir='genomes/',
+    label_file='labels.csv',
+    folds=5,
+    metric='r2',
+).train()
 
-  pipeline = TrainingPipeline(
-    args.data_dir,
-    args.label_file,
-    args.pre_kfold_info_file,
-    args.save_file,
-    args.export_file,
-    args.k,
-    args.ext,
-    args.target,
-    args.features,
-    args.folds,
-    args.ea_min,
-    args.ea_max,
-    args.num_rounds,
-    args.lr,
-    args.dist,
-    args.nodes,
-    args.workers
-  )
+# 1. A predictive model, ready to use
+model = result.model                      # the best-scoring fold; result.models has them all
+predictions = model.predict(['new_1.fna', 'new_2.fna'])
+predictions = model.predict_sequences(['ATGCATTACA...'])   # or straight from memory
+features = model.count(files=['new_1.fna'])                # the raw segment-count matrix
 
-  pipeline.run()
+# 2. The discovered segments and how important each one was
+result.segments.top(10).to_frame()        # Segment / Importance, most important first
+result.segments.segments                  # the segments alone, in count-matrix order
+result.segments.importances               # the matching scores as a NumPy array
+
+# 3. Per-fold detail
+result.scores                             # the metric for each fold
+result.predictions                        # held-out Prediction/Actual/Fold for every fold
+result.to_frame()                         # one row per fold: score and segment count
+for fold in result.folds:
+    print(fold.index, fold.score, len(fold.segments))
 ```
 
+A model carries its own segments, alphabet and count settings, so nothing has to be
+passed alongside it and several models can be held at once. Predicting uses neither Ray
+nor any global state. Saving is explicit, and everything needed to reload is written:
 
-Alternatively, to run PGSE as a standalone program on a local machine, install the package and use the following command as an example:
+```python
+from pgse import PGSEModel
+
+model.save('artifacts/ecoli-caz')     # ecoli-caz.json, ecoli-caz_segs.csv, ecoli-caz_meta.json
+reloaded = PGSEModel.load('artifacts/ecoli-caz')
+reloaded.predict(['new_1.fna'])       # the alphabet and count settings come back with it
+```
+
+`run()` is the same run with its output written out: use it when you want the artefacts
+on disk but are still driving PGSE from Python. Each fold's model, segments and metadata
+go under `export_file`, and a resume point to `save_file`; whichever of the two is left
+unset is simply not written.
+
+```python
+result = TrainingPipeline(
+    data_dir='genomes/',
+    label_file='labels.csv',
+    save_file='run.save',         # resume point, removed once a fold finishes
+    export_file='out/ecoli-caz',  # out/ecoli-caz_fold_0.json, _segs.csv, _meta.json, ...
+    folds=5,
+).run()
+```
+
+Those per-fold files are exactly what `save()` writes, so `PGSEModel.load('out/ecoli-caz_fold_0')`
+picks up anything a `run()` or a `pgse-train` produced.
+
+#### As a standalone program
+
+To run PGSE as a standalone program on a local machine, install the package and use the following command as an example:
 ```bash
 pgse-train \
         --label-file "../<path_to>/<you_labels>.csv" \
@@ -183,8 +215,13 @@ this, PGSE will split the data into k folds randomly using a fixed seed. E.g.
     }
     ```
 * `--save-file`: file to save the progress. This is useful if you want to resume the training process.
-* `--export-file`: file to export the results. Normally without an extension.
-This name will be used to store the selected genome segments in an .txt file and the trained model in a .json file.
+Nothing is written when it is omitted.
+* `--export-file`: path prefix for the results. Normally without an extension. Each fold writes
+`<prefix>_fold_<i>.json` (the trained model), `<prefix>_fold_<i>_segs.csv` (the selected segments and
+their importance) and `<prefix>_fold_<i>_meta.json` (the alphabet and count settings needed to
+reload it), plus `<prefix>.csv` with the predictions of every fold. Nothing is written when it is
+omitted.
+* `--log-file`: file to append the log to. The log goes to the console only when it is omitted.
 * `--workers`: number of workers per node.
 * `--features`: Maximum number of features to keep after the feature importance calculation and ranking.
 * `--partition-size-target`: Target number of features in each XGBoost partition during feature
@@ -219,6 +256,11 @@ For short, sparse inputs (e.g. SMILES strings) the matrix is almost entirely zer
 orders of magnitude. XGBoost reads the unstored zeros of a CSR matrix as *missing* values (not as
 `0`), so the **same value must be used at prediction time**. See
 [Reducing memory usage](#reducing-memory-usage) below.
+
+Every flag above matches a `TrainingPipeline` argument of the same name, so anything the
+command line can do the library can do too. `main-pgse.py` shows the two joined up: it
+builds the pipeline from `pgse.environment.args.get_parser()`, the parser `pgse-train`
+itself uses, which you can reuse or replace with your own.
 
 #### Alphabets
 
@@ -385,53 +427,46 @@ Here `-dist` is set to 1 as the task is running on different nodes.
 * `job-pgse-single.sh`: Run PGSE on a Slurm cluster with a single node for a single antibiotic.
 Here `-dist` is set to 0.
 
-### Inferencing
+### Prediction
 
-An example of how this can be done is provided in `main-pgse-inf.py`.
+#### As a library
+
+`PGSEModel` is the whole interface: load one, predict with it, keep it around for as many
+calls as you like.
+
+```python
+from pgse import PGSEModel
+
+model = PGSEModel.load('out/ecoli-caz_fold_0')
+model.predict(['sample_1.fna', 'sample_2.fna'])
+```
+
+The alphabet and the count settings are stored with the model and restored on load, so
+there is nothing to keep in step by hand. See [As a library](#as-a-library) above for the
+rest of what a model can do.
+
+`InferencePipeline` is the older interface, kept for existing callers: it takes the model
+and segment files separately, and the alphabet and `sparse` setting have to be passed
+again by hand to match the ones used for training. `main-pgse-inf.py` is a worked example.
 
 ```python
 from pgse import InferencePipeline
 
-MODEL_PATH = '../volatile/var/result-k6-CAZ-perf_fold_0.json'
-SEGMENT_PATH = '../volatile/var/result-k6-CAZ-perf_fold_0.csv'
-
-if __name__ == "__main__":
-    # Instantiate the pipeline
-    pipeline = InferencePipeline(MODEL_PATH, SEGMENT_PATH, workers=8)
-
-    # files as a list of paths to the fasta files
-    EG_1 = [
-        '../volatile/cgr/Sample_002-MOLMIC_B2.scaffolds.fna',
-        '../volatile/cgr/Sample_394-MOLMIC_H8.scaffolds.fna',
-        '../volatile/cgr/Sample_385-MOLMIC_G79.scaffolds.fna',
-        '../volatile/cgr/Sample_622-MOLMIC_K68.scaffolds.fna',
-        '../volatile/cgr/Sample_252-MOLMIC_F2.scaffolds.fna',
-        '../volatile/cgr/Sample_208-MOLMIC_E33.scaffolds.fna',
-        '../volatile/cgr/Sample_443-MOLMIC_H62.scaffolds.fna',
-        '../volatile/cgr/Sample_565-MOLMIC_J66.scaffolds.fna',
-        '../volatile/cgr/Sample_339-MOLMIC_G29.scaffolds.fna',
-        '../volatile/cgr/Sample_418-MOLMIC_H33.scaffolds.fna',
-    ]
-
-    result_1 = pipeline.run(EG_1)
-    print(result_1)
-
-    EG_2 = [
-        '../volatile/cgr/Sample_394-MOLMIC_H8.scaffolds.fna',
-        '../volatile/cgr/Sample_385-MOLMIC_G79.scaffolds.fna',
-        '../volatile/cgr/Sample_622-MOLMIC_K68.scaffolds.fna',
-        '../volatile/cgr/Sample_252-MOLMIC_F2.scaffolds.fna'
-    ]
-
-    result_2 = pipeline.run(EG_2)
-    print(result_2)
+pipeline = InferencePipeline(
+    '../volatile/var/result-k6-CAZ-perf_fold_0.json',
+    '../volatile/var/result-k6-CAZ-perf_fold_0_segs.csv',
+    workers=8
+)
+print(pipeline.run(['../volatile/cgr/Sample_002-MOLMIC_B2.scaffolds.fna']))
 ```
 
-To run the inference pipeline as a standalone program, install the package and use the following command as an example:
+#### As a standalone program
+
+To run prediction as a standalone program, install the package and use the following command as an example:
 ```shell
 pgse-predict \
         --model-file "../<path_to_model>.json" \
-        --segment-file "../<path_to_segment>.csv" \
+        --segments-file "../<path_to_segments>.csv" \
         --data-dir "../<you_data_dir>/" \
         --workers 8
 ```
@@ -440,8 +475,10 @@ If the model was trained on a non-DNA alphabet, pass the same `--alphabet`, `--c
 `--complement` values that were used for training. See [Alphabets](#alphabets). If training used
 `--sparse 1`, prediction must use it too — see [Reducing memory usage](#reducing-memory-usage).
 
+### Logging
 
-```bash
+Logging goes to the console only. Set `PGSE_LOG_FILE`, pass `--log-file` on the command
+line, or call `pgse.log.logger.add_file_handler(path)`, to also append it to a file.
 
 ### R package
 

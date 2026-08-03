@@ -1,19 +1,35 @@
+from typing import Optional
+
 import numpy as np
 
 from pgse.dataset.alphabet import get_alphabet
 from pgse.genome import canonicalize
 from pgse.genome import get_complement
 from pgse.genome.kmer import Kmer
+from pgse.genome.utils import parse_fasta
 from pgse.algos import aho_corasick
 
 class Sequence:
     def __init__(
             self,
-            filepath: str,
+            filepath: Optional[str] = None,
             keep_read_error: bool = False,
-            concatenate_nodes: bool = False
+            concatenate_nodes: bool = False,
+            text: Optional[str] = None
     ) -> None:
-        self.filepath: str = filepath
+        """
+        Args:
+            filepath: Path of the FASTA file to read. Ignored when text is given.
+            keep_read_error: Replace characters outside the alphabet with the
+                placeholder instead of dropping them.
+            concatenate_nodes: Join every contig into a single node.
+            text: Sequence data held in memory, read instead of a file.
+        """
+        if filepath is None and text is None:
+            raise ValueError('A Sequence needs either a filepath or text.')
+
+        self.filepath: Optional[str] = filepath
+        self.text: Optional[str] = text
         self.keep_read_error: bool = keep_read_error
         self.concatenate_nodes: bool = concatenate_nodes
         self._km: Kmer = Kmer(keep_read_error=keep_read_error)
@@ -43,21 +59,18 @@ class Sequence:
         return self._nodes
 
     def _read_sequence(self) -> None:
-        with open(self.filepath, 'r') as f:
-            string = f.read().split('\n')
+        if self.text is not None:
+            text = self.text
+        else:
+            with open(str(self.filepath), 'r') as f:
+                text = f.read()
 
-        # find the indices of all headers
-        headers = [i for i, row in enumerate(string) if row.startswith('>')]
-
-        # read the contigs between the headers
-        contigs_multi_rows = [string[i+1:j] for i, j in zip(headers, headers[1:]+[None])]
-
-        # concatenate the contigs, fold the case if the alphabet is case-insensitive,
-        # and drop (or flag) anything outside the alphabet
+        # fold the case if the alphabet is case-insensitive, and drop (or flag)
+        # anything outside the alphabet
         alphabet = get_alphabet()
         contigs = [
-            alphabet.sanitise(''.join(contig), keep_read_error=self.keep_read_error)
-            for contig in contigs_multi_rows
+            alphabet.sanitise(contig, keep_read_error=self.keep_read_error)
+            for contig in parse_fasta(text)
         ]
 
         if self.concatenate_nodes:

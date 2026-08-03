@@ -27,6 +27,9 @@ class Metric:
 
     DEFAULT = 'essential_agreement'
 
+    # Error metrics, where a smaller score is the better one.
+    LOWER_IS_BETTER = frozenset({'rmse', 'mae', 'mape'})
+
     def __init__(self, name: str, **params: Any) -> None:
         """
         Args:
@@ -45,6 +48,11 @@ class Metric:
         accepted = inspect.signature(getattr(self, name)).parameters
         self.name = name
         self.params = {key: value for key, value in params.items() if key in accepted}
+
+    @property
+    def greater_is_better(self) -> bool:
+        """Whether a larger score means a better model."""
+        return self.name not in self.LOWER_IS_BETTER
 
     @classmethod
     def names(cls) -> list[str]:

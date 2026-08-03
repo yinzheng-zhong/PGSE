@@ -2,27 +2,21 @@ import os
 from typing import Optional
 
 import numpy as np
-import ray
-
-from xgboost import  Booster
 
 from pgse.environment.ray_env import RayEnvManager
 from pgse.dataset.alphabet import AUTO, Alphabet, AlphabetArg, ComplementArg, set_alphabet
 from pgse.log import logger
 from pgse.model.model_trainer import ModelTrainer
+from pgse.model.pgse_model import PGSEModel
 from pgse.dataset.file_label import FileLabel
 from pgse.dataset.loader import Loader
 from pgse.pipeline.progress_manager import ProgressManager
+from pgse.result.fold_result import FoldResult
+from pgse.result.segment_importance import SegmentImportance
+from pgse.result.training_result import TrainingResult
 from pgse.segment.extender import Extender
 from pgse.segment import seg_pool
 from pgse.validation import Metric
-
-
-class PGSEPipelineOutput:
-    def __init__(self, models, segments, results):
-        self.models = models
-        self.segments = segments
-        self.results = results
 
 
 class Pipeline:
@@ -31,8 +25,8 @@ class Pipeline:
             data_dir: str,
             label_file: str | dict,
             pre_kfold_info_file: Optional[str] = None,
-            save_file: str = '',
-            export_file: str = './default.export',
+            save_file: Optional[str] = None,
+            export_file: Optional[str] = None,
             k: int = 6,
             ext: int = 2,
             target: int = 70,
@@ -55,6 +49,10 @@ class Pipeline:
             metric: str = Metric.DEFAULT
     ) -> None:
         """
+        :param save_file: Where to store the segment pool between rounds so a run can be
+            resumed. Nothing is written when it is left unset.
+        :param export_file: Path prefix for the models, segments and results written after
+            each fold. Nothing is written when it is left unset.
         :param alphabet: str or Alphabet: The characters the sequences are made of.
             Defaults to DNA ('atgc'). Pass e.g. 'abcdefghijklmnopqrstuvwxyz ' to run
             PGSE over plain text.
@@ -107,10 +105,10 @@ class Pipeline:
         self.progress_manager = ProgressManager(self.save_file, self.k, self.ext)
         self.model_trainer = None
 
-        self.models: list[Booster] = []
-        self.segments: list[str] = []
-        self.results: list[dict] = []
-        self._suppress_write: bool = False
+        # Set to False to keep a run entirely in memory. train() does this for the
+        # duration of the run it starts.
+        self.write_outputs: bool = True
+        self.fold_results: list[FoldResult] = []
 
     def extend_segments(self):
         try:
@@ -121,10 +119,13 @@ class Pipeline:
 
         return True
 
-    def run(self):
+    def run(self) -> TrainingResult:
+        """Train every fold, returning the models, segments and scores they produced."""
         RayEnvManager.initialize(self.dist, self.nodes, self.workers)
 
         start_fold, accumulated_results = self.progress_manager.load_fold_progress()
+        validation_metric = Metric(self.metric, ea_min=self.ea_min, ea_max=self.ea_max)
+        self.fold_results = []
 
         for i in range(start_fold, self.folds if self.folds > 0 else 1):
             logger.info(f'==================== Fold {i + 1} ====================')
@@ -165,7 +166,7 @@ class Pipeline:
                 if seg_pool.get_current_max_length() >= self.target or not self.extend_segments():
                     break
 
-                if not self._suppress_write:
+                if self.write_outputs:
                     self.progress_manager.save_round_progress()
 
                 train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool()
@@ -175,10 +176,9 @@ class Pipeline:
             train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool()
 
             # Run XGBoost with custom metric
-            custom_metric = self.model_trainer.build_validation_metric()
             fold_results, importance_df, trained_model = self.model_trainer.run_xgboost(
                 train_kmer, test_kmer, train_labels, test_labels,
-                use_partition=False, custom_metric=custom_metric
+                use_partition=False, custom_metric=validation_metric
             )
 
             logger.info(fold_results)
@@ -186,39 +186,49 @@ class Pipeline:
             # Append fold results
             accumulated_results = self.progress_manager.append_results(fold_results, accumulated_results)
 
-            # Update containers after each fold
-            self.models.append(trained_model)
-            self.segments.append(seg_pool.get_copy())
-            self.results.append(fold_results)
+            model = PGSEModel(
+                trained_model,
+                SegmentImportance.from_xgb_importance(seg_pool.get_copy(), importance_df),
+                self.alphabet,
+                count_dtype=self.count_dtype,
+                sparse=self.sparse,
+                workers=self.workers
+            )
+            score = validation_metric.score(fold_results['Actual'], fold_results['Prediction'])
+            logger.info(f'Fold {i + 1} {validation_metric.name}: {score}')
+
+            self.fold_results.append(FoldResult(i, model, fold_results, validation_metric.name, score))
 
             # Save progress after each fold
-            if not self._suppress_write:
+            if self.write_outputs:
                 self.progress_manager.save_fold_progress(i + 1, accumulated_results)
+                self._remove_save_file()
 
-                if self.save_file:
-                    try:
-                        os.remove(self.save_file)
-                    except FileNotFoundError as e:
-                        logger.error(e)
-
-                importance_scores = importance_df['Importance']
-                seg_pool.export(self.export_file + f'_fold_{i}_segs.csv', importance_scores=importance_scores)
-                trained_model.save_model(self.export_file + f'_fold_{i}.json')
+                if self.export_file:
+                    model.save(f'{self.export_file}_fold_{i}')
 
         # Export final results and shutdown Ray
-        if not self._suppress_write:
+        if self.write_outputs and self.export_file:
             accumulated_results.to_csv(f'{self.export_file}.csv')
-        ray.shutdown()
+        RayEnvManager.shutdown()
 
-    def train(self):
-        self._suppress_write = True
+        return TrainingResult(self.fold_results, self.metric, validation_metric.greater_is_better)
 
-        self.run()
+    def train(self) -> TrainingResult:
+        """Train every fold in memory, writing nothing to disk."""
+        write_outputs = self.write_outputs
+        self.write_outputs = False
+        try:
+            return self.run()
+        finally:
+            self.write_outputs = write_outputs
 
-        return(
-            PGSEPipelineOutput(
-                models=self.models,
-                segments=self.segments,
-                results=self.results
-            )
-        )
+    def _remove_save_file(self) -> None:
+        """Drop the resume point, now that the fold it belonged to is finished."""
+        if not self.save_file:
+            return
+
+        try:
+            os.remove(self.save_file)
+        except FileNotFoundError as e:
+            logger.error(e)
