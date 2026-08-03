@@ -1,4 +1,5 @@
 import math
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -8,6 +9,7 @@ from tqdm import tqdm
 
 from time import time
 from pgse.log import logger
+from pgse.validation import Metric
 
 # Cores allocated to each partition's XGBoost worker when partitioning is on.
 # Ray therefore runs about (workers // CORES_PER_PARTITION) partitions at once,
@@ -19,14 +21,14 @@ CORES_PER_PARTITION = 8
 class XGBoost:
     def __init__(
             self,
-            partition_size: int,
+            partition_size_target: int,
             boost_rounds: int = 250,
             max_depth: int = 3,
             base_learning_rate: float = 0.05,
             importance_type: str = 'gain',
             use_partition: bool = False,
             num_cpu_per_node: int = 8,
-            custom_metric=None,
+            custom_metric: Optional[Metric] = None,
             early_stopping_rounds: int = 20,
             device: str = 'cpu'
     ):
@@ -38,7 +40,7 @@ class XGBoost:
         self.base_learning_rate = base_learning_rate
         self.importance_type = importance_type
         self.use_partition = use_partition
-        self.partition_size = partition_size
+        self.partition_size_target = partition_size_target
         self.num_cpu_per_node = num_cpu_per_node
         self.custom_metric = custom_metric
         self.early_stopping_rounds = early_stopping_rounds
@@ -71,7 +73,7 @@ class XGBoost:
         """
         Calculate the adaptive learning rate based on the number of features.
         """
-        return self.base_learning_rate / math.sqrt(self.partition_size / train_x.shape[1])
+        return self.base_learning_rate / math.sqrt(self.partition_size_target / train_x.shape[1])
 
     @ray.remote(
         num_cpus=1,
@@ -119,8 +121,8 @@ class XGBoost:
         }
 
         if self.custom_metric is not None:
-            ea = self.custom_metric(predictions, dtest)
-            logger.info(f'Essential Agreement: {ea}')
+            score = self.custom_metric(predictions, dtest)
+            logger.info(f'{self.custom_metric.name}: {score}')
 
         importance = model.get_score(importance_type=self.importance_type)
         importance_mapped = {feature_indices[int(k[1:])]: v for k, v in importance.items()}
@@ -131,7 +133,7 @@ class XGBoost:
         """
         Split features based on partition size.
         """
-        num_partitions = feature_count // self.partition_size if self.partition_size > 0 else 1
+        num_partitions = feature_count // self.partition_size_target if self.partition_size_target > 0 else 1
         # use just 1 partition if we are not using partitioning e.g. testing/inference
         num_partitions = max(num_partitions, 1) if self.use_partition else 1
         return np.array_split(np.arange(feature_count), num_partitions)

@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from pgse.etc.alphabet import Alphabet, reset_alphabet, set_alphabet
+from pgse.dataset.alphabet import Alphabet, reset_alphabet, set_alphabet
 from pgse.genome.sequence import Sequence
 from pgse.segment.extender import Extender
 from pgse.segment.segment_pool import SegmentPool

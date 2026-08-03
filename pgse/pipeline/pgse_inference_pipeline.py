@@ -6,7 +6,7 @@ from pgse.dataset.loader_inference import LoaderInference
 import numpy as np
 import xgboost as xgb
 
-from pgse.etc.alphabet import AUTO, Alphabet, AlphabetArg, ComplementArg, set_alphabet
+from pgse.dataset.alphabet import AUTO, Alphabet, AlphabetArg, ComplementArg, set_alphabet
 from pgse.log import logger
 from pgse.segment import seg_pool
 

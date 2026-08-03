@@ -16,7 +16,7 @@ import numpy as np
 import scipy.sparse as sp
 from tqdm import tqdm
 
-from pgse.etc.alphabet import Alphabet, get_alphabet
+from pgse.dataset.alphabet import Alphabet, get_alphabet
 from pgse.log import logger
 
 try:

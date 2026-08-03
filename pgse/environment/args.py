@@ -1,7 +1,8 @@
 import argparse
 import os
 
-from pgse.etc.alphabet import AUTO, DNA_CHARS
+from pgse.dataset.alphabet import AUTO, DNA_CHARS
+from pgse.validation import Metric
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -38,6 +39,9 @@ def get_parser() -> argparse.ArgumentParser:
                         help="Number of nodes allocated. Used with distributed processing only.")
     parser.add_argument('--features', type=int, default=10000,
                         help="Number of top features to select based on importance")
+    parser.add_argument('--partition-size-target', type=int, default=5000,
+                        help="Target number of features per XGBoost partition during feature "
+                             "selection.")
     parser.add_argument('--lr', type=float, default=0.03,
                         help="Learning rate for the XGBoost model")
     parser.add_argument('--dist', type=int, default=0,
@@ -46,6 +50,10 @@ def get_parser() -> argparse.ArgumentParser:
                         help="Maximum value of MIC (>)")
     parser.add_argument('--ea-min', type=float, default=None,
                         help="Minimum value of MIC (<)")
+    parser.add_argument('--metric', type=str, default=Metric.DEFAULT, choices=Metric.names(),
+                        help="Validation metric reported for the held-out fold. "
+                             f"{Metric.describe()} "
+                             "essential_agreement additionally reads --ea-min and --ea-max.")
     parser.add_argument('--num-rounds', type=int, default=1500,
                         help="Number of boosting rounds")
     parser.add_argument('--folds', type=int, default=0,

@@ -3,9 +3,7 @@ from pgse.environment.args import get_parser
 import pandas as pd
 import json
 
-import math
-
-from pgse.model.util import essential_agreement_cus_metric
+from pgse.validation import Metric
 from pgse import TrainingPipeline as PGSEPipeline
 from pgse import InferencePipeline as PGSEInferencePipeline
 
@@ -76,7 +74,9 @@ if __name__ == "__main__":
             workers=args.workers,
             alphabet=args.alphabet,
             case_sensitive=bool(args.case_sensitive),
-            complement=args.complement
+            complement=args.complement,
+            partition_size_target=args.partition_size_target,
+            metric=args.metric
         )
 
         # run pipeline
@@ -112,11 +112,10 @@ if __name__ == "__main__":
 
         # save new_results
         new_results.to_csv(str.replace(export_files[i], 'inner', 'outer') + '.csv', index=False)
-        ea = essential_agreement_cus_metric(out, holdout_labels,
-                                            min_after_log2=math.log2(args.ea_min) if args.ea_min else None,
-                                            max_after_log2=math.log2(args.ea_max) if args.ea_max else None)
+        metric = Metric(args.metric, ea_min=args.ea_min, ea_max=args.ea_max)
+        score = metric(out, holdout_labels)
 
-        print(f'Fold {i} completed.')
+        print(f'Fold {i} completed. {metric.name}: {score}')
 
         # remove the save file
         os.remove(args.save_file + ".progress")

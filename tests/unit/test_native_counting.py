@@ -5,7 +5,7 @@ import scipy.sparse as sp
 
 from pgse.algos import native_counter
 from pgse.algos.aho_corasick_py import AhoCorasickPy
-from pgse.etc.alphabet import Alphabet, reset_alphabet, set_alphabet
+from pgse.dataset.alphabet import Alphabet, reset_alphabet, set_alphabet
 
 
 class _FakeSeq:

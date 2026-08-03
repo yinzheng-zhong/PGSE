@@ -6,13 +6,9 @@ from typing import Optional
 import ray
 from pgse.log import logger
 
-# Ray sizes its object store at min(30% of RAM, 200GB) by default. On a large-memory
-# node the 200GB cap leaves most of the machine idle and pushes objects to disk, so
-# claim a larger share instead.
+# Claim a larger share.
 OBJECT_STORE_FRACTION = 0.4
 
-# Ray's object store is backed by /dev/shm on Linux. Asking for more than /dev/shm can
-# hold makes Ray fall back to a disk-backed file, which is far slower than spilling.
 SHM_SAFETY_FRACTION = 0.95
 
 GIB = 1024 ** 3

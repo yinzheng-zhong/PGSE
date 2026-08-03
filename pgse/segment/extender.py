@@ -1,6 +1,6 @@
 import itertools
 
-from pgse.etc.alphabet import get_alphabet
+from pgse.dataset.alphabet import get_alphabet
 from pgse.genome import canonicalize
 from pgse.segment import seg_pool
 from pgse.log import logger

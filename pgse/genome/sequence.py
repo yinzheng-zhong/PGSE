@@ -1,6 +1,6 @@
 import numpy as np
 
-from pgse.etc.alphabet import get_alphabet
+from pgse.dataset.alphabet import get_alphabet
 from pgse.genome import canonicalize
 from pgse.genome import get_complement
 from pgse.genome.kmer import Kmer

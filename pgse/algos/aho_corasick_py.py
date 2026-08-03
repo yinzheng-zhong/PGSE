@@ -1,7 +1,7 @@
 # Function to check if a sequence is canonical
 from pgse.algos.aho_corasick_base import AhoCorasickBase
 from pgse.algos.utils import get_complement,  is_canonical
-from pgse.etc.alphabet import get_alphabet
+from pgse.dataset.alphabet import get_alphabet
 
 
 # Trie Node class for the Aho-Corasick automaton

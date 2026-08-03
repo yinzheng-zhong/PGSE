@@ -6,7 +6,7 @@ import scipy.sparse as sp
 from pgse.dataset.file_label import FileLabel
 from tqdm import tqdm
 
-from pgse.etc.alphabet import Alphabet, get_alphabet, set_alphabet
+from pgse.dataset.alphabet import Alphabet, get_alphabet, set_alphabet
 from pgse.genome import seq_manager
 from pgse.log import logger
 from pgse.genome.sequence import Sequence
@@ -16,9 +16,7 @@ from pgse.segment import seg_pool
 from pgse.segment.segment_pool import SegmentPool
 
 # The count matrix can be stored either densely (default, np.float32) or as a
-# uint16 array to halve the footprint. Counts are non-negative integers, so
-# uint16 is lossless up to UINT16_MAX; anything larger is saturated rather than
-# allowed to wrap silently.
+# uint16 array to halve the footprint.
 UINT16_MAX = int(np.iinfo(np.uint16).max)
 
 Dataset = Union[np.ndarray, sp.csr_matrix]
@@ -48,10 +46,6 @@ def assemble_counts(
         sample, in order.
     :param dtype: storage dtype for the counts (np.float32 or np.uint16).
     :param sparse: if True, return a scipy CSR matrix instead of a dense ndarray.
-        SMILES/short sequences make the matrix >99% zeros, so CSR saves orders of
-        magnitude. Note XGBoost treats CSR's unstored zeros as *missing* rather
-        than explicit 0, so the same ``sparse`` value must be used at train and
-        predict time.
     """
     if sparse:
         # Build CSR arrays directly; only one dense row is materialised at a time.

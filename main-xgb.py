@@ -22,7 +22,8 @@ if __name__ == "__main__":
         args.workers,
         alphabet=args.alphabet,
         case_sensitive=bool(args.case_sensitive),
-        complement=args.complement
+        complement=args.complement,
+        metric=args.metric
     )
 
     pipeline.run()

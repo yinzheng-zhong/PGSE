@@ -27,5 +27,7 @@ if __name__ == "__main__":
         alphabet=args.alphabet,
         case_sensitive=bool(args.case_sensitive),
         complement=args.complement,
+        partition_size_target=args.partition_size_target,
+        metric=args.metric,
     )
     pipeline.run()
