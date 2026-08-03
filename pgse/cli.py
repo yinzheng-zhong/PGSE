@@ -33,7 +33,8 @@ def train():
         complement=args.complement,
         uint16=bool(args.uint16),
         sparse=bool(args.sparse),
-        partition_size_target=args.partition_size_target
+        partition_size_target=args.partition_size_target,
+        metric=args.metric
     )
     pipeline.run()
 

@@ -2,6 +2,7 @@ import argparse
 import os
 
 from pgse.dataset.alphabet import AUTO, DNA_CHARS
+from pgse.validation import Metric
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -49,6 +50,10 @@ def get_parser() -> argparse.ArgumentParser:
                         help="Maximum value of MIC (>)")
     parser.add_argument('--ea-min', type=float, default=None,
                         help="Minimum value of MIC (<)")
+    parser.add_argument('--metric', type=str, default=Metric.DEFAULT, choices=Metric.names(),
+                        help="Validation metric reported for the held-out fold. "
+                             f"{Metric.describe()} "
+                             "essential_agreement additionally reads --ea-min and --ea-max.")
     parser.add_argument('--num-rounds', type=int, default=1500,
                         help="Number of boosting rounds")
     parser.add_argument('--folds', type=int, default=0,

@@ -15,6 +15,7 @@ from pgse.dataset.loader import Loader
 from pgse.pipeline.progress_manager import ProgressManager
 from pgse.segment.extender import Extender
 from pgse.segment import seg_pool
+from pgse.validation import Metric
 
 
 class PGSEPipelineOutput:
@@ -50,7 +51,8 @@ class Pipeline:
             complement: ComplementArg = AUTO,
             uint16: bool = False,
             sparse: bool = False,
-            partition_size_target: int = 5000
+            partition_size_target: int = 5000,
+            metric: str = Metric.DEFAULT
     ) -> None:
         """
         :param alphabet: str or Alphabet: The characters the sequences are made of.
@@ -68,6 +70,9 @@ class Pipeline:
         :param partition_size_target: Target features per XGBoost partition during feature
             selection. Partitions are evenly sized, so the actual size lands between this and
             twice this. 0 or less trains a single partition over all features.
+        :param metric: Name of the validation metric reported for the held-out fold. See
+            ``pgse.validation.Metric.names()`` for the full list. Defaults to essential
+            agreement, which reads ea_min and ea_max.
         """
         # Install the alphabet first: everything downstream reads it, including the
         # segment extender and the Ray workers.
@@ -95,6 +100,7 @@ class Pipeline:
         self.count_dtype = np.uint16 if uint16 else np.float32
         self.sparse = sparse
         self.partition_size_target = partition_size_target
+        self.metric = metric
 
         self.file_label = FileLabel(self.label_file, self.data_dir, self.pre_kfold_info_file)
         self.extender = Extender()
@@ -142,7 +148,8 @@ class Pipeline:
                 self.ea_min,
                 self.ea_max,
                 device=self.device,
-                partition_size_target=self.partition_size_target
+                partition_size_target=self.partition_size_target,
+                metric=self.metric
             )
 
             train_kmer, test_kmer, train_labels, test_labels = self.progress_manager.load_round_progress(loader)
@@ -168,7 +175,7 @@ class Pipeline:
             train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool()
 
             # Run XGBoost with custom metric
-            custom_metric = self.model_trainer.custom_essential_agreement_metric()
+            custom_metric = self.model_trainer.build_validation_metric()
             fold_results, importance_df, trained_model = self.model_trainer.run_xgboost(
                 train_kmer, test_kmer, train_labels, test_labels,
                 use_partition=False, custom_metric=custom_metric

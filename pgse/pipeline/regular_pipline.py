@@ -10,6 +10,7 @@ from pgse.model.model_trainer import ModelTrainer
 from pgse.dataset.file_label import FileLabel
 from pgse.dataset.loader import Loader
 from pgse.segment import seg_pool
+from pgse.validation import Metric
 
 
 class Pipeline:
@@ -32,7 +33,8 @@ class Pipeline:
             device: str = 'cpu',
             alphabet: AlphabetArg = None,
             case_sensitive: bool = False,
-            complement: ComplementArg = AUTO
+            complement: ComplementArg = AUTO,
+            metric: str = Metric.DEFAULT
     ) -> None:
         # Install the alphabet first: everything downstream reads it.
         self.alphabet: Alphabet = set_alphabet(alphabet, case_sensitive=case_sensitive, complement=complement)
@@ -53,6 +55,7 @@ class Pipeline:
         self.nodes = nodes
         self.workers = workers
         self.device = device
+        self.metric = metric
 
         self.file_label = FileLabel(self.label_file, self.data_dir, self.pre_kfold_info_file)
 
@@ -80,7 +83,8 @@ class Pipeline:
                 self.lr,
                 ea_min=self.ea_min,
                 ea_max=self.ea_max,
-                device=self.device
+                device=self.device,
+                metric=self.metric
             )
 
             # Load k-mer dataset
@@ -89,7 +93,7 @@ class Pipeline:
             train_kmer, test_kmer, train_labels, test_labels = loader.get_dataset_from_pool()
 
             # Run XGBoost without partitioning or custom metrics
-            custom_metric = model_trainer.custom_essential_agreement_metric()
+            custom_metric = model_trainer.build_validation_metric()
             fold_results, importance_df, trained_model = model_trainer.run_xgboost(
                 train_kmer, test_kmer, train_labels, test_labels, use_partition=False, custom_metric=custom_metric
             )

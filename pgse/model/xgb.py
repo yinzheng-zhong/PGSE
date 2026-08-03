@@ -1,4 +1,5 @@
 import math
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -8,6 +9,7 @@ from tqdm import tqdm
 
 from time import time
 from pgse.log import logger
+from pgse.validation import Metric
 
 # Cores allocated to each partition's XGBoost worker when partitioning is on.
 # Ray therefore runs about (workers // CORES_PER_PARTITION) partitions at once,
@@ -26,7 +28,7 @@ class XGBoost:
             importance_type: str = 'gain',
             use_partition: bool = False,
             num_cpu_per_node: int = 8,
-            custom_metric=None,
+            custom_metric: Optional[Metric] = None,
             early_stopping_rounds: int = 20,
             device: str = 'cpu'
     ):
@@ -119,8 +121,8 @@ class XGBoost:
         }
 
         if self.custom_metric is not None:
-            ea = self.custom_metric(predictions, dtest)
-            logger.info(f'Essential Agreement: {ea}')
+            score = self.custom_metric(predictions, dtest)
+            logger.info(f'{self.custom_metric.name}: {score}')
 
         importance = model.get_score(importance_type=self.importance_type)
         importance_mapped = {feature_indices[int(k[1:])]: v for k, v in importance.items()}

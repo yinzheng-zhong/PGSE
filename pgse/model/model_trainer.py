@@ -1,12 +1,13 @@
-import math
+from typing import Optional
 
 import pandas as pd
 import xgboost
 
+from pgse.dataset.loader import Loader
 from pgse.log import logger
-from pgse.model.util import essential_agreement_cus_metric
 from pgse.model.xgb import XGBoost
 from pgse.segment import seg_pool
+from pgse.validation import Metric
 
 # Constants
 DEFAULT_FEATURES_PRINT_COUNT = 20
@@ -15,16 +16,17 @@ DEFAULT_FEATURES_PRINT_COUNT = 20
 class ModelTrainer:
     def __init__(
             self,
-            loader,
-            num_rounds=1500,
-            workers=8,
-            lr=0.03,
-            features=10000,
-            ea_min=None,
-            ea_max=None,
-            device='cpu',
-            partition_size_target=5000
-    ):
+            loader: Loader,
+            num_rounds: int = 1500,
+            workers: int = 8,
+            lr: float = 0.03,
+            features: int = 10000,
+            ea_min: Optional[float] = None,
+            ea_max: Optional[float] = None,
+            device: str = 'cpu',
+            partition_size_target: int = 5000,
+            metric: str = Metric.DEFAULT
+    ) -> None:
         self.loader = loader
         self.num_rounds = num_rounds
         self.workers = workers
@@ -34,6 +36,7 @@ class ModelTrainer:
         self.ea_max = ea_max
         self.device = device
         self.partition_size_target = partition_size_target
+        self.metric = metric
 
     def run_xgboost(
             self,
@@ -41,8 +44,8 @@ class ModelTrainer:
             test_kmer,
             train_labels,
             test_labels,
-            use_partition=True,
-            custom_metric=None
+            use_partition: bool = True,
+            custom_metric: Optional[Metric] = None
     ) -> tuple[pd.DataFrame, pd.DataFrame, xgboost.Booster]:
         xgb = XGBoost(
             partition_size_target=self.partition_size_target,
@@ -56,7 +59,7 @@ class ModelTrainer:
         )
         return xgb.run(train_kmer, test_kmer, train_labels, test_labels)
 
-    def perform_feature_selection(self, xgb_result):
+    def perform_feature_selection(self, xgb_result) -> None:
         _, importance_df, _ = xgb_result
         logger.info(str(importance_df.head(DEFAULT_FEATURES_PRINT_COUNT)))
 
@@ -65,9 +68,6 @@ class ModelTrainer:
         seg_pool.use_subset(index)
         seg_pool.redundant_elimination(range(len(index)))
 
-    def custom_essential_agreement_metric(self):
-        return lambda x, y: essential_agreement_cus_metric(
-            x, y,
-            min_after_log2=math.log2(self.ea_min) if self.ea_min else None,
-            max_after_log2=math.log2(self.ea_max) if self.ea_max else None
-        )
+    def build_validation_metric(self) -> Metric:
+        """The configured validation metric, with its parameters bound."""
+        return Metric(self.metric, ea_min=self.ea_min, ea_max=self.ea_max)

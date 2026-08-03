@@ -11,7 +11,7 @@ PGSE is also able to run on distributed systems.
 
 ## Contributors
 
-Dr Yinzheng (William) Zhong, Univerisity of Liverpool (algorithm design & Python implementation)
+Dr Yinzheng (William) Zhong, Univerisity of Liverpool (algorithm design & implementation)
 
 Dr Alessandro Gerada, University of Liverpool (conceptualisation, R package, funding)
 
@@ -199,8 +199,11 @@ features; `0` or less trains a single model over all features.
 * `--lr`: learning rate.
 * `--num-rounds`: Maximum rounds for the training process.
 * `--folds`: Number of folds for the k-fold cross-validation.
+* `--metric`: Validation metric reported for the held-out fold (default `essential_agreement`).
+See [Validation metrics](#validation-metrics) below.
 * `--ea-max`: Maximum number of censored essential agreement values. Don't need this unless
-you want to see more accurate EA information from the console output during the training.
+you want to see more accurate EA information from the console output during the training. Only read
+by the `essential_agreement` metric.
 * `--ea-min`: Minimum number of censored essential agreement values. Similar to `--ea-max`.
 * `--alphabet`: the set of characters the input is made of, given as a single string. Defaults to
 DNA (`atgc`). See [Alphabets](#alphabets) below.
@@ -268,6 +271,72 @@ Inference has to use the same alphabet as training, since the exported segments 
 it. Pass the same `--alphabet`, `--case-sensitive` and `--complement` values to `pgse-predict`;
 if the segments do not fit the alphabet, PGSE fails with an error rather than predicting on
 all-zero counts.
+
+#### Validation metrics
+
+The score reported for the held-out fold is chosen with `--metric` (or `metric=` on the Python
+API). Essential agreement is the default and keeps the behaviour of earlier versions, but it only
+makes sense for log2 MIC labels; anything else should pick a metric that matches its label.
+
+| `--metric` | What it measures | Best for |
+| --- | --- | --- |
+| `essential_agreement` | Fraction of predictions within one two-fold dilution of the label | log2 MIC labels (default) |
+| `rmse` | Root mean squared error, in the units of the label | Continuous labels, penalising large misses |
+| `mae` | Mean absolute error | Continuous labels with outliers |
+| `mape` | Mean absolute percentage error over the non-zero labels | Continuous labels compared in relative terms |
+| `r2` | Fraction of the label's variance explained | Continuous labels, e.g. growth rate |
+| `pearson` | Linear correlation between label and prediction | Continuous labels, e.g. growth rate |
+| `spearman` | Rank correlation | Continuous labels where only the ordering matters |
+| `accuracy` | Fraction of predictions that round to the exact label | Integer labels, e.g. 0/1 |
+| `mcc` | Matthews correlation coefficient, in `[-1, 1]` | Imbalanced integer labels |
+
+For a continuous target such as growth rate, `r2` is the usual headline number, with `rmse` for the
+error in the target's own units and `spearman` when only the ranking of the samples matters:
+
+```bash
+pgse-train \
+        --label-file "../<path_to>/<your_labels>.csv" \
+        --data-dir "../<your_data_dir>/" \
+        --metric r2
+```
+
+```python
+from pgse import TrainingPipeline
+
+pipeline = TrainingPipeline(data_dir='...', label_file='...', metric='r2')
+```
+
+PGSE always trains on squared error and always logs RMSE; `--metric` selects the extra score
+reported alongside it once the selected segments are trained.
+
+PGSE trains a regressor (`reg:squarederror`) whatever the metric is — there is no classification
+objective. `accuracy` and `mcc` are there for labels that are whole numbers, such as a 0/1 target
+regressed and then read back as a class; both round the predictions to the nearest integer before
+scoring.
+
+The metrics are the static methods of the `Metric` class in `pgse/validation/metrics.py`, with the
+array handling they share in `pgse/validation/utils.py`. Adding a metric is adding a method — its
+name becomes the `--metric` value and the first line of its docstring becomes its entry in
+`--metric`'s help:
+
+```python
+class Metric:
+    ...
+
+    @staticmethod
+    def max_error(y_true, y_pred):
+        """Largest absolute error over the samples.
+
+        Args:
+            y_true: True labels.
+            y_pred: Predicted values.
+        """
+        return float(np.max(np.abs(as_array(y_true) - as_array(y_pred))))
+```
+
+A metric that needs extra parameters just declares them as keyword arguments. The pipeline passes
+all of its validation options to every metric and each receives only the ones its signature names,
+which is how `essential_agreement` gets `ea_min` and `ea_max` while the others ignore them.
 
 #### Reducing memory usage
 

@@ -13,4 +13,5 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Bump `version` in `pyproject.toml` for every fix.** Patch bump for a fix, minor for a feature.
   Nothing publishes the package today, so the bump is for history, not release.
 - **Typing** Type everything
+- **Write modular code** A module that defines a class contains only that class, other code should go into a separate file such as helpers, utils etc. Keep code readable and easy to follow.
 
