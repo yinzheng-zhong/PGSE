@@ -76,7 +76,8 @@ if __name__ == "__main__":
             case_sensitive=bool(args.case_sensitive),
             complement=args.complement,
             partition_size_target=args.partition_size_target,
-            metric=args.metric
+            metric=args.metric,
+            binary=bool(args.binary)
         )
 
         # run pipeline
@@ -112,7 +113,10 @@ if __name__ == "__main__":
 
         # save new_results
         new_results.to_csv(str.replace(export_files[i], 'inner', 'outer') + '.csv', index=False)
-        metric = Metric(args.metric, ea_min=args.ea_min, ea_max=args.ea_max)
+        metric = Metric(
+            args.metric or Metric.default_for(bool(args.binary)),
+            ea_min=args.ea_min, ea_max=args.ea_max
+        )
         score = metric(out, holdout_labels)
 
         print(f'Fold {i} completed. {metric.name}: {score}')

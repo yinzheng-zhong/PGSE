@@ -236,8 +236,10 @@ features; `0` or less trains a single model over all features.
 * `--lr`: learning rate.
 * `--num-rounds`: Maximum rounds for the training process.
 * `--folds`: Number of folds for the k-fold cross-validation.
-* `--metric`: Validation metric reported for the held-out fold (default `essential_agreement`).
-See [Validation metrics](#validation-metrics) below.
+* `--binary`: `0` (default) predicts a continuous value; `1` predicts a 0/1 label. See
+[Binary mode](#binary-mode) below.
+* `--metric`: Validation metric reported for the held-out fold (default `essential_agreement`, or
+`auroc` with `--binary 1`). See [Validation metrics](#validation-metrics) below.
 * `--ea-max`: Maximum number of censored essential agreement values. Don't need this unless
 you want to see more accurate EA information from the console output during the training. Only read
 by the `essential_agreement` metric.
@@ -314,11 +316,67 @@ it. Pass the same `--alphabet`, `--case-sensitive` and `--complement` values to 
 if the segments do not fit the alphabet, PGSE fails with an error rather than predicting on
 all-zero counts.
 
+#### Binary mode
+
+By default PGSE predicts a continuous value. `--binary 1` (or `binary=True` on the Python API)
+predicts a 0/1 label instead: XGBoost is trained with the `binary:logistic` objective, and a
+prediction is the **probability that the sample is a 1**.
+
+```bash
+pgse-train \
+        --label-file "../<path_to>/<your_labels>.csv" \
+        --data-dir "../<your_data_dir>/" \
+        --binary 1
+```
+
+```python
+from pgse import TrainingPipeline
+
+result = TrainingPipeline(
+    data_dir='genomes/',
+    label_file='labels.csv',
+    folds=5,
+    binary=True,
+).train()
+
+result.score                                # mean AUROC across the folds
+probabilities = result.model.predict(['new_1.fna', 'new_2.fna'])   # e.g. [0.02, 0.91]
+labels = (probabilities >= 0.5).astype(int)                        # if you want a decision
+```
+
+Every label has to be `0` or `1`; anything else fails with an error naming the offending values
+rather than training a meaningless model. Booleans count as 0 and 1, so a `label_file` dictionary
+of `True`/`False` works as well as one of `0`/`1`.
+
+The label file is otherwise unchanged:
+
+```text
+| labels | files     |
+| ------ | --------- |
+| 1      | file1.fna |
+| 0      | file2.fna |
+| 1      | file3.fna |
+```
+
+Binary mode changes the objective, the default metric (`auroc` instead of `essential_agreement`)
+and the meaning of a prediction. Everything else — segment extension, feature selection, folds,
+alphabets, the saved model — behaves exactly as it does for a continuous target. A saved model
+records that it is binary, so `PGSEModel.load` knows its predictions are probabilities:
+
+```python
+from pgse import PGSEModel
+
+model = PGSEModel.load('artifacts/resistance')
+model.binary       # True
+model.predict(['new_1.fna'])   # a probability, not a class
+```
+
 #### Validation metrics
 
 The score reported for the held-out fold is chosen with `--metric` (or `metric=` on the Python
 API). Essential agreement is the default and keeps the behaviour of earlier versions, but it only
-makes sense for log2 MIC labels; anything else should pick a metric that matches its label.
+makes sense for log2 MIC labels; anything else should pick a metric that matches its label. A
+binary run defaults to `auroc` instead.
 
 | `--metric` | What it measures | Best for |
 | --- | --- | --- |
@@ -331,6 +389,19 @@ makes sense for log2 MIC labels; anything else should pick a metric that matches
 | `spearman` | Rank correlation | Continuous labels where only the ordering matters |
 | `accuracy` | Fraction of predictions that round to the exact label | Integer labels, e.g. 0/1 |
 | `mcc` | Matthews correlation coefficient, in `[-1, 1]` | Imbalanced integer labels |
+| `auroc` | Area under the ROC curve: the chance a positive outranks a negative | Binary labels (default with `--binary 1`) |
+| `auprc` | Area under the precision-recall curve, which ignores the true negatives | Binary labels where the positives are rare |
+| `log_loss` | Mean negative log likelihood, scoring the probabilities themselves | Binary labels where the probability matters, not just the ranking |
+| `f1` | Harmonic mean of precision and recall | Binary labels, one headline number for the decision |
+| `precision` | Fraction of the predicted positives that are positive | Binary labels where a false positive is costly |
+| `recall` | Fraction of the positives that are predicted positive (sensitivity) | Binary labels where a missed positive is costly |
+| `specificity` | Fraction of the negatives that are predicted negative | Binary labels, reported alongside recall |
+| `balanced_accuracy` | Mean of recall and specificity | Imbalanced binary labels |
+
+The bottom eight are for [binary mode](#binary-mode). `auroc`, `auprc` and `log_loss` read the
+predicted probability directly; the rest need a yes/no answer and split the probability at `0.5`,
+as `accuracy` and `mcc` already do. `log_loss` is the only one of them where a **smaller** score is
+better, which `TrainingResult.best_fold` accounts for.
 
 For a continuous target such as growth rate, `r2` is the usual headline number, with `rmse` for the
 error in the target's own units and `spearman` when only the ranking of the samples matters:
@@ -348,13 +419,14 @@ from pgse import TrainingPipeline
 pipeline = TrainingPipeline(data_dir='...', label_file='...', metric='r2')
 ```
 
-PGSE always trains on squared error and always logs RMSE; `--metric` selects the extra score
-reported alongside it once the selected segments are trained.
+PGSE always logs RMSE; `--metric` selects the extra score reported alongside it once the selected
+segments are trained.
 
-PGSE trains a regressor (`reg:squarederror`) whatever the metric is — there is no classification
-objective. `accuracy` and `mcc` are there for labels that are whole numbers, such as a 0/1 target
-regressed and then read back as a class; both round the predictions to the nearest integer before
-scoring.
+The metric does not change what PGSE optimises. The objective is set by `--binary` alone:
+`reg:squarederror` by default and `binary:logistic` with `--binary 1`. So `--metric auroc` on a
+continuous run scores the regressor's output as if it were a ranking, which is legal but rarely
+what you want — pass `--binary 1` to actually train a classifier. `accuracy` and `mcc` work either
+way, on whole-number labels: both round the predictions to the nearest integer before scoring.
 
 The metrics are the static methods of the `Metric` class in `pgse/validation/metrics.py`, with the
 array handling they share in `pgse/validation/utils.py`. Adding a metric is adding a method — its

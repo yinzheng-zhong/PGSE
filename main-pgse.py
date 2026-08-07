@@ -29,5 +29,6 @@ if __name__ == "__main__":
         complement=args.complement,
         partition_size_target=args.partition_size_target,
         metric=args.metric,
+        binary=bool(args.binary),
     )
     pipeline.run()

@@ -1,14 +1,26 @@
 import glob
+import json
 import os
 import unittest
 from tempfile import TemporaryDirectory
 
 import numpy as np
-from pandas import DataFrame
+from pandas import DataFrame, read_csv
 from xgboost import Booster
 
 from pgse import PGSEModel, TrainingPipeline
 from pgse.result.segment_importance import SegmentImportance
+
+
+def read_labels(label_file: str, genomes: list) -> np.ndarray:
+    """Return the label of each genome, in the order the genomes are given.
+
+    Args:
+        label_file: Path of the CSV holding a labels and a files column.
+        genomes: Paths of the genome files to look up.
+    """
+    labels = read_csv(label_file).set_index('files')['labels']
+    return np.array([labels[os.path.basename(path)] for path in genomes])
 
 
 class TestTrainingPipeline(unittest.TestCase):
@@ -78,6 +90,72 @@ class TestTrainingPipeline(unittest.TestCase):
             self.assertEqual(list(fold.predictions['Actual']), list(fold_abs.predictions['Actual']))
 
 
+class TestBinaryTrainingPipeline(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.genomes = sorted(glob.glob('resource/genomes_binary/*.fna'))
+        cls.result = TrainingPipeline(data_dir="resource/genomes_binary/",
+                                      label_file="resource/labels_binary.csv",
+                                      k=4, target=14, binary=True).train()
+        cls.model = cls.result.model
+
+    def test_the_run_defaults_to_auroc(self):
+        self.assertEqual('auroc', self.result.metric)
+        self.assertTrue(self.result.greater_is_better)
+
+    def test_the_planted_motif_separates_the_classes(self):
+        self.assertGreaterEqual(self.result.score, 0.9)
+
+    def test_the_booster_is_a_logistic_classifier(self):
+        config = json.loads(self.model.booster.save_config())
+        self.assertEqual('binary:logistic', config['learner']['objective']['name'])
+
+    def test_predictions_are_probabilities(self):
+        predictions = self.model.predict(self.genomes)
+
+        self.assertEqual(len(self.genomes), len(predictions))
+        self.assertTrue(((predictions >= 0.0) & (predictions <= 1.0)).all())
+
+    def test_the_positives_score_above_the_negatives(self):
+        predictions = self.model.predict(self.genomes)
+        labels = read_labels('resource/labels_binary.csv', self.genomes)
+
+        self.assertGreater(predictions[labels == 1].min(), predictions[labels == 0].max())
+
+    def test_binary_mode_survives_a_save_and_load(self):
+        with TemporaryDirectory() as tmp_dir:
+            self.model.save(os.path.join(tmp_dir, 'model'))
+            loaded = PGSEModel.load(os.path.join(tmp_dir, 'model'))
+
+            self.assertTrue(loaded.binary)
+            np.testing.assert_allclose(
+                self.model.predict(self.genomes),
+                loaded.predict(self.genomes)
+            )
+
+    def test_boolean_labels_train_the_same_model(self):
+        labels = read_labels('resource/labels_binary.csv', self.genomes)
+        booleans = {path: bool(label) for path, label in zip(self.genomes, labels)}
+
+        result = TrainingPipeline(data_dir="", label_file=booleans,
+                                  k=4, target=14, binary=True).train()
+
+        self.assertEqual('auroc', result.metric)
+        np.testing.assert_allclose(
+            self.model.predict(self.genomes),
+            result.model.predict(self.genomes)
+        )
+
+    def test_a_non_binary_label_is_rejected(self):
+        pipeline = TrainingPipeline(data_dir="resource/genomes/",
+                                    label_file="resource/labels.csv",
+                                    binary=True)
+
+        with self.assertRaises(ValueError) as caught:
+            pipeline.train()
+        self.assertIn('0/1 labels', str(caught.exception))
+
+
 class TestPGSEModel(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -98,6 +176,9 @@ class TestPGSEModel(unittest.TestCase):
             self.model.predict(self.genomes),
             self.model.predict_sequences(texts)
         )
+
+    def test_a_regression_model_records_that_it_is_not_binary(self):
+        self.assertFalse(self.model.binary)
 
     def test_counts_are_one_row_per_sequence(self):
         counts = self.model.count(files=self.genomes)

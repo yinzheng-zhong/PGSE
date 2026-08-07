@@ -30,10 +30,12 @@ class XGBoost:
             num_cpu_per_node: int = 8,
             custom_metric: Optional[Metric] = None,
             early_stopping_rounds: int = 20,
-            device: str = 'cpu'
+            device: str = 'cpu',
+            binary: bool = False
     ):
         """
-        Initialize XGBoost model with parameters
+        Initialize XGBoost model with parameters. `binary` trains a 0/1 classifier
+        (`binary:logistic`) whose predictions are probabilities, instead of a regressor.
         """
         self.boost_rounds = boost_rounds
         self.max_depth = max_depth
@@ -44,6 +46,7 @@ class XGBoost:
         self.num_cpu_per_node = num_cpu_per_node
         self.custom_metric = custom_metric
         self.early_stopping_rounds = early_stopping_rounds
+        self.binary = binary
 
         # num_cpu_per_node is the whole Ray pool (the --workers value). When we
         # partition, cap each partition to a small fixed number of cores so many
@@ -55,7 +58,8 @@ class XGBoost:
         )
 
         self.params = {
-            'objective': 'reg:squarederror',
+            'objective': 'binary:logistic' if binary else 'reg:squarederror',
+            'eval_metric': 'logloss' if binary else 'rmse',
             'max_depth': max_depth,
             'tree_method': 'hist',
             'device': device,

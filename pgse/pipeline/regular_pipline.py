@@ -9,7 +9,7 @@ from pgse.model.model_trainer import ModelTrainer
 from pgse.dataset.file_label import FileLabel
 from pgse.dataset.loader import Loader
 from pgse.segment import seg_pool
-from pgse.validation import Metric
+from pgse.validation import Metric, check_binary_labels
 
 
 class Pipeline:
@@ -33,7 +33,8 @@ class Pipeline:
             alphabet: AlphabetArg = None,
             case_sensitive: bool = False,
             complement: ComplementArg = AUTO,
-            metric: str = Metric.DEFAULT
+            metric: Optional[str] = None,
+            binary: bool = False
     ) -> None:
         # Install the alphabet first: everything downstream reads it.
         self.alphabet: Alphabet = set_alphabet(alphabet, case_sensitive=case_sensitive, complement=complement)
@@ -54,7 +55,8 @@ class Pipeline:
         self.nodes = nodes
         self.workers = workers
         self.device = device
-        self.metric = metric
+        self.binary = binary
+        self.metric = metric or Metric.default_for(binary)
 
         self.file_label = FileLabel(self.label_file, self.data_dir, self.pre_kfold_info_file)
 
@@ -75,6 +77,9 @@ class Pipeline:
                 nodes=self.nodes
             )
 
+            if self.binary:
+                check_binary_labels(loader.train_labels, loader.test_labels)
+
             model_trainer = ModelTrainer(
                 loader,
                 self.num_rounds,
@@ -83,7 +88,8 @@ class Pipeline:
                 ea_min=self.ea_min,
                 ea_max=self.ea_max,
                 device=self.device,
-                metric=self.metric
+                metric=self.metric,
+                binary=self.binary
             )
 
             # Load k-mer dataset

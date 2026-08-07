@@ -16,7 +16,7 @@ from pgse.result.segment_importance import SegmentImportance
 from pgse.result.training_result import TrainingResult
 from pgse.segment.extender import Extender
 from pgse.segment import seg_pool
-from pgse.validation import Metric
+from pgse.validation import Metric, check_binary_labels
 
 
 class Pipeline:
@@ -46,7 +46,8 @@ class Pipeline:
             uint16: bool = False,
             sparse: bool = False,
             partition_size_target: int = 5000,
-            metric: str = Metric.DEFAULT
+            metric: Optional[str] = None,
+            binary: bool = False
     ) -> None:
         """
         :param save_file: Where to store the segment pool between rounds so a run can be
@@ -70,7 +71,9 @@ class Pipeline:
             twice this. 0 or less trains a single partition over all features.
         :param metric: Name of the validation metric reported for the held-out fold. See
             ``pgse.validation.Metric.names()`` for the full list. Defaults to essential
-            agreement, which reads ea_min and ea_max.
+            agreement, which reads ea_min and ea_max, or to auroc in binary mode.
+        :param binary: Train a 0/1 classifier (``binary:logistic``) instead of a regressor.
+            Every label has to be 0 or 1, and a prediction is the probability of the 1.
         """
         # Install the alphabet first: everything downstream reads it, including the
         # segment extender and the Ray workers.
@@ -98,7 +101,8 @@ class Pipeline:
         self.count_dtype = np.uint16 if uint16 else np.float32
         self.sparse = sparse
         self.partition_size_target = partition_size_target
-        self.metric = metric
+        self.binary = binary
+        self.metric = metric or Metric.default_for(binary)
 
         self.file_label = FileLabel(self.label_file, self.data_dir, self.pre_kfold_info_file)
         self.extender = Extender()
@@ -140,6 +144,9 @@ class Pipeline:
                 nodes=self.nodes
             )
 
+            if self.binary:
+                check_binary_labels(loader.train_labels, loader.test_labels)
+
             self.model_trainer = ModelTrainer(
                 loader,
                 self.num_rounds,
@@ -150,7 +157,8 @@ class Pipeline:
                 self.ea_max,
                 device=self.device,
                 partition_size_target=self.partition_size_target,
-                metric=self.metric
+                metric=self.metric,
+                binary=self.binary
             )
 
             train_kmer, test_kmer, train_labels, test_labels = self.progress_manager.load_round_progress(loader)
@@ -192,7 +200,8 @@ class Pipeline:
                 self.alphabet,
                 count_dtype=self.count_dtype,
                 sparse=self.sparse,
-                workers=self.workers
+                workers=self.workers,
+                binary=self.binary
             )
             score = validation_metric.score(fold_results['Actual'], fold_results['Prediction'])
             logger.info(f'Fold {i + 1} {validation_metric.name}: {score}')

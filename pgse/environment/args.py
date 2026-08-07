@@ -50,8 +50,12 @@ def get_parser() -> argparse.ArgumentParser:
                         help="Maximum value of MIC (>)")
     parser.add_argument('--ea-min', type=float, default=None,
                         help="Minimum value of MIC (<)")
-    parser.add_argument('--metric', type=str, default=Metric.DEFAULT, choices=Metric.names(),
-                        help="Validation metric reported for the held-out fold. "
+    parser.add_argument('--binary', type=int, default=0,
+                        help="Flag to predict a 0/1 label instead of a continuous value. Every "
+                             "label must be 0 or 1, and a prediction is the probability of the 1.")
+    parser.add_argument('--metric', type=str, default=None, choices=Metric.names(),
+                        help=f"Validation metric reported for the held-out fold. Defaults to "
+                             f"{Metric.DEFAULT}, or to {Metric.BINARY_DEFAULT} with --binary 1. "
                              f"{Metric.describe()} "
                              "essential_agreement additionally reads --ea-min and --ea-max.")
     parser.add_argument('--num-rounds', type=int, default=1500,
