@@ -1,12 +1,13 @@
-from typing import Iterable, Iterator, Optional, Union
+from typing import Iterator, Optional
 
 import numpy as np
-import scipy.sparse as sp
+import numpy.typing as npt
 
 from pgse.dataset.file_label import FileLabel
 from tqdm import tqdm
 
 from pgse.dataset.alphabet import Alphabet, get_alphabet, set_alphabet
+from pgse.dataset.counts import Dataset, assemble_counts
 from pgse.genome import seq_manager
 from pgse.log import logger
 from pgse.genome.sequence import Sequence
@@ -14,12 +15,6 @@ import ray
 from pgse.algos import native_counter
 from pgse.segment import seg_pool
 from pgse.segment.segment_pool import SegmentPool
-
-# The count matrix can be stored either densely (default, np.float32) or as a
-# uint16 array to halve the footprint.
-UINT16_MAX = int(np.iinfo(np.uint16).max)
-
-Dataset = Union[np.ndarray, sp.csr_matrix]
 
 
 def _row_stream(tasks: list) -> Iterator[np.ndarray]:
@@ -31,58 +26,13 @@ def _row_stream(tasks: list) -> Iterator[np.ndarray]:
         yield np.asarray(ray.get(task))
 
 
-def assemble_counts(
-        rows: Iterable[np.ndarray],
-        n_rows: int,
-        n_cols: int,
-        dtype: np.dtype,
-        sparse: bool,
-        desc: str,
-) -> Dataset:
-    """
-    Build the (n_rows x n_cols) segment-count matrix from per-sample count rows.
-
-    :param rows: iterable yielding one count row (array-like, length n_cols) per
-        sample, in order.
-    :param dtype: storage dtype for the counts (np.float32 or np.uint16).
-    :param sparse: if True, return a scipy CSR matrix instead of a dense ndarray.
-    """
-    if sparse:
-        # Build CSR arrays directly; only one dense row is materialised at a time.
-        indptr = np.empty(n_rows + 1, dtype=np.int64)
-        indptr[0] = 0
-        indices_chunks: list[np.ndarray] = []
-        data_chunks: list[np.ndarray] = []
-        for i, row in enumerate(tqdm(rows, total=n_rows, desc=desc)):
-            nz = np.flatnonzero(row)
-            vals = row[nz]
-            if dtype == np.uint16:
-                vals = np.minimum(vals, UINT16_MAX)
-            indices_chunks.append(nz.astype(np.int32, copy=False))
-            data_chunks.append(vals.astype(dtype, copy=False))
-            indptr[i + 1] = indptr[i] + nz.size
-
-        indices = np.concatenate(indices_chunks) if indices_chunks else np.zeros(0, np.int32)
-        data = np.concatenate(data_chunks) if data_chunks else np.zeros(0, dtype)
-        return sp.csr_matrix((data, indices, indptr), shape=(n_rows, n_cols), dtype=dtype)
-
-    # Dense path: preallocate once and fill row by row, so the list of per-sample
-    # arrays and a second full copy are never held simultaneously.
-    out = np.empty((n_rows, n_cols), dtype=dtype)
-    for i, row in enumerate(tqdm(rows, total=n_rows, desc=desc)):
-        if dtype == np.uint16:
-            row = np.minimum(row, UINT16_MAX)
-        out[i] = row
-    return out
-
-
 class Loader:
     def __init__(
             self,
             file_label: Optional[FileLabel],
             folds: int = 0,
             fold_index: int = 0,
-            count_dtype: np.dtype = np.float32,
+            count_dtype: npt.DTypeLike = np.float32,
             sparse: bool = False,
             workers: int = 8,
             dist: bool = False,
@@ -93,7 +43,7 @@ class Loader:
         self.folds: int = folds
         self.fold_index: int = fold_index
         # Storage format for the segment-count matrix. See assemble_counts.
-        self.count_dtype: np.dtype = count_dtype
+        self.count_dtype: npt.DTypeLike = count_dtype
         self.sparse: bool = sparse
         # Parallelism for the native counting kernel: rayon threads per node, and how
         # many nodes to shard across when running distributed.

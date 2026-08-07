@@ -103,23 +103,28 @@ pgse <- function(x,
                                            workers = workers)
   pipe_out <- pipeline$train()
 
-  pgse_models <- Map(\(m, s) {
+  pgse_models <- lapply(pipe_out$folds, \(fold) {
     tmp_model <- tempfile(fileext = ".json")
-    m$save_model(tmp_model)
+    fold$model$booster$save_model(tmp_model)
     r_model <- xgboost::xgb.load(tmp_model)
-    pgse_model <- list(model = r_model, segments = s)
+    pgse_model <- list(model = r_model,
+                       segments = fold$segments$segments,
+                       importance = fold$segments$importances,
+                       score = fold$score)
     class(pgse_model) <- append(class(pgse_model), "pgse_model", after = 0)
     pgse_model
-  }, pipe_out$models, pipe_out$segments)
+  })
 
-  if (length(pipe_out$results) == 1) {
-    output <- list(result = pipe_out$results[[1]],
+  results <- lapply(pipe_out$folds, \(fold) fold$predictions)
+
+  if (length(results) == 1) {
+    output <- list(result = results[[1]],
                    model = pgse_models[[1]])
     class(output) <- append(class(output), "pgse_output_simple", after = 0)
     return(output)
   }
 
-  output <- list(results = pipe_out$results,
+  output <- list(results = results,
                  models = pgse_models)
   class(output) <- append(class(output), "pgse_output_cv", after = 0)
   return(output)

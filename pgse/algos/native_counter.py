@@ -13,6 +13,7 @@ here, saturating at ``UINT16_MAX`` for the ``uint16`` option.
 from typing import Iterable, List, Optional, Sequence as Seq, Tuple, Union
 
 import numpy as np
+import numpy.typing as npt
 import scipy.sparse as sp
 from tqdm import tqdm
 
@@ -86,7 +87,7 @@ def assemble_from_triplets(
         triplets: Iterable[Triplet],
         n_rows: int,
         n_cols: int,
-        dtype: np.dtype,
+        dtype: npt.DTypeLike,
         sparse: bool,
 ) -> Dataset:
     """
@@ -123,7 +124,7 @@ def count_matrix(
         matcher,
         sequences: Seq,
         n_cols: int,
-        dtype: np.dtype,
+        dtype: npt.DTypeLike,
         sparse: bool,
         threads: int,
         desc: str,

@@ -1,6 +1,5 @@
 from typing import Optional
 
-import ray
 from pgse.environment.ray_env import RayEnvManager
 from pgse.dataset.loader_inference import LoaderInference
 import numpy as np
@@ -83,6 +82,6 @@ class Pipeline:
         dtest = xgb.DMatrix(data)
         preds = self.model.predict(dtest)
 
-        ray.shutdown()
+        RayEnvManager.shutdown()
 
         return preds

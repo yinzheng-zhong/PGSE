@@ -1,5 +1,7 @@
 import json
 import os
+from typing import Optional
+
 import pandas as pd
 
 from pgse.log import logger
@@ -12,7 +14,7 @@ DEFAULT_FEATURES_PRINT_COUNT = 20
 class ProgressManager:
     def __init__(
             self,
-            save_file: str,
+            save_file: Optional[str],
             k: int,
             ext: int,
     ):
@@ -40,11 +42,18 @@ class ProgressManager:
 
     def load_round_progress(self, loader):
         """
-        Load progress from the save file for PGSE rounds.
+        Load progress from the save file for PGSE rounds. Starts from the k-mers when
+        there is no save file to read.
         """
-        try:
-            seg_pool.load(self.save_file)
-        except FileNotFoundError:
+        resumed = False
+        if self.save_file:
+            try:
+                seg_pool.load(self.save_file)
+                resumed = True
+            except FileNotFoundError:
+                pass
+
+        if not resumed:
             seg_pool.clear()
             seg_pool.add_all_kmer(self.k, self.ext)
 

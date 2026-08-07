@@ -1,6 +1,9 @@
 import logging
-import colorlog
 import os
+from typing import Optional
+
+import colorlog
+
 
 class Logger:
     LEVEL_MAP = {
@@ -10,34 +13,46 @@ class Logger:
         3: logging.DEBUG
     }
 
-    def __init__(self, name, verbosity=2):
+    def __init__(self, name: str, verbosity: int = 2, log_file: Optional[str] = None) -> None:
         """
         :param name: Name of the logger (typically __name__ or any string identifier).
         :param verbosity: Logging level (0=ERROR, 1=WARNING, 2=INFO, 3=DEBUG).
                           Defaults to 2 (INFO).
+        :param log_file: Path of a file to append the log to. Nothing is written to disk
+                         when it is left unset.
         """
         # Determine logging level from the provided verbosity
-        log_level = self.LEVEL_MAP.get(verbosity, logging.INFO)
+        self.level = self.LEVEL_MAP.get(verbosity, logging.INFO)
 
         # Create logger with specified name
         self.logger = colorlog.getLogger(name)
-        self.logger.setLevel(log_level)
+        self.logger.setLevel(self.level)
+        # Handlers are attached here, so the records must not also reach the root
+        # logger of the application that imported PGSE.
+        self.logger.propagate = False
 
         # Console handler with colored formatter
         console_handler = logging.StreamHandler()
-        console_handler.setLevel(log_level)
+        console_handler.setLevel(self.level)
         console_handler.setFormatter(colorlog.ColoredFormatter(
             "%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
         self.logger.addHandler(console_handler)
 
-        # Ensure the log directory exists
-        log_dir = './log/'
-        os.makedirs(log_dir, exist_ok=True)
+        if log_file:
+            self.add_file_handler(log_file)
 
-        # File handler that appends to the log file
-        log_file = os.path.join(log_dir, f"{name}.log")
+    def add_file_handler(self, log_file: str) -> None:
+        """
+        Also append the log to a file, creating its directory if needed.
+
+        :param log_file: Path of the file to append to.
+        """
+        directory = os.path.dirname(log_file)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+
         file_handler = logging.FileHandler(log_file, mode='a')
-        file_handler.setLevel(log_level)
+        file_handler.setLevel(self.level)
         file_handler.setFormatter(logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
         self.logger.addHandler(file_handler)

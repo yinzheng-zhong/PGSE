@@ -9,6 +9,9 @@ def train():
     parser = get_parser()
     args = parser.parse_args()
 
+    if args.log_file:
+        logger.add_file_handler(args.log_file)
+
     pipeline = TrainingPipeline(
         args.data_dir,
         args.label_file,
@@ -42,6 +45,9 @@ def predict():
     import pandas as pd
     parser = get_parser()
     args = parser.parse_args()
+
+    if args.log_file:
+        logger.add_file_handler(args.log_file)
 
     if args.model_file is None:
         raise ValueError("Model file must be specified for prediction.")

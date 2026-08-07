@@ -1,7 +1,6 @@
 from typing import Optional
 
 import pandas as pd
-import ray
 
 from pgse.environment.ray_env import RayEnvManager
 from pgse.dataset.alphabet import AUTO, Alphabet, AlphabetArg, ComplementArg, set_alphabet
@@ -109,4 +108,4 @@ class Pipeline:
 
         # Export final results and shutdown Ray
         accumulated_results.to_csv(f'{self.export_file}_regular_xgboost.csv', index=False)
-        ray.shutdown()
+        RayEnvManager.shutdown()
