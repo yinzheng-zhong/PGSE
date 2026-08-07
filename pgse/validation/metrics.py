@@ -9,11 +9,16 @@ import numpy as np
 from pgse.validation.utils import (
     ArrayLike,
     as_array,
+    average_precision,
+    binary_counts,
+    clip_probabilities,
     confusion,
     discretise,
     is_essential_agreement,
+    is_positive,
     labels_of,
     rank_average,
+    roc_auc,
 )
 
 
@@ -26,9 +31,10 @@ class Metric:
     """
 
     DEFAULT = 'essential_agreement'
+    BINARY_DEFAULT = 'auroc'
 
     # Error metrics, where a smaller score is the better one.
-    LOWER_IS_BETTER = frozenset({'rmse', 'mae', 'mape'})
+    LOWER_IS_BETTER = frozenset({'rmse', 'mae', 'mape', 'log_loss'})
 
     def __init__(self, name: str, **params: Any) -> None:
         """
@@ -53,6 +59,15 @@ class Metric:
     def greater_is_better(self) -> bool:
         """Whether a larger score means a better model."""
         return self.name not in self.LOWER_IS_BETTER
+
+    @classmethod
+    def default_for(cls, binary: bool) -> str:
+        """The metric a run scores with when none was chosen.
+
+        Args:
+            binary: Whether the run predicts a 0/1 label.
+        """
+        return cls.BINARY_DEFAULT if binary else cls.DEFAULT
 
     @classmethod
     def names(cls) -> list[str]:
@@ -203,6 +218,100 @@ class Metric:
         if spread <= 0.0:
             return 0.0
         return covariance / math.sqrt(spread)
+
+    @staticmethod
+    def auroc(y_true: ArrayLike, y_pred: ArrayLike) -> float:
+        """Area under the ROC curve, the chance a positive outranks a negative.
+
+        Args:
+            y_true: True 0/1 labels.
+            y_pred: Predicted probabilities of the positive class.
+        """
+        return roc_auc(y_true, y_pred)
+
+    @staticmethod
+    def auprc(y_true: ArrayLike, y_pred: ArrayLike) -> float:
+        """Area under the precision-recall curve, which ignores the true negatives.
+
+        Args:
+            y_true: True 0/1 labels.
+            y_pred: Predicted probabilities of the positive class.
+        """
+        return average_precision(y_true, y_pred)
+
+    @staticmethod
+    def precision(y_true: ArrayLike, y_pred: ArrayLike) -> float:
+        """Fraction of the predicted positives that are positive.
+
+        Args:
+            y_true: True 0/1 labels.
+            y_pred: Predicted probabilities of the positive class, split at 0.5.
+        """
+        true_positive, false_positive, _, _ = binary_counts(y_true, y_pred)
+        predicted = true_positive + false_positive
+        return true_positive / predicted if predicted else float('nan')
+
+    @staticmethod
+    def recall(y_true: ArrayLike, y_pred: ArrayLike) -> float:
+        """Fraction of the positives that are predicted positive, i.e. sensitivity.
+
+        Args:
+            y_true: True 0/1 labels.
+            y_pred: Predicted probabilities of the positive class, split at 0.5.
+        """
+        true_positive, _, _, false_negative = binary_counts(y_true, y_pred)
+        positives = true_positive + false_negative
+        return true_positive / positives if positives else float('nan')
+
+    @staticmethod
+    def specificity(y_true: ArrayLike, y_pred: ArrayLike) -> float:
+        """Fraction of the negatives that are predicted negative.
+
+        Args:
+            y_true: True 0/1 labels.
+            y_pred: Predicted probabilities of the positive class, split at 0.5.
+        """
+        _, false_positive, true_negative, _ = binary_counts(y_true, y_pred)
+        negatives = true_negative + false_positive
+        return true_negative / negatives if negatives else float('nan')
+
+    @staticmethod
+    def f1(y_true: ArrayLike, y_pred: ArrayLike) -> float:
+        """Harmonic mean of precision and recall.
+
+        Args:
+            y_true: True 0/1 labels.
+            y_pred: Predicted probabilities of the positive class, split at 0.5.
+        """
+        true_positive, false_positive, _, false_negative = binary_counts(y_true, y_pred)
+        total = 2.0 * true_positive + false_positive + false_negative
+        return 2.0 * true_positive / total if total else float('nan')
+
+    @staticmethod
+    def balanced_accuracy(y_true: ArrayLike, y_pred: ArrayLike) -> float:
+        """Mean of recall and specificity, unaffected by class imbalance.
+
+        Args:
+            y_true: True 0/1 labels.
+            y_pred: Predicted probabilities of the positive class, split at 0.5.
+        """
+        true_positive, false_positive, true_negative, false_negative = binary_counts(y_true, y_pred)
+        positives, negatives = true_positive + false_negative, true_negative + false_positive
+        if not positives or not negatives:
+            return float('nan')
+        return (true_positive / positives + true_negative / negatives) / 2.0
+
+    @staticmethod
+    def log_loss(y_true: ArrayLike, y_pred: ArrayLike) -> float:
+        """Mean negative log likelihood of the labels, scoring the probabilities themselves.
+
+        Args:
+            y_true: True 0/1 labels.
+            y_pred: Predicted probabilities of the positive class.
+        """
+        true = is_positive(y_true).astype(np.float64)
+        pred = clip_probabilities(y_pred)
+        return float(-np.mean(true * np.log(pred) + (1.0 - true) * np.log(1.0 - pred)))
 
     @staticmethod
     def essential_agreement(

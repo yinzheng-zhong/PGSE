@@ -36,7 +36,8 @@ class PGSEModel:
             alphabet: Alphabet,
             count_dtype: npt.DTypeLike = np.float32,
             sparse: bool = False,
-            workers: int = 8
+            workers: int = 8,
+            binary: bool = False
     ) -> None:
         """
         Args:
@@ -46,6 +47,8 @@ class PGSEModel:
             count_dtype: Storage dtype of the count matrix (np.float32 or np.uint16).
             sparse: Store the count matrix as a sparse CSR matrix.
             workers: Threads used for counting and prediction.
+            binary: The booster is a 0/1 classifier, so a prediction is the probability
+                of the 1.
         """
         self.booster: xgb.Booster = booster
         self.segments: SegmentImportance = segments
@@ -53,13 +56,15 @@ class PGSEModel:
         self.count_dtype: npt.DTypeLike = count_dtype
         self.sparse: bool = sparse
         self.workers: int = workers
+        self.binary: bool = binary
 
         self.counter: SegmentCounter = SegmentCounter(
             segments.segments, alphabet, count_dtype=count_dtype, sparse=sparse, threads=workers
         )
 
     def __repr__(self) -> str:
-        return f'PGSEModel({len(self.segments)} segments, {self.alphabet})'
+        target = 'binary' if self.binary else 'regression'
+        return f'PGSEModel({len(self.segments)} segments, {target}, {self.alphabet})'
 
     def predict(self, files: list[str]) -> np.ndarray:
         """Predict a value for each sequence file.
@@ -102,6 +107,7 @@ class PGSEModel:
             'alphabet': alphabet_to_dict(self.alphabet),
             'count_dtype': np.dtype(self.count_dtype).name,
             'sparse': self.sparse,
+            'binary': self.binary,
         }
 
     def save(self, path: str) -> list[str]:
@@ -144,14 +150,20 @@ class PGSEModel:
             alphabet = alphabet_from_dict(metadata['alphabet'])
             count_dtype = np.dtype(metadata.get('count_dtype', 'float32')).type
             sparse = bool(metadata.get('sparse', False))
+            binary = bool(metadata.get('binary', False))
         else:
             logger.warning(
-                f'{metadata_path} is missing, so the default DNA alphabet and dense float32 '
-                f'counts are assumed. Rebuild the model with save to record them.'
+                f'{metadata_path} is missing, so the default DNA alphabet, dense float32 '
+                f'counts and a regression target are assumed. Rebuild the model with save '
+                f'to record them.'
             )
             alphabet, count_dtype, sparse = Alphabet(), np.float32, False
+            binary = False
 
-        return cls(booster, segments, alphabet, count_dtype=count_dtype, sparse=sparse, workers=workers)
+        return cls(
+            booster, segments, alphabet,
+            count_dtype=count_dtype, sparse=sparse, workers=workers, binary=binary
+        )
 
     @classmethod
     def _paths(cls, path: str) -> tuple[str, str, str]:

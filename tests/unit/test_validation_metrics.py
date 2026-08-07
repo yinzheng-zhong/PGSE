@@ -3,8 +3,9 @@ import unittest
 from typing import Optional, Union
 
 import numpy as np
+from sklearn import metrics as sklearn_metrics
 
-from pgse.validation import Metric, is_essential_agreement
+from pgse.validation import Metric, check_binary_labels, is_essential_agreement
 
 
 def reference_essential_agreement(
@@ -171,6 +172,122 @@ class TestClassificationMetrics(unittest.TestCase):
 
     def test_mcc_is_zero_for_a_constant_prediction(self):
         self.assertAlmostEqual(0.0, Metric('mcc').score([0, 1, 0, 1], [0.0, 0.0, 0.0, 0.0]))
+
+
+class TestBinaryMetrics(unittest.TestCase):
+    def setUp(self) -> None:
+        rng = np.random.default_rng(7)
+        self.y_true = rng.integers(0, 2, size=300).astype(float)
+        # Probabilities that follow the label loosely, so no metric is degenerate.
+        self.y_pred = np.clip(self.y_true * 0.4 + rng.uniform(0.0, 0.6, size=300), 0.0, 1.0)
+
+    def test_auroc_matches_sklearn(self):
+        expected = sklearn_metrics.roc_auc_score(self.y_true, self.y_pred)
+        self.assertAlmostEqual(expected, Metric('auroc').score(self.y_true, self.y_pred))
+
+    def test_auroc_handles_tied_scores(self):
+        tied = np.round(self.y_pred, 1)
+        expected = sklearn_metrics.roc_auc_score(self.y_true, tied)
+        self.assertAlmostEqual(expected, Metric('auroc').score(self.y_true, tied))
+
+    def test_auroc_of_a_perfect_ranking(self):
+        self.assertAlmostEqual(1.0, Metric('auroc').score([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9]))
+
+    def test_auroc_of_an_inverted_ranking(self):
+        self.assertAlmostEqual(0.0, Metric('auroc').score([0, 0, 1, 1], [0.9, 0.8, 0.2, 0.1]))
+
+    def test_auroc_of_a_constant_prediction(self):
+        self.assertAlmostEqual(0.5, Metric('auroc').score([0, 1, 0, 1], [0.5, 0.5, 0.5, 0.5]))
+
+    def test_auroc_is_nan_for_a_single_class(self):
+        self.assertTrue(math.isnan(Metric('auroc').score([1, 1, 1], [0.2, 0.6, 0.9])))
+
+    def test_auprc_matches_sklearn(self):
+        expected = sklearn_metrics.average_precision_score(self.y_true, self.y_pred)
+        self.assertAlmostEqual(expected, Metric('auprc').score(self.y_true, self.y_pred))
+
+    def test_auprc_handles_tied_scores(self):
+        tied = np.round(self.y_pred, 1)
+        expected = sklearn_metrics.average_precision_score(self.y_true, tied)
+        self.assertAlmostEqual(expected, Metric('auprc').score(self.y_true, tied))
+
+    def test_auprc_is_nan_without_a_positive(self):
+        self.assertTrue(math.isnan(Metric('auprc').score([0, 0, 0], [0.2, 0.6, 0.9])))
+
+    def test_precision_recall_and_f1_match_sklearn(self):
+        cut = (self.y_pred >= 0.5).astype(int)
+        for name, reference in [
+            ('precision', sklearn_metrics.precision_score),
+            ('recall', sklearn_metrics.recall_score),
+            ('f1', sklearn_metrics.f1_score),
+        ]:
+            with self.subTest(metric=name):
+                self.assertAlmostEqual(
+                    reference(self.y_true, cut),
+                    Metric(name).score(self.y_true, self.y_pred)
+                )
+
+    def test_balanced_accuracy_matches_sklearn(self):
+        expected = sklearn_metrics.balanced_accuracy_score(self.y_true, (self.y_pred >= 0.5).astype(int))
+        self.assertAlmostEqual(expected, Metric('balanced_accuracy').score(self.y_true, self.y_pred))
+
+    def test_log_loss_matches_sklearn(self):
+        expected = sklearn_metrics.log_loss(self.y_true, self.y_pred)
+        self.assertAlmostEqual(expected, Metric('log_loss').score(self.y_true, self.y_pred))
+
+    def test_log_loss_stays_finite_at_a_confident_mistake(self):
+        self.assertTrue(math.isfinite(Metric('log_loss').score([1.0, 0.0], [0.0, 1.0])))
+
+    def test_specificity_counts_the_true_negatives(self):
+        self.assertAlmostEqual(0.5, Metric('specificity').score([0, 0, 1, 1], [0.1, 0.9, 0.9, 0.9]))
+
+    def test_the_decision_metrics_split_the_probabilities_at_half(self):
+        self.assertAlmostEqual(0.5, Metric('recall').score([0.0, 1.0, 1.0], [0.2, 0.49, 0.5]))
+
+    def test_boolean_labels_score_the_same_as_zeros_and_ones(self):
+        self.assertEqual(
+            Metric('auroc').score(self.y_true, self.y_pred),
+            Metric('auroc').score(self.y_true.astype(bool), self.y_pred)
+        )
+        self.assertEqual(
+            Metric('f1').score(self.y_true, self.y_pred),
+            Metric('f1').score(self.y_true.astype(bool), self.y_pred)
+        )
+
+    def test_log_loss_is_the_only_new_metric_where_smaller_wins(self):
+        self.assertFalse(Metric('log_loss').greater_is_better)
+        for name in ['auroc', 'auprc', 'precision', 'recall', 'specificity', 'f1',
+                     'balanced_accuracy']:
+            with self.subTest(metric=name):
+                self.assertTrue(Metric(name).greater_is_better)
+
+
+class TestBinaryDefaults(unittest.TestCase):
+    def test_a_binary_run_defaults_to_auroc(self):
+        self.assertEqual('auroc', Metric.default_for(True))
+        self.assertIn(Metric.BINARY_DEFAULT, Metric.names())
+
+    def test_a_regression_run_keeps_the_old_default(self):
+        self.assertEqual(Metric.DEFAULT, Metric.default_for(False))
+
+
+class TestBinaryLabelCheck(unittest.TestCase):
+    def test_zero_one_labels_pass(self):
+        check_binary_labels(np.array([0.0, 1.0, 1.0]), np.array([0.0]))
+
+    def test_boolean_labels_pass(self):
+        check_binary_labels(np.array([True, False, True]))
+
+    def test_a_missing_set_is_skipped(self):
+        check_binary_labels(np.array([0.0, 1.0]), None)
+
+    def test_no_labels_at_all_pass(self):
+        check_binary_labels(None, None)
+
+    def test_other_labels_are_reported(self):
+        with self.assertRaises(ValueError) as caught:
+            check_binary_labels(np.array([0.0, 1.0, 4.0]))
+        self.assertIn('4.0', str(caught.exception))
 
 
 class TestEssentialAgreement(unittest.TestCase):

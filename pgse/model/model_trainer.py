@@ -25,7 +25,8 @@ class ModelTrainer:
             ea_max: Optional[float] = None,
             device: str = 'cpu',
             partition_size_target: int = 5000,
-            metric: str = Metric.DEFAULT
+            metric: Optional[str] = None,
+            binary: bool = False
     ) -> None:
         self.loader = loader
         self.num_rounds = num_rounds
@@ -36,7 +37,8 @@ class ModelTrainer:
         self.ea_max = ea_max
         self.device = device
         self.partition_size_target = partition_size_target
-        self.metric = metric
+        self.binary = binary
+        self.metric = metric or Metric.default_for(binary)
 
     def run_xgboost(
             self,
@@ -55,7 +57,8 @@ class ModelTrainer:
             base_learning_rate=self.lr,
             custom_metric=custom_metric,
             early_stopping_rounds=20,
-            device=self.device
+            device=self.device,
+            binary=self.binary
         )
         return xgb.run(train_kmer, test_kmer, train_labels, test_labels)
 
@@ -65,6 +68,13 @@ class ModelTrainer:
 
         # Select top features
         index = list(map(int, importance_df['Feature'].values))[:self.features]
+        if not index:
+            logger.warning(
+                'XGBoost split on no feature, so every segment is kept for this round. '
+                'The samples are too few or too uniform for the trees to grow.'
+            )
+            return
+
         seg_pool.use_subset(index)
         seg_pool.redundant_elimination(range(len(index)))
 

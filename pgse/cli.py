@@ -37,7 +37,8 @@ def train():
         uint16=bool(args.uint16),
         sparse=bool(args.sparse),
         partition_size_target=args.partition_size_target,
-        metric=args.metric
+        metric=args.metric,
+        binary=bool(args.binary)
     )
     pipeline.run()
 
