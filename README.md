@@ -119,6 +119,10 @@ for fold in result.folds:
     print(fold.index, fold.score, len(fold.segments))
 ```
 
+`data_dir` and `label_file` read one sequence file per sample. To train from the rows of a
+single CSV instead — one column holding the text, another the label — pass `table_file` and
+`data_column`; see [Table mode](#table-mode).
+
 A model carries its own segments, alphabet and count settings, so nothing has to be
 passed alongside it and several models can be held at once. Predicting uses neither Ray
 nor any global state. Saving is explicit, and everything needed to reload is written:
@@ -186,6 +190,13 @@ pgse-train \
     The labels are the target values for the prediction task. The files are the file names (.fna files under `--data-dir`) containing the genome sequences.
 * `--data-dir` (Required): path to the data directory containing the .fna files. PGSE will be able to retrieve the genome sequences using this path and the
 file names in the label file.
+* `--table-file`: path to a CSV file holding one sample per row. It replaces `--label-file` and
+`--data-dir`: the sequences are read from a column of this file rather than from one file per
+sample. See [Table mode](#table-mode) below.
+* `--data-column`: name of the column of `--table-file` holding the sequence of each sample.
+Required in table mode.
+* `--label-column`: name of the column of `--table-file` holding the label of each sample
+(default `labels`).
 * `--pre-kfold-info-file`: path to the predefined k-fold info JSON file.
 This is not required but will be useful if you want to compare PGSE with other systems. Without
 this, PGSE will split the data into k folds randomly using a fixed seed. E.g.
@@ -315,6 +326,78 @@ Inference has to use the same alphabet as training, since the exported segments 
 it. Pass the same `--alphabet`, `--case-sensitive` and `--complement` values to `pgse-predict`;
 if the segments do not fit the alphabet, PGSE fails with an error rather than predicting on
 all-zero counts.
+
+#### Table mode
+
+For short text strings, **Table mode** reads them from a single
+CSV instead: one row per sample, one column holding the sequence and another holding the label.
+
+```text
+| Compound_ID   | SMILES                           | active |
+| ------------- | -------------------------------- | ------ |
+| BRD-K28024289 | Nc1nnc(o1)-c1ccc(o1)[N+](=O)[O-] | TRUE   |
+| BRD-K00556640 | O[C@H]1COC[C@@H]2O[C@H](CC...    | FALSE  |
+```
+
+```bash
+pgse-train \
+        --table-file "../<path_to>/<your_data>.csv" \
+        --data-column "SMILES" \
+        --label-column "active" \
+        --alphabet "#()+-./0123456789=@BCFHINOPS[\]blnorsuc" \
+        --case-sensitive 1 \
+        --binary 1 \
+        --sparse 1 \
+        --k 2 \
+        --target 8
+```
+
+`--table-file` replaces `--label-file` and `--data-dir`, which are not read in table mode, and any
+column other than the two named is ignored. Everything else — folds, alphabets, binary mode,
+metrics, feature selection, `--sparse` — behaves exactly as it does with one file per sample.
+
+The Python API takes the same three arguments, and `table_file` also accepts a DataFrame that is
+already in memory:
+
+```python
+import pandas as pd
+from pgse import TrainingPipeline
+
+frame = pd.read_csv('inhibition.csv')
+
+result = TrainingPipeline(
+    table_file=frame,
+    data_column='SMILES',
+    label_column='active',
+    # the characters the column is made of; see Alphabets above
+    alphabet=''.join(sorted(set(''.join(frame['SMILES'])))),
+    case_sensitive=True,
+    binary=True,
+    sparse=True,
+    k=2,
+    target=8,
+    folds=5,
+).train()
+```
+
+Labels can be numbers, numeric strings or booleans (`TRUE`/`FALSE` is read as 1/0). Rows whose
+sequence or label is empty are dropped with a warning, and a label that is not a number fails with
+an error naming the offending values.
+
+Prediction reads a table the same way. The exported CSV then holds the sequence column and the
+prediction rather than a file name:
+
+```bash
+pgse-predict \
+        --model-file "../<path_to_model>.json" \
+        --segments-file "../<path_to_segments>.csv" \
+        --table-file "../<new_compounds>.csv" \
+        --data-column "SMILES" \
+        --export-file "./predictions"
+```
+
+A table row carries its sequence with it, so the samples are read in process rather than through
+the one Ray task per file that reading genomes needs.
 
 #### Binary mode
 
@@ -546,6 +629,9 @@ pgse-predict \
 If the model was trained on a non-DNA alphabet, pass the same `--alphabet`, `--case-sensitive` and
 `--complement` values that were used for training. See [Alphabets](#alphabets). If training used
 `--sparse 1`, prediction must use it too — see [Reducing memory usage](#reducing-memory-usage).
+
+To score the rows of a CSV instead of a directory of files, pass `--table-file` and `--data-column`
+in place of `--data-dir`. See [Table mode](#table-mode).
 
 ### Logging
 

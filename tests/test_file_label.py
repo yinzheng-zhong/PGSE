@@ -7,6 +7,7 @@ from pgse.dataset.file_label import FileLabel
 
 
 class TestFileLabel(unittest.TestCase):
+    @patch('pgse.dataset.file_label.os.path.exists', new=lambda path: True)
     @patch('pgse.dataset.file_label.pd.read_csv')
     def setUp(self, mock_read_csv):
         mock_data = pd.DataFrame({
@@ -17,28 +18,30 @@ class TestFileLabel(unittest.TestCase):
         self.file_label = FileLabel('dummy_label_file.csv', '/dummy/data/dir/')
 
     def test_train_test_path_splits_no_kfold(self):
-        train_files, test_files, train_labels, test_labels = self.file_label.get_train_test_path()
+        train_files, test_files, train_labels, test_labels = self.file_label.get_train_test_split()
         self.assertEqual(len(train_files), 3)
         self.assertEqual(len(test_files), 1)
         self.assertEqual(len(train_labels), 3)
         self.assertEqual(len(test_labels), 1)
 
     def test_train_test_path_kfold(self):
-        train_files, test_files, train_labels, test_labels = self.file_label.get_train_test_path(num_folds=4, fold_index=0)
+        train_files, test_files, train_labels, test_labels = self.file_label.get_train_test_split(num_folds=4, fold_index=0)
         self.assertEqual(len(train_files), 3)
         self.assertEqual(len(test_files), 1)
         self.assertEqual(len(train_labels), 3)
         self.assertEqual(len(test_labels), 1)
-        train_files, test_files, train_labels, test_labels = self.file_label.get_train_test_path(num_folds=4, fold_index=2)
-        self.assertEqual(len(train_files), 3)
-        self.assertEqual(len(test_files), 1)
-        self.assertEqual(len(train_labels), 3)
-        self.assertEqual(len(test_labels), 1)
-
-    def test_stratify_disabled(self):
-        train_files, test_files, train_labels, test_labels = self.file_label.get_train_test_path(num_folds=2, fold_index=0)
+        train_files, test_files, train_labels, test_labels = self.file_label.get_train_test_split(num_folds=4, fold_index=2)
         self.assertEqual(len(train_files), 3)
         self.assertEqual(len(test_files), 1)
         self.assertEqual(len(train_labels), 3)
         self.assertEqual(len(test_labels), 1)
 
+    def test_two_fold_split(self):
+        train_files, test_files, train_labels, test_labels = self.file_label.get_train_test_split(num_folds=2, fold_index=0)
+        self.assertEqual(len(train_files), 2)
+        self.assertEqual(len(test_files), 2)
+        self.assertEqual(len(train_labels), 2)
+        self.assertEqual(len(test_labels), 2)
+
+    def test_files_are_not_inline(self):
+        self.assertFalse(self.file_label.inline)

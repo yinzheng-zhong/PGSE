@@ -8,8 +8,10 @@ from pgse.dataset.alphabet import AUTO, Alphabet, AlphabetArg, ComplementArg, se
 from pgse.log import logger
 from pgse.model.model_trainer import ModelTrainer
 from pgse.model.pgse_model import PGSEModel
-from pgse.dataset.file_label import FileLabel
 from pgse.dataset.loader import Loader
+from pgse.dataset.sample_source import SampleSource
+from pgse.dataset.source_factory import build_source
+from pgse.dataset.table_label import DEFAULT_LABEL_COLUMN, TableArg
 from pgse.pipeline.progress_manager import ProgressManager
 from pgse.result.fold_result import FoldResult
 from pgse.result.segment_importance import SegmentImportance
@@ -22,8 +24,8 @@ from pgse.validation import Metric, check_binary_labels
 class Pipeline:
     def __init__(
             self,
-            data_dir: str,
-            label_file: str | dict,
+            data_dir: Optional[str] = None,
+            label_file: Optional[str | dict] = None,
             pre_kfold_info_file: Optional[str] = None,
             save_file: Optional[str] = None,
             export_file: Optional[str] = None,
@@ -47,9 +49,16 @@ class Pipeline:
             sparse: bool = False,
             partition_size_target: int = 5000,
             metric: Optional[str] = None,
-            binary: bool = False
+            binary: bool = False,
+            table_file: Optional[TableArg] = None,
+            data_column: Optional[str] = None,
+            label_column: str = DEFAULT_LABEL_COLUMN
     ) -> None:
         """
+        :param data_dir: Directory holding one sequence file per sample. Read in file
+            mode, i.e. when table_file is not given.
+        :param label_file: CSV file, or dict, pairing each file under data_dir with its
+            label. Read in file mode.
         :param save_file: Where to store the segment pool between rounds so a run can be
             resumed. Nothing is written when it is left unset.
         :param export_file: Path prefix for the models, segments and results written after
@@ -74,6 +83,14 @@ class Pipeline:
             agreement, which reads ea_min and ea_max, or to auroc in binary mode.
         :param binary: Train a 0/1 classifier (``binary:logistic``) instead of a regressor.
             Every label has to be 0 or 1, and a prediction is the probability of the 1.
+        :param table_file: CSV file, or DataFrame, holding one sample per row. Setting it
+            switches the run to table mode: the sequences are read from data_column of
+            the table instead of from the files under data_dir, and data_dir, label_file
+            and pre_kfold_info_file are left unread.
+        :param data_column: Name of the column holding the sequence of each sample.
+            Required in table mode.
+        :param label_column: Name of the column holding the label of each sample. Read in
+            table mode.
         """
         # Install the alphabet first: everything downstream reads it, including the
         # segment extender and the Ray workers.
@@ -83,6 +100,9 @@ class Pipeline:
         self.data_dir = data_dir
         self.label_file = label_file
         self.pre_kfold_info_file = pre_kfold_info_file
+        self.table_file = table_file
+        self.data_column = data_column
+        self.label_column = label_column
         self.save_file = save_file
         self.export_file = export_file
         self.k = k
@@ -104,7 +124,9 @@ class Pipeline:
         self.binary = binary
         self.metric = metric or Metric.default_for(binary)
 
-        self.file_label = FileLabel(self.label_file, self.data_dir, self.pre_kfold_info_file)
+        self.source: SampleSource = build_source(
+            data_dir, label_file, pre_kfold_info_file, table_file, data_column, label_column
+        )
         self.extender = Extender()
         self.progress_manager = ProgressManager(self.save_file, self.k, self.ext)
         self.model_trainer = None
@@ -134,7 +156,7 @@ class Pipeline:
         for i in range(start_fold, self.folds if self.folds > 0 else 1):
             logger.info(f'==================== Fold {i + 1} ====================')
             loader = Loader(
-                self.file_label,
+                self.source,
                 folds=self.folds,
                 fold_index=i,
                 count_dtype=self.count_dtype,

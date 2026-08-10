@@ -4,6 +4,9 @@ from pgse.environment.args import get_parser
 from pgse import TrainingPipeline, InferencePipeline
 from pgse.log import logger
 
+SEQUENCE_SUFFIXES = ('.fna', '.fasta')
+MAX_LOGGED_PREDICTIONS = 20
+
 
 def train():
     parser = get_parser()
@@ -38,7 +41,10 @@ def train():
         sparse=bool(args.sparse),
         partition_size_target=args.partition_size_target,
         metric=args.metric,
-        binary=bool(args.binary)
+        binary=bool(args.binary),
+        table_file=args.table_file,
+        data_column=args.data_column,
+        label_column=args.label_column
     )
     pipeline.run()
 
@@ -55,11 +61,6 @@ def predict():
     if args.segments_file is None:
         raise ValueError("Segments file must be specified for prediction.")
 
-    input_dir = args.data_dir
-
-    # discover the list of files in the input directory
-    input_files = [os.path.join(input_dir, f) for f in os.listdir(input_dir) if f.endswith('.fna') or f.endswith('.fasta')]
-
     pipeline = InferencePipeline(
         args.model_file,
         args.segments_file,
@@ -70,16 +71,22 @@ def predict():
         uint16=bool(args.uint16),
         sparse=bool(args.sparse)
     )
-    results = pipeline.run(input_files)
 
-    # format the results for printing
-    formatted_results = []
-    for file, result in zip(input_files, results):
-        formatted_results.append(f"File: {file}, Prediction: {result}")
+    if args.table_file:
+        if not args.data_column:
+            raise ValueError("--data-column must be specified alongside --table-file.")
+        inputs = pd.read_csv(args.table_file)[args.data_column].astype(str).tolist()
+        results = pipeline.run(sequences=inputs)
+        input_column = args.data_column
+    else:
+        inputs = [
+            os.path.join(args.data_dir, f)
+            for f in os.listdir(args.data_dir) if f.endswith(SEQUENCE_SUFFIXES)
+        ]
+        results = pipeline.run(files=inputs)
+        input_column = 'file'
 
-    logger.info(
-        "\n".join(formatted_results)
-    )
+    _log_predictions(inputs, results)
 
     # save a csv file with the results
     output_file = args.export_file
@@ -90,8 +97,26 @@ def predict():
         output_file += '.csv'
 
     df = pd.DataFrame({
-        'file': input_files,
+        input_column: inputs,
         'prediction': results
     })
 
     df.to_csv(output_file, index=False)
+
+
+def _log_predictions(inputs: list[str], results) -> None:
+    """Log the first predictions, and how many more there are.
+
+    Args:
+        inputs: The file paths, or the sequences, that were scored.
+        results: The prediction of each input, in the same order.
+    """
+    formatted_results = [
+        f"Input: {sample}, Prediction: {result}"
+        for sample, result in zip(inputs[:MAX_LOGGED_PREDICTIONS], results[:MAX_LOGGED_PREDICTIONS])
+    ]
+
+    if len(inputs) > MAX_LOGGED_PREDICTIONS:
+        formatted_results.append(f"... and {len(inputs) - MAX_LOGGED_PREDICTIONS} more")
+
+    logger.info("\n".join(formatted_results))

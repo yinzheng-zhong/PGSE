@@ -1,4 +1,5 @@
-from pgse.dataset.loader_inference import LoaderInference
+from typing import Optional
+
 import numpy as np
 import xgboost as xgb
 from pgse.dataset.alphabet import AUTO, AlphabetArg, ComplementArg
@@ -23,11 +24,16 @@ class Pipeline(InferencePipeline):
             uint16=uint16, sparse=sparse
         )
 
-    def run(self, files: list[str]) -> np.ndarray:
+    def run(self, files: Optional[list[str]] = None, sequences: Optional[list[str]] = None) -> np.ndarray:
+        """Score every input, keeping Ray alive for the next call.
+
+        Args:
+            files: Paths of the FASTA files to score.
+            sequences: In-memory sequences to score, used when files is not given.
+        """
         assert self.model is not None, 'The model failed to load.'
 
-        loader = LoaderInference(files, count_dtype=self.count_dtype, sparse=self.sparse, workers=self.workers)
-        data = loader.get_dataset_from_pool()
+        data = self._count(files, sequences)
 
         dtest = xgb.DMatrix(data)
         preds = self.model.predict(dtest)

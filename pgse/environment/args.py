@@ -2,6 +2,7 @@ import argparse
 import os
 
 from pgse.dataset.alphabet import AUTO, DNA_CHARS
+from pgse.dataset.table_label import DEFAULT_LABEL_COLUMN
 from pgse.validation import Metric
 
 
@@ -13,6 +14,15 @@ def get_parser() -> argparse.ArgumentParser:
                         help="Directory containing the data files")
     parser.add_argument('--pre-kfold-info-file', type=str, default=None,
                         help="Path to the JSON file containing the pre-defined k-fold indices")
+    parser.add_argument('--table-file', type=str, default=None,
+                        help="Path to the CSV file holding one sample per row. Switches PGSE to "
+                             "table mode, where the sequences are read from --data-column of that "
+                             "file instead of from the files under --data-dir.")
+    parser.add_argument('--data-column', type=str, default=None,
+                        help="Name of the column of --table-file holding the sequence of each "
+                             "sample. Required in table mode.")
+    parser.add_argument('--label-column', type=str, default=DEFAULT_LABEL_COLUMN,
+                        help="Name of the column of --table-file holding the label of each sample.")
     parser.add_argument('--save-file', type=str,
                         default='',
                         help="File path to save the selected segments. Used to recover the progress.")

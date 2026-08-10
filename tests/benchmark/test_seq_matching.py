@@ -216,6 +216,8 @@ class MockLoader(Loader):
         return None
 
 class MockFileLabel:
+    inline = False
+
     def __init__(self,):
         pass
 

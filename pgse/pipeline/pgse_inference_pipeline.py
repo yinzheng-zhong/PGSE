@@ -73,11 +73,16 @@ class Pipeline:
                 f'{sorted(unexpected)}. Pass the alphabet the model was trained with.'
             )
 
-    def run(self, files: list[str]) -> np.ndarray:
+    def run(self, files: Optional[list[str]] = None, sequences: Optional[list[str]] = None) -> np.ndarray:
+        """Score every input, one prediction per sequence.
+
+        Args:
+            files: Paths of the FASTA files to score.
+            sequences: In-memory sequences to score, used when files is not given.
+        """
         assert self.model is not None, 'The model failed to load.'
 
-        loader = LoaderInference(files, count_dtype=self.count_dtype, sparse=self.sparse, workers=self.workers)
-        data = loader.get_dataset_from_pool()
+        data = self._count(files, sequences)
 
         dtest = xgb.DMatrix(data)
         preds = self.model.predict(dtest)
@@ -85,3 +90,22 @@ class Pipeline:
         RayEnvManager.shutdown()
 
         return preds
+
+    def _count(self, files: Optional[list[str]], sequences: Optional[list[str]]):
+        """Build the segment-count matrix of the input, one row per sequence.
+
+        Args:
+            files: Paths of the FASTA files to count.
+            sequences: In-memory sequences to count, used when files is not given.
+        """
+        if files is None and sequences is None:
+            raise ValueError('Pass either files or sequences.')
+
+        loader = LoaderInference(
+            files if files is not None else sequences or [],
+            inline=files is None,
+            count_dtype=self.count_dtype,
+            sparse=self.sparse,
+            workers=self.workers
+        )
+        return loader.get_dataset_from_pool()

@@ -3,7 +3,7 @@ from typing import Iterator, Optional
 import numpy as np
 import numpy.typing as npt
 
-from pgse.dataset.file_label import FileLabel
+from pgse.dataset.sample_source import SampleSource
 from tqdm import tqdm
 
 from pgse.dataset.alphabet import Alphabet, get_alphabet, set_alphabet
@@ -29,7 +29,7 @@ def _row_stream(tasks: list) -> Iterator[np.ndarray]:
 class Loader:
     def __init__(
             self,
-            file_label: Optional[FileLabel],
+            source: Optional[SampleSource],
             folds: int = 0,
             fold_index: int = 0,
             count_dtype: npt.DTypeLike = np.float32,
@@ -39,7 +39,9 @@ class Loader:
             nodes: int = 1
     ) -> None:
         # LoaderInference passes None here and overrides the file-loading hooks.
-        self.file_label: Optional[FileLabel] = file_label
+        self.source: Optional[SampleSource] = source
+        # Set from the source: an inline source carries the sequence text of every sample.
+        self.inline: bool = False
         self.folds: int = folds
         self.fold_index: int = fold_index
         # Storage format for the segment-count matrix. See assemble_counts.
@@ -51,10 +53,10 @@ class Loader:
         self.dist: bool = dist
         self.nodes: int = nodes
 
-        self.train_files: Optional[list[str]] = None
-        self.test_files: Optional[list[str]] = None
-        self.train_labels: Optional[list] = None
-        self.test_labels: Optional[list] = None
+        self.train_items: Optional[list[str]] = None
+        self.test_items: Optional[list[str]] = None
+        self.train_labels: Optional[np.ndarray] = None
+        self.test_labels: Optional[np.ndarray] = None
 
         seq_manager.clear()
         self._load_sequence_files()
@@ -63,8 +65,9 @@ class Loader:
 
     def _load_sequence_files(self) -> None:
         # Only reached for the training loader; LoaderInference overrides this hook.
-        assert self.file_label is not None
-        self.train_files, self.test_files, self.train_labels, self.test_labels = self.file_label.get_train_test_path(
+        assert self.source is not None
+        self.inline = self.source.inline
+        self.train_items, self.test_items, self.train_labels, self.test_labels = self.source.get_train_test_split(
             num_folds=self.folds,
             fold_index=self.fold_index
         )
@@ -76,22 +79,30 @@ class Loader:
         set_alphabet(alphabet)
         return Sequence(file)
 
+    def _read_sequences(self, items: list[str]) -> list[Sequence]:
+        """Read the samples into Sequence objects.
+
+        Args:
+            items: File paths, or the sequences themselves when the source is inline.
+        """
+        if self.inline:
+            return [Sequence(text=item) for item in tqdm(items)]
+
+        # Spread the file reads over the Ray workers.
+        alphabet = ray.put(get_alphabet())
+        tasks = [Loader._get_one_sequence.remote(item, alphabet) for item in items]
+        return [ray.get(task) for task in tqdm(tasks)]
+
     def _get_train_seq(self):
         logger.info('Loading training sequences...')
-        alphabet = ray.put(get_alphabet())
-        train_sequences = [Loader._get_one_sequence.remote(file, alphabet) for file in self.train_files]
-        train_sequences = [ray.get(a) for a in tqdm(train_sequences)]
-        seq_manager.add_train_sequences(train_sequences)
+        seq_manager.add_train_sequences(self._read_sequences(self.train_items))
 
     def _get_test_seq(self):
-        if not self.test_files:
+        if not self.test_items:
             return
 
         logger.info('Loading testing sequences...')
-        alphabet = ray.put(get_alphabet())
-        test_sequences = [Loader._get_one_sequence.remote(file, alphabet) for file in self.test_files]
-        test_sequences = [ray.get(a) for a in tqdm(test_sequences)]
-        seq_manager.add_test_sequences(test_sequences)
+        seq_manager.add_test_sequences(self._read_sequences(self.test_items))
 
     @staticmethod
     @ray.remote
