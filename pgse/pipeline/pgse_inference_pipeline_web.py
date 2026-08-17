@@ -36,6 +36,6 @@ class Pipeline(InferencePipeline):
         data = self._count(files, sequences)
 
         dtest = xgb.DMatrix(data)
-        preds = self.model.predict(dtest)
+        preds = self._in_label_units(self.model.predict(dtest))
 
         return preds

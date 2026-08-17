@@ -1,12 +1,16 @@
 import json
 import os
-from typing import Optional
+from typing import Mapping, Optional
 
 import pandas as pd
 import numpy as np
 
+from pgse.dataset.label_utils import LabelColumns, as_label_columns, missing_columns, to_float_matrix
 from pgse.dataset.sample_source import SampleSource, Split
 from pgse.log import logger
+
+# The column of the label file naming the sequence file of each sample.
+FILE_COLUMN = 'files'
 
 
 class FileLabel(SampleSource):
@@ -16,44 +20,94 @@ class FileLabel(SampleSource):
             self,
             label_file: str | dict,
             data_dir: Optional[str] = None,
-            pre_kfold_info_file: Optional[str] = None
+            pre_kfold_info_file: Optional[str] = None,
+            label_columns: Optional[LabelColumns] = None
     ) -> None:
         """
-        FileLabel constructor.
-        :param label_file: Path to the CSV file containing the labels
-        :param data_dir: Directory containing the data files When it is a dictionary, it should be in the format of
-        {file1: label1, file2: label2, ...}
+        Args:
+            label_file: Path of the CSV file pairing each sample file with its labels, or
+                a dict in its place: {file: label} with one label column, and
+                {file: {name: label}} with several.
+            data_dir: Directory holding the sample files. Names in the label file are
+                resolved against it.
+            pre_kfold_info_file: Path of the JSON file holding predefined folds.
+            label_columns: Name of the column holding the target value of each sample, or
+                the names of several such columns to train one output per column. The
+                sample files are always read from the 'files' column.
+
+        Raises:
+            ValueError: If no label column is named.
         """
+        if label_columns is None:
+            raise ValueError(
+                f'Name the label column(s) of the label file, e.g. label_columns=["mic"]. '
+                f'Its sample files are always read from the {FILE_COLUMN!r} column.'
+            )
+
         self.label_file: str | dict = label_file
         self.data_dir: Optional[str] = data_dir
         self.pre_kfold_info_file: Optional[str] = pre_kfold_info_file
-        self.label_lookup: dict[str, str] = self._load_label_lookup()
+        self.label_columns: list[str] = as_label_columns(label_columns)
+        self.label_lookup: dict[str, np.ndarray] = self._load_label_lookup()
 
         super().__init__(
             list(self.label_lookup.keys()),
-            np.array(list(self.label_lookup.values()), dtype=np.float32)
+            np.asarray(list(self.label_lookup.values()), dtype=np.float32),
+            self.label_columns
         )
 
-    def _load_label_lookup(self) -> dict[str, str]:
-        if isinstance(self.label_file, str):
-            data = pd.read_csv(self.label_file, dtype=str)
-        elif isinstance(self.label_file, dict):
-            data = pd.DataFrame(self.label_file.items(), columns=['files', 'labels'])
-        else:
-            raise ValueError('Invalid label file format')
+    def _load_label_lookup(self) -> dict[str, np.ndarray]:
+        """Pair the path of every sample file that exists with its labels."""
+        data = self._read_label_table()
 
-        data['files'] = [
+        missing = missing_columns(data, [FILE_COLUMN] + self.label_columns)
+        if missing:
+            raise ValueError(
+                f'The label file has no column {missing} to read. Its columns are {list(data.columns)}.'
+            )
+
+        data[FILE_COLUMN] = [
             p if os.path.exists(p) or not self.data_dir else os.path.join(self.data_dir, p)
-            for p in data['files']
+            for p in data[FILE_COLUMN].astype(str)
         ]
 
         # check if all files exist, remove those that do not exist
-        kept = data[data['files'].apply(os.path.exists)]
-        removed = data[~data['files'].apply(os.path.exists)]
+        kept = data[data[FILE_COLUMN].apply(os.path.exists)]
+        removed = data[~data[FILE_COLUMN].apply(os.path.exists)]
         if len(removed) > 0:
             logger.warning(f'ignored data with missing files:\n{removed}')
 
-        return kept.set_index('files').to_dict()['labels']
+        labels = to_float_matrix(kept, self.label_columns)
+        return {path: row for path, row in zip(kept[FILE_COLUMN], labels)}
+
+    def _read_label_table(self) -> pd.DataFrame:
+        """Read the label file, or build the same table from the dict given in its place."""
+        if isinstance(self.label_file, str):
+            return pd.read_csv(self.label_file)
+        if isinstance(self.label_file, dict):
+            return self._table_from_dict(self.label_file)
+
+        raise ValueError('Invalid label file format')
+
+    def _table_from_dict(self, labels: dict) -> pd.DataFrame:
+        """Turn {file: label}, or {file: {name: label}}, into a table with a file column.
+
+        Args:
+            labels: The labels of each sample file.
+        """
+        rows = []
+        for path, value in labels.items():
+            if isinstance(value, Mapping):
+                rows.append({FILE_COLUMN: path, **value})
+            elif len(self.label_columns) == 1:
+                rows.append({FILE_COLUMN: path, self.label_columns[0]: value})
+            else:
+                raise ValueError(
+                    f'{path!r} carries a single label, but {self.label_columns} were asked for. '
+                    f'Give each file a mapping of label name to value.'
+                )
+
+        return pd.DataFrame(rows)
 
     def get_train_test_split(
             self,
@@ -108,4 +162,9 @@ class FileLabel(SampleSource):
                 train_files.extend([os.path.join(data_dir, p) for p in k_fold_indices[f'fold_{i}']])
                 train_labels.extend([self.label_lookup[os.path.join(data_dir, file)] for file in k_fold_indices[f'fold_{i}']])
 
-        return train_files, test_files, np.array(train_labels, dtype=np.float32), np.array(test_labels, dtype=np.float32)
+        return (
+            train_files,
+            test_files,
+            np.asarray(train_labels, dtype=np.float32).reshape(len(train_files), -1),
+            np.asarray(test_labels, dtype=np.float32).reshape(len(test_files), -1)
+        )

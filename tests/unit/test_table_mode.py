@@ -32,7 +32,8 @@ class TestTableLabel(unittest.TestCase):
 
     def test_reads_the_named_columns(self):
         self.assertEqual(self.source.items, SMILES)
-        np.testing.assert_array_equal(self.source.labels, np.array([1, 0, 1, 0], dtype=np.float32))
+        np.testing.assert_array_equal(self.source.labels[:, 0], np.array([1, 0, 1, 0], dtype=np.float32))
+        self.assertEqual(self.source.label_names, ['active'])
         self.assertEqual(len(self.source), 4)
 
     def test_samples_are_inline(self):
@@ -42,11 +43,11 @@ class TestTableLabel(unittest.TestCase):
         path = self.write_csv()
         source = TableLabel(path, 'smiles', 'value')
         self.assertEqual(source.items, SMILES)
-        np.testing.assert_array_equal(source.labels, np.array([0.5, 1.5, 2.5, 3.5], dtype=np.float32))
+        np.testing.assert_array_equal(source.labels[:, 0], np.array([0.5, 1.5, 2.5, 3.5], dtype=np.float32))
 
     def test_numeric_strings_become_labels(self):
         source = TableLabel(table(text=['ab', 'cd'], labels=['0.25', '4']), 'text')
-        np.testing.assert_array_equal(source.labels, np.array([0.25, 4.0], dtype=np.float32))
+        np.testing.assert_array_equal(source.labels[:, 0], np.array([0.25, 4.0], dtype=np.float32))
 
     def test_empty_rows_are_dropped(self):
         source = TableLabel(
@@ -54,7 +55,7 @@ class TestTableLabel(unittest.TestCase):
             'text'
         )
         self.assertEqual(source.items, ['ab'])
-        np.testing.assert_array_equal(source.labels, np.array([1.0], dtype=np.float32))
+        np.testing.assert_array_equal(source.labels[:, 0], np.array([1.0], dtype=np.float32))
 
     def test_unknown_column_is_rejected(self):
         with self.assertRaises(ValueError) as caught:

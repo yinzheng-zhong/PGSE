@@ -42,6 +42,8 @@ class Loader:
         self.source: Optional[SampleSource] = source
         # Set from the source: an inline source carries the sequence text of every sample.
         self.inline: bool = False
+        # Set from the source: the name of every label the samples carry.
+        self.label_names: list[str] = []
         self.folds: int = folds
         self.fold_index: int = fold_index
         # Storage format for the segment-count matrix. See assemble_counts.
@@ -67,6 +69,7 @@ class Loader:
         # Only reached for the training loader; LoaderInference overrides this hook.
         assert self.source is not None
         self.inline = self.source.inline
+        self.label_names = self.source.label_names
         self.train_items, self.test_items, self.train_labels, self.test_labels = self.source.get_train_test_split(
             num_folds=self.folds,
             fold_index=self.fold_index

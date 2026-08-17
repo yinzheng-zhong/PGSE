@@ -8,8 +8,9 @@ from pgse.log import logger
 from pgse.model.model_trainer import ModelTrainer
 from pgse.dataset.loader import Loader
 from pgse.dataset.sample_source import SampleSource
+from pgse.dataset.label_utils import LabelColumns
 from pgse.dataset.source_factory import build_source
-from pgse.dataset.table_label import DEFAULT_LABEL_COLUMN, TableArg
+from pgse.dataset.table_label import TableArg
 from pgse.segment import seg_pool
 from pgse.validation import Metric, check_binary_labels
 
@@ -39,7 +40,7 @@ class Pipeline:
             binary: bool = False,
             table_file: Optional[TableArg] = None,
             data_column: Optional[str] = None,
-            label_column: str = DEFAULT_LABEL_COLUMN
+            label_columns: Optional[LabelColumns] = None
     ) -> None:
         """
         :param table_file: CSV file, or DataFrame, holding one sample per row. Setting it
@@ -47,8 +48,9 @@ class Pipeline:
             the table instead of from the files under data_dir.
         :param data_column: Name of the column holding the sequence of each sample.
             Required in table mode.
-        :param label_column: Name of the column holding the label of each sample. Read in
-            table mode.
+        :param label_columns: Name of the column holding the label of each sample, or the
+            names of several such columns to train one output per label. Required in file
+            mode, and defaults to 'labels' in table mode.
         """
         # Install the alphabet first: everything downstream reads it.
         self.alphabet: Alphabet = set_alphabet(alphabet, case_sensitive=case_sensitive, complement=complement)
@@ -59,7 +61,7 @@ class Pipeline:
         self.pre_kfold_info_file = pre_kfold_info_file
         self.table_file = table_file
         self.data_column = data_column
-        self.label_column = label_column
+        self.label_columns = label_columns
         self.export_file = export_file
         self.k = k
         self.ext = ext
@@ -76,7 +78,7 @@ class Pipeline:
         self.metric = metric or Metric.default_for(binary)
 
         self.source: SampleSource = build_source(
-            data_dir, label_file, pre_kfold_info_file, table_file, data_column, label_column
+            data_dir, label_file, pre_kfold_info_file, table_file, data_column, label_columns
         )
 
     def run(self):

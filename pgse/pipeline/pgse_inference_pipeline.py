@@ -1,3 +1,5 @@
+import json
+import os
 from typing import Optional
 
 from pgse.environment.ray_env import RayEnvManager
@@ -7,6 +9,8 @@ import xgboost as xgb
 
 from pgse.dataset.alphabet import AUTO, Alphabet, AlphabetArg, ComplementArg, set_alphabet
 from pgse.log import logger
+from pgse.model.label_scaler import LabelScaler
+from pgse.model.pgse_model import PGSEModel
 from pgse.segment import seg_pool
 
 
@@ -47,12 +51,42 @@ class Pipeline:
             'nthread': workers,
         }
         self.model: Optional[xgb.Booster] = None
+        # Read from the model's metadata file, when it was saved next to the model.
+        self.label_names: list[str] = []
+        self.scaler: Optional[LabelScaler] = None
         self._load()
 
     def _load(self) -> None:
         self.model = xgb.Booster(params=self.model_params, model_file=self.model_path)
         seg_pool.import_segments(self.segment_path)
         self._check_segments_match_alphabet()
+        self._load_metadata()
+
+    def _load_metadata(self) -> None:
+        """Read the label names and the label scaler from the model's metadata file."""
+        if not self.model_path.endswith(PGSEModel.MODEL_SUFFIX):
+            return
+
+        prefix = self.model_path[:-len(PGSEModel.MODEL_SUFFIX)]
+        metadata_path = prefix + PGSEModel.METADATA_SUFFIX
+        if not os.path.exists(metadata_path):
+            return
+
+        with open(metadata_path) as file:
+            metadata = json.load(file)
+
+        self.label_names = metadata.get('label_names') or []
+        if metadata.get('label_scaler'):
+            self.scaler = LabelScaler.from_dict(metadata['label_scaler'])
+            logger.info(f'Undoing the label standardisation recorded in {metadata_path}')
+
+    def _in_label_units(self, predictions: np.ndarray) -> np.ndarray:
+        """Return the predictions in the units of the labels the model was trained on.
+
+        Args:
+            predictions: What the booster predicted.
+        """
+        return predictions if self.scaler is None else self.scaler.inverse_transform(predictions)
 
     def _check_segments_match_alphabet(self) -> None:
         """
@@ -85,7 +119,7 @@ class Pipeline:
         data = self._count(files, sequences)
 
         dtest = xgb.DMatrix(data)
-        preds = self.model.predict(dtest)
+        preds = self._in_label_units(self.model.predict(dtest))
 
         RayEnvManager.shutdown()
 

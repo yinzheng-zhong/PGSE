@@ -72,6 +72,18 @@ class TrainingResult:
         return float(np.mean(self.scores)) if self.folds else float('nan')
 
     @property
+    def label_scores(self) -> dict[str, float]:
+        """The mean score of every label across the folds, empty for a single label."""
+        names = list(self.folds[0].label_scores) if self.folds else []
+        if len(names) < 2:
+            return {}
+
+        return {
+            name: float(np.mean([fold.label_scores[name] for fold in self.folds]))
+            for name in names
+        }
+
+    @property
     def segments(self) -> SegmentImportance:
         """Every discovered segment, ranked by its mean importance across the folds."""
         return SegmentImportance.merge([fold.segments for fold in self.folds])
@@ -83,9 +95,14 @@ class TrainingResult:
         return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
     def to_frame(self) -> pd.DataFrame:
-        """One row per fold: its index, score and how many segments it kept."""
-        return pd.DataFrame({
+        """One row per fold: its index, score, per-label scores and how many segments it kept."""
+        columns: dict[str, list] = {
             'Fold': [fold.index for fold in self.folds],
             self.metric: self.scores,
-            'Segments': [len(fold.segments) for fold in self.folds],
-        })
+        }
+
+        for name in self.label_scores:
+            columns[f'{self.metric}_{name}'] = [fold.label_scores[name] for fold in self.folds]
+
+        columns['Segments'] = [len(fold.segments) for fold in self.folds]
+        return pd.DataFrame(columns)

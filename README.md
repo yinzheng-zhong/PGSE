@@ -96,6 +96,7 @@ from pgse import TrainingPipeline
 result = TrainingPipeline(
     data_dir='genomes/',
     label_file='labels.csv',
+    label_columns='mic',          # the column of labels.csv holding the label
     folds=5,
     metric='r2',
 ).train()
@@ -144,6 +145,7 @@ unset is simply not written.
 result = TrainingPipeline(
     data_dir='genomes/',
     label_file='labels.csv',
+    label_columns='mic',
     save_file='run.save',         # resume point, removed once a fold finishes
     export_file='out/ecoli-caz',  # out/ecoli-caz_fold_0.json, _segs.csv, _meta.json, ...
     folds=5,
@@ -159,6 +161,7 @@ To run PGSE as a standalone program on a local machine, install the package and 
 ```bash
 pgse-train \
         --label-file "../<path_to>/<you_labels>.csv" \
+        --label-columns "mic" \
         --data-dir "../<you_data_dir>/" \
         --pre-kfold-info-file "../<k_fold_information>.json" \
         --save-file "../<saved progress>.save" \
@@ -180,14 +183,17 @@ pgse-train \
 
     Here the label file is a csv file with the following format:
     ```text
-    | labels | files     |
-    | ------ | --------- |
-    | 7      | file1.fna |
-    | 7      | file2.fna |
-    | 6      | file3.fna |
+    | files     | mic |
+    | --------- | --- |
+    | file1.fna | 7   |
+    | file2.fna | 7   |
+    | file3.fna | 6   |
     ```
 
-    The labels are the target values for the prediction task. The files are the file names (.fna files under `--data-dir`) containing the genome sequences.
+    The sample files are always read from the column named `files`: these are the file names
+    (.fna files under `--data-dir`) containing the genome sequences. The label column is named
+    with `--label-columns`, so it can be called anything; name several of them to predict
+    several labels at once, see [Multiple labels](#multiple-labels).
 * `--data-dir` (Required): path to the data directory containing the .fna files. PGSE will be able to retrieve the genome sequences using this path and the
 file names in the label file.
 * `--table-file`: path to a CSV file holding one sample per row. It replaces `--label-file` and
@@ -195,8 +201,13 @@ file names in the label file.
 sample. See [Table mode](#table-mode) below.
 * `--data-column`: name of the column of `--table-file` holding the sequence of each sample.
 Required in table mode.
-* `--label-column`: name of the column of `--table-file` holding the label of each sample
-(default `labels`).
+* `--label-columns` (Required with `--label-file`): name of the column holding the label of each
+sample. Give several names to train one output per label over one shared set of segments, e.g.
+`--label-columns mic growth`; see [Multiple labels](#multiple-labels). In table mode it defaults
+to `labels`.
+* `--standardise-labels`: train on labels shifted to zero mean and unit variance, measured on the
+training fold. Predictions stay in the units of the dataset. Use it when several labels sit on
+different scales; see [Multiple labels](#multiple-labels).
 * `--pre-kfold-info-file`: path to the predefined k-fold info JSON file.
 This is not required but will be useful if you want to compare PGSE with other systems. Without
 this, PGSE will split the data into k folds randomly using a fixed seed. E.g.
@@ -299,6 +310,7 @@ from pgse import TrainingPipeline
 pipeline = TrainingPipeline(
     data_dir='...',
     label_file='...',
+    label_columns='mic',
     k=3,
     target=12,
     alphabet='abcdefghijklmnopqrstuvwxyz ',
@@ -343,7 +355,7 @@ CSV instead: one row per sample, one column holding the sequence and another hol
 pgse-train \
         --table-file "../<path_to>/<your_data>.csv" \
         --data-column "SMILES" \
-        --label-column "active" \
+        --label-columns "active" \
         --alphabet "#()+-./0123456789=@BCFHINOPS[\]blnorsuc" \
         --case-sensitive 1 \
         --binary 1 \
@@ -368,7 +380,7 @@ frame = pd.read_csv('inhibition.csv')
 result = TrainingPipeline(
     table_file=frame,
     data_column='SMILES',
-    label_column='active',
+    label_columns='active',
     # the characters the column is made of; see Alphabets above
     alphabet=''.join(sorted(set(''.join(frame['SMILES'])))),
     case_sensitive=True,
@@ -408,6 +420,7 @@ prediction is the **probability that the sample is a 1**.
 ```bash
 pgse-train \
         --label-file "../<path_to>/<your_labels>.csv" \
+        --label-columns "resistant" \
         --data-dir "../<your_data_dir>/" \
         --binary 1
 ```
@@ -418,6 +431,7 @@ from pgse import TrainingPipeline
 result = TrainingPipeline(
     data_dir='genomes/',
     label_file='labels.csv',
+    label_columns='resistant',
     folds=5,
     binary=True,
 ).train()
@@ -453,6 +467,73 @@ model = PGSEModel.load('artifacts/resistance')
 model.binary       # True
 model.predict(['new_1.fna'])   # a probability, not a class
 ```
+
+#### Multiple labels
+
+Name several label columns and PGSE trains one XGBoost output per label over **one shared set of
+segments**, in a single run: the segments are extended and selected once, for all labels together,
+and every label gets its own prediction.
+
+```bash
+pgse-train \
+        --label-file "../<path_to>/<your_labels>.csv" \
+        --label-columns mic growth virulence \
+        --data-dir "../<your_data_dir>/" \
+        --standardise-labels 1 \
+        --metric r2
+```
+
+```text
+| files     | mic | growth | virulence |
+| --------- | --- | ------ | --------- |
+| file1.fna | 7   | 0.41   | 1         |
+| file2.fna | 6   | 0.38   | 0         |
+```
+
+```python
+result = TrainingPipeline(
+    data_dir='genomes/',
+    label_file='labels.csv',
+    label_columns=['mic', 'growth', 'virulence'],
+    standardise_labels=True,
+    metric='r2',
+    folds=5,
+).train()
+
+result.score                     # mean r2 over the labels, averaged across the folds
+result.label_scores              # {'mic': 0.81, 'growth': 0.64, 'virulence': 0.77}
+result.to_frame()                # one row per fold: r2, r2_mic, r2_growth, r2_virulence, segments
+
+predictions = result.model.predict(['new_1.fna'])   # one row per file, one column per label
+result.model.label_names                            # ['mic', 'growth', 'virulence']
+```
+
+Every label is scored in its own right, and the headline score of a fold is the mean of the
+per-label scores. The held-out frame carries one column pair per label, `Prediction_<label>` and
+`Actual_<label>`; with a single label it stays `Prediction`/`Actual`, and `predict` still returns a
+flat array, so nothing changes for existing runs.
+
+**Feature selection gives every label an equal say.** A label whose values are on a larger scale
+produces larger split gains, so ranking the pooled gains would let it crowd the other labels out of
+the top `--features` — and once a segment is dropped it cannot come back in a later round. Each
+label's gains are therefore read as its *share* of the gain that label explains, and the shares are
+summed. In a planted-signal test where one label's values are 500 times the scale of another, pooled
+raw gain ranks the small label's real features below noise, while the per-label shares put every
+label's features in the top of the ranking.
+
+**Labels on different scales need `--standardise-labels`.** XGBoost boosts every output from a
+*single shared intercept* — the mean over all the labels at once — so a label far from that mean
+spends the run climbing towards its own range instead of fitting its signal. With labels of ~60 and
+~0.03, the small one predicts a flat constant and learns nothing. `--standardise-labels 1`
+(`standardise_labels=True`) trains on labels shifted to zero mean and unit variance, measured on the
+training fold alone, and undoes the shift on every prediction: the model, the saved metadata and
+`pgse-predict` all return values in the units of the dataset. PGSE warns when the labels' spreads
+differ by more than 10x and this is off. It cannot be combined with `--binary`, where every label
+is already 0/1.
+
+Binary mode works with several labels: each output is a probability of its own label. Training cost
+grows with the number of labels — one tree per label per boosting round — so five labels cost about
+five times a single-label run.
 
 #### Validation metrics
 
@@ -499,7 +580,7 @@ pgse-train \
 ```python
 from pgse import TrainingPipeline
 
-pipeline = TrainingPipeline(data_dir='...', label_file='...', metric='r2')
+pipeline = TrainingPipeline(data_dir='...', label_file='...', label_columns='mic', metric='r2')
 ```
 
 PGSE always logs RMSE; `--metric` selects the extra score reported alongside it once the selected
@@ -562,7 +643,7 @@ The same options are available on the Python API as `sparse=True` and `uint16=Tr
 ```python
 from pgse import TrainingPipeline
 
-pipeline = TrainingPipeline(data_dir='...', label_file='...', sparse=True, uint16=True)
+pipeline = TrainingPipeline(data_dir='...', label_file='...', label_columns='mic', sparse=True, uint16=True)
 ```
 
 > **Important:** `--sparse` must match between training and prediction. In a sparse matrix, unstored
@@ -632,6 +713,10 @@ If the model was trained on a non-DNA alphabet, pass the same `--alphabet`, `--c
 
 To score the rows of a CSV instead of a directory of files, pass `--table-file` and `--data-column`
 in place of `--data-dir`. See [Table mode](#table-mode).
+
+A model trained on several labels writes one `prediction_<label>` column per label, named from the
+model's metadata file; a single-label model writes one `prediction` column as before. See
+[Multiple labels](#multiple-labels).
 
 ### Logging
 

@@ -32,6 +32,7 @@ if __name__ == "__main__":
         binary=bool(args.binary),
         table_file=args.table_file,
         data_column=args.data_column,
-        label_column=args.label_column,
+        label_columns=args.label_columns,
+        standardise_labels=bool(args.standardise_labels),
     )
     pipeline.run()

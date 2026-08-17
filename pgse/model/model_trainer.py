@@ -5,6 +5,7 @@ import xgboost
 
 from pgse.dataset.loader import Loader
 from pgse.log import logger
+from pgse.model.label_scaler import LabelScaler
 from pgse.model.xgb import XGBoost
 from pgse.segment import seg_pool
 from pgse.validation import Metric
@@ -26,8 +27,15 @@ class ModelTrainer:
             device: str = 'cpu',
             partition_size_target: int = 5000,
             metric: Optional[str] = None,
-            binary: bool = False
+            binary: bool = False,
+            scaler: Optional[LabelScaler] = None
     ) -> None:
+        """
+        Args:
+            loader: The fold's dataset, holding the name of every label it carries.
+            scaler: Standardisation applied to the labels for training, and undone on
+                the predictions. Nothing is standardised when it is not given.
+        """
         self.loader = loader
         self.num_rounds = num_rounds
         self.workers = workers
@@ -38,6 +46,8 @@ class ModelTrainer:
         self.device = device
         self.partition_size_target = partition_size_target
         self.binary = binary
+        self.scaler = scaler
+        self.label_names: list[str] = loader.label_names
         self.metric = metric or Metric.default_for(binary)
 
     def run_xgboost(
@@ -58,7 +68,9 @@ class ModelTrainer:
             custom_metric=custom_metric,
             early_stopping_rounds=20,
             device=self.device,
-            binary=self.binary
+            binary=self.binary,
+            label_names=self.label_names,
+            scaler=self.scaler
         )
         return xgb.run(train_kmer, test_kmer, train_labels, test_labels)
 

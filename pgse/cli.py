@@ -44,7 +44,8 @@ def train():
         binary=bool(args.binary),
         table_file=args.table_file,
         data_column=args.data_column,
-        label_column=args.label_column
+        label_columns=args.label_columns,
+        standardise_labels=bool(args.standardise_labels)
     )
     pipeline.run()
 
@@ -96,12 +97,29 @@ def predict():
     if not output_file.endswith('.csv'):
         output_file += '.csv'
 
-    df = pd.DataFrame({
-        input_column: inputs,
-        'prediction': results
-    })
+    df = pd.DataFrame({input_column: inputs, **_prediction_columns(results, pipeline.label_names)})
 
     df.to_csv(output_file, index=False)
+
+
+def _prediction_columns(results, label_names: list[str]) -> dict:
+    """The output column of every label, named after the label when the model has several.
+
+    Args:
+        results: The predictions, one row per input.
+        label_names: Name of each label the model predicts, empty when it recorded none.
+    """
+    import numpy as np
+
+    predictions = np.asarray(results)
+    if predictions.ndim < 2 or predictions.shape[1] == 1:
+        return {'prediction': predictions.reshape(-1)}
+
+    names = (
+        label_names if len(label_names) == predictions.shape[1]
+        else [str(index) for index in range(predictions.shape[1])]
+    )
+    return {f'prediction_{name}': predictions[:, index] for index, name in enumerate(names)}
 
 
 def _log_predictions(inputs: list[str], results) -> None:
