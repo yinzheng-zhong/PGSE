@@ -107,6 +107,6 @@ def get_parser() -> argparse.ArgumentParser:
                              "count-matrix memory. Lossless for counts up to 65535 (saturated above).")
     parser.add_argument('--sparse', type=int, default=0,
                         help="Flag to store the count matrix as a sparse CSR matrix. Big saving for "
-                             "short/sparse sequences (e.g. SMILES). The same flag must be used for "
+                             "short sequences (e.g. short text strings). The same flag must be used for "
                              "training and prediction.")
     return parser

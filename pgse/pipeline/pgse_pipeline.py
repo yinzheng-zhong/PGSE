@@ -82,7 +82,7 @@ class Pipeline:
         :param uint16: Store segment counts as uint16 instead of float32, halving the
             count-matrix footprint. Lossless for counts up to 65535 (saturated above).
         :param sparse: Store the count matrix as a sparse CSR matrix. For short
-            sequences (e.g. SMILES) the matrix is almost all zeros, so this saves
+            sequences (e.g. short text strings) the matrix is almost all zeros, so this saves
             orders of magnitude. The same setting must be used at predict time.
         :param partition_size_target: Target features per XGBoost partition during feature
             selection. Partitions are evenly sized, so the actual size lands between this and

@@ -276,7 +276,7 @@ as distinct characters.
 halving the memory. Lossless for counts up to 65535 (larger counts are saturated). See
 [Reducing memory usage](#reducing-memory-usage) below.
 * `--sparse`: `0` (default) stores the count matrix densely; `1` stores it as a sparse CSR matrix.
-For short, sparse inputs (e.g. SMILES strings) the matrix is almost entirely zeros, so this can save
+For short, sparse inputs (e.g. short text strings) the matrix is almost entirely zeros, so this can save
 orders of magnitude. XGBoost reads the unstored zeros of a CSR matrix as *missing* values (not as
 `0`), so the **same value must be used at prediction time**. See
 [Reducing memory usage](#reducing-memory-usage) below.
@@ -345,23 +345,23 @@ For short text strings, **Table mode** reads them from a single
 CSV instead: one row per sample, one column holding the sequence and another holding the label.
 
 ```text
-| Compound_ID   | SMILES                           | active |
-| ------------- | -------------------------------- | ------ |
-| BRD-K28024289 | Nc1nnc(o1)-c1ccc(o1)[N+](=O)[O-] | TRUE   |
-| BRD-K00556640 | O[C@H]1COC[C@@H]2O[C@H](CC...    | FALSE  |
+| id   | text                     | positive |
+| ---- | ------------------------ | -------- |
+| s001 | What a lovely sunny day  | TRUE     |
+| s002 | The train was late again | FALSE    |
 ```
 
 ```bash
 pgse-train \
         --table-file "../<path_to>/<your_data>.csv" \
-        --data-column "SMILES" \
-        --label-columns "active" \
-        --alphabet "#()+-./0123456789=@BCFHINOPS[\]blnorsuc" \
-        --case-sensitive 1 \
+        --data-column "text" \
+        --label-columns "positive" \
+        --alphabet "abcdefghijklmnopqrstuvwxyz " \
+        --case-sensitive 0 \
         --binary 1 \
         --sparse 1 \
-        --k 2 \
-        --target 8
+        --k 3 \
+        --target 12
 ```
 
 `--table-file` replaces `--label-file` and `--data-dir`, which are not read in table mode, and any
@@ -375,19 +375,19 @@ already in memory:
 import pandas as pd
 from pgse import TrainingPipeline
 
-frame = pd.read_csv('inhibition.csv')
+frame = pd.read_csv('samples.csv')
 
 result = TrainingPipeline(
     table_file=frame,
-    data_column='SMILES',
-    label_columns='active',
+    data_column='text',
+    label_columns='positive',
     # the characters the column is made of; see Alphabets above
-    alphabet=''.join(sorted(set(''.join(frame['SMILES'])))),
-    case_sensitive=True,
+    alphabet='abcdefghijklmnopqrstuvwxyz ',
+    case_sensitive=False,
     binary=True,
     sparse=True,
-    k=2,
-    target=8,
+    k=3,
+    target=12,
     folds=5,
 ).train()
 ```
@@ -403,8 +403,10 @@ prediction rather than a file name:
 pgse-predict \
         --model-file "../<path_to_model>.json" \
         --segments-file "../<path_to_segments>.csv" \
-        --table-file "../<new_compounds>.csv" \
-        --data-column "SMILES" \
+        --table-file "../<new_samples>.csv" \
+        --data-column "text" \
+        --alphabet "abcdefghijklmnopqrstuvwxyz " \
+        --sparse 1 \
         --export-file "./predictions"
 ```
 
@@ -625,7 +627,7 @@ to off, so existing runs are unaffected.
 * `--uint16 1` stores counts as 16-bit integers instead of 32-bit floats, halving the matrix. Counts
 are non-negative integers, so this is lossless up to 65535; any larger count is saturated to 65535.
 * `--sparse 1` stores the matrix as a sparse CSR matrix. This is the big lever for **short inputs
-where most segments are absent from most samples** — for example SMILES strings, where each row has
+where most segments are absent from most samples** — for example short text strings, where each row has
 only tens of non-zero counts out of thousands or millions of columns, making the matrix >99% zeros.
 For long, dense inputs such as bacterial genomes the matrix is not sparse, so leave this off.
 
