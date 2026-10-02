@@ -89,13 +89,32 @@ class Metric:
         return ' '.join(f'{name}: {cls.summary(name)}' for name in cls.names())
 
     def score(self, y_true: ArrayLike, y_pred: ArrayLike) -> float:
-        """Evaluate the metric.
+        """Evaluate the metric, averaging over the labels when there are several.
 
         Args:
-            y_true: True labels.
-            y_pred: Predicted values.
+            y_true: True labels, one column per label.
+            y_pred: Predicted values, in the same shape.
         """
-        return float(getattr(self, self.name)(y_true, y_pred, **self.params))
+        scores = self.score_each(y_true, y_pred)
+        return scores[0] if len(scores) == 1 else float(np.mean(scores))
+
+    def score_each(self, y_true: ArrayLike, y_pred: ArrayLike) -> list[float]:
+        """Evaluate the metric on every label separately.
+
+        Args:
+            y_true: True labels, one column per label.
+            y_pred: Predicted values, in the same shape.
+        """
+        true, pred = np.asarray(y_true), np.asarray(y_pred)
+
+        if true.ndim < 2 or true.shape[1] == 1:
+            return [float(getattr(self, self.name)(true, pred, **self.params))]
+
+        pred = pred.reshape(true.shape)
+        return [
+            float(getattr(self, self.name)(true[:, index], pred[:, index], **self.params))
+            for index in range(true.shape[1])
+        ]
 
     def __call__(self, preds: ArrayLike, labels: Any) -> float:
         """Evaluate the metric from XGBoost's (predictions, dataset) argument order.

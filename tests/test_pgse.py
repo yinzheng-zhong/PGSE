@@ -28,6 +28,7 @@ class TestTrainingPipeline(unittest.TestCase):
         with TemporaryDirectory() as tmp_dir:
             pipeline = TrainingPipeline(data_dir="resource/genomes/",
                                         label_file="resource/labels.csv",
+                                        label_columns="labels",
                                         save_file=os.path.join(tmp_dir, "save"),
                                         export_file=os.path.join(tmp_dir, "export"))
             pipeline.run()
@@ -40,6 +41,7 @@ class TestTrainingPipeline(unittest.TestCase):
         with TemporaryDirectory() as tmp_dir:
             pipeline = TrainingPipeline(data_dir="resource/genomes/",
                                         label_file="resource/labels.csv",
+                                        label_columns="labels",
                                         save_file=os.path.join(tmp_dir, "save"),
                                         export_file=os.path.join(tmp_dir, "export"))
             pipeline.train()
@@ -51,7 +53,8 @@ class TestTrainingPipeline(unittest.TestCase):
         with TemporaryDirectory() as tmp_dir:
             before = set(glob.glob(os.path.join(os.getcwd(), '*')))
             pipeline = TrainingPipeline(data_dir="resource/genomes/",
-                                        label_file="resource/labels.csv")
+                                        label_file="resource/labels.csv",
+                                        label_columns="labels")
             pipeline.run()
 
             self.assertEqual(before, set(glob.glob(os.path.join(os.getcwd(), '*'))))
@@ -60,6 +63,7 @@ class TestTrainingPipeline(unittest.TestCase):
     def test_functional_pipeline(self):
         pipeline = TrainingPipeline(data_dir="resource/genomes/",
                                     label_file="resource/labels.csv",
+                                    label_columns="labels",
                                     folds=2)
         results = pipeline.train()
 
@@ -82,6 +86,7 @@ class TestTrainingPipeline(unittest.TestCase):
         # test that absolute paths to .fna files give the same results
         pipeline_abs_paths = TrainingPipeline(data_dir="",
                                     label_file="resource/labels_full_paths.csv",
+                                              label_columns="labels",
                                               folds=2)
         results_abs_paths = pipeline_abs_paths.train()
         self.assertEqual(results.segments.segments, results_abs_paths.segments.segments)
@@ -96,6 +101,7 @@ class TestBinaryTrainingPipeline(unittest.TestCase):
         cls.genomes = sorted(glob.glob('resource/genomes_binary/*.fna'))
         cls.result = TrainingPipeline(data_dir="resource/genomes_binary/",
                                       label_file="resource/labels_binary.csv",
+                                      label_columns="labels",
                                       k=4, target=14, binary=True).train()
         cls.model = cls.result.model
 
@@ -137,7 +143,7 @@ class TestBinaryTrainingPipeline(unittest.TestCase):
         labels = read_labels('resource/labels_binary.csv', self.genomes)
         booleans = {path: bool(label) for path, label in zip(self.genomes, labels)}
 
-        result = TrainingPipeline(data_dir="", label_file=booleans,
+        result = TrainingPipeline(data_dir="", label_file=booleans, label_columns="labels",
                                   k=4, target=14, binary=True).train()
 
         self.assertEqual('auroc', result.metric)
@@ -149,6 +155,7 @@ class TestBinaryTrainingPipeline(unittest.TestCase):
     def test_a_non_binary_label_is_rejected(self):
         pipeline = TrainingPipeline(data_dir="resource/genomes/",
                                     label_file="resource/labels.csv",
+                                    label_columns="labels",
                                     binary=True)
 
         with self.assertRaises(ValueError) as caught:
@@ -161,7 +168,8 @@ class TestPGSEModel(unittest.TestCase):
     def setUpClass(cls):
         cls.genomes = sorted(glob.glob('resource/genomes/*.fna'))
         cls.model = TrainingPipeline(data_dir="resource/genomes/",
-                                     label_file="resource/labels.csv").train().model
+                                     label_file="resource/labels.csv",
+                                     label_columns="labels").train().model
 
     def test_predict_from_files(self):
         predictions = self.model.predict(self.genomes)

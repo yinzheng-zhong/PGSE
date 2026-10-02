@@ -30,5 +30,9 @@ if __name__ == "__main__":
         partition_size_target=args.partition_size_target,
         metric=args.metric,
         binary=bool(args.binary),
+        table_file=args.table_file,
+        data_column=args.data_column,
+        label_columns=args.label_columns,
+        standardise_labels=bool(args.standardise_labels),
     )
     pipeline.run()

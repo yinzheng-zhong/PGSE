@@ -9,13 +9,24 @@ from pgse.log import logger
 class LoaderInference(Loader):
     def __init__(
             self,
-            files: list[str],
+            items: list[str],
+            inline: bool = False,
             count_dtype: npt.DTypeLike = np.float32,
             sparse: bool = False,
             workers: int = 8
     ):
+        """
+        Args:
+            items: The samples to score: file paths, or the sequences themselves when
+                inline is set.
+            inline: The items are sequences held in memory rather than paths to read.
+            count_dtype: Storage dtype of the count matrix (np.float32 or np.uint16).
+            sparse: Store the count matrix as a sparse CSR matrix.
+            workers: Threads used for counting.
+        """
         super().__init__(None, count_dtype=count_dtype, sparse=sparse, workers=workers)
-        self.test_files = files
+        self.inline = inline
+        self.test_items = items
 
         self._get_test_seq()
 

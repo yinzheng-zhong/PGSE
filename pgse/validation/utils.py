@@ -19,11 +19,13 @@ def as_array(values: ArrayLike) -> np.ndarray:
 def labels_of(source: Any) -> np.ndarray:
     """Return the labels held by `source`, which may be a DMatrix or an array.
 
+    The shape is kept, so a matrix of several labels stays one column per label.
+
     Args:
         source: XGBoost DMatrix, array, or sequence of labels.
     """
     getter = getattr(source, 'get_label', None)
-    return as_array(getter() if callable(getter) else source)
+    return np.asarray(getter() if callable(getter) else source, dtype=np.float64)
 
 
 def discretise(values: np.ndarray) -> np.ndarray:

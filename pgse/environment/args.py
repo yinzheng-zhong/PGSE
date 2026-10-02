@@ -2,17 +2,38 @@ import argparse
 import os
 
 from pgse.dataset.alphabet import AUTO, DNA_CHARS
+from pgse.dataset.table_label import DEFAULT_LABEL_COLUMN
 from pgse.validation import Metric
 
 
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument('--label-file', type=str,
-                        help="Path to the CSV file containing the labels")
+                        help="Path to the CSV file containing the labels. Its sample files are "
+                             "read from the 'files' column, and its labels from the columns "
+                             "named by --label-columns.")
     parser.add_argument('--data-dir', type=str,
                         help="Directory containing the data files")
     parser.add_argument('--pre-kfold-info-file', type=str, default=None,
                         help="Path to the JSON file containing the pre-defined k-fold indices")
+    parser.add_argument('--table-file', type=str, default=None,
+                        help="Path to the CSV file holding one sample per row. Switches PGSE to "
+                             "table mode, where the sequences are read from --data-column of that "
+                             "file instead of from the files under --data-dir.")
+    parser.add_argument('--data-column', type=str, default=None,
+                        help="Name of the column of --table-file holding the sequence of each "
+                             "sample. Required in table mode.")
+    parser.add_argument('--label-columns', '--label-column', dest='label_columns',
+                        type=str, nargs='+', default=None,
+                        help="Name of the column holding the label of each sample, or several "
+                             "such names to train one output per label over one shared set of "
+                             "segments. Required with --label-file, and defaults to "
+                             f"{DEFAULT_LABEL_COLUMN!r} with --table-file.")
+    parser.add_argument('--standardise-labels', type=int, default=0,
+                        help="Flag to train on labels shifted to zero mean and unit variance, "
+                             "measured on the training fold. Predictions stay in the units of the "
+                             "dataset. Keeps a label on a larger scale from dominating the eval "
+                             "metric and early stopping of a multi-label run. Not for --binary.")
     parser.add_argument('--save-file', type=str,
                         default='',
                         help="File path to save the selected segments. Used to recover the progress.")
@@ -86,6 +107,6 @@ def get_parser() -> argparse.ArgumentParser:
                              "count-matrix memory. Lossless for counts up to 65535 (saturated above).")
     parser.add_argument('--sparse', type=int, default=0,
                         help="Flag to store the count matrix as a sparse CSR matrix. Big saving for "
-                             "short/sparse sequences (e.g. SMILES). The same flag must be used for "
+                             "short sequences (e.g. short text strings). The same flag must be used for "
                              "training and prediction.")
     return parser

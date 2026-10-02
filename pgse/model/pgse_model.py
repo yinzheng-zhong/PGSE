@@ -3,7 +3,7 @@
 import json
 import os
 from importlib.metadata import PackageNotFoundError, version
-from typing import Any, Optional
+from typing import Any, Optional, Sequence as SequenceType
 
 import numpy as np
 import numpy.typing as npt
@@ -14,6 +14,7 @@ from pgse.dataset.alphabet_utils import alphabet_from_dict, alphabet_to_dict, us
 from pgse.dataset.counts import Dataset
 from pgse.genome.sequence import Sequence
 from pgse.log import logger
+from pgse.model.label_scaler import LabelScaler
 from pgse.model.segment_counter import SegmentCounter
 from pgse.result.segment_importance import SegmentImportance
 
@@ -37,7 +38,9 @@ class PGSEModel:
             count_dtype: npt.DTypeLike = np.float32,
             sparse: bool = False,
             workers: int = 8,
-            binary: bool = False
+            binary: bool = False,
+            label_names: Optional[SequenceType[str]] = None,
+            scaler: Optional[LabelScaler] = None
     ) -> None:
         """
         Args:
@@ -49,6 +52,10 @@ class PGSEModel:
             workers: Threads used for counting and prediction.
             binary: The booster is a 0/1 classifier, so a prediction is the probability
                 of the 1.
+            label_names: Name of every label the booster predicts, in the order of its
+                output columns.
+            scaler: The standardisation the labels were trained on, undone on every
+                prediction.
         """
         self.booster: xgb.Booster = booster
         self.segments: SegmentImportance = segments
@@ -57,6 +64,8 @@ class PGSEModel:
         self.sparse: bool = sparse
         self.workers: int = workers
         self.binary: bool = binary
+        self.label_names: list[str] = list(label_names) if label_names else []
+        self.scaler: Optional[LabelScaler] = scaler
 
         self.counter: SegmentCounter = SegmentCounter(
             segments.segments, alphabet, count_dtype=count_dtype, sparse=sparse, threads=workers
@@ -64,10 +73,14 @@ class PGSEModel:
 
     def __repr__(self) -> str:
         target = 'binary' if self.binary else 'regression'
-        return f'PGSEModel({len(self.segments)} segments, {target}, {self.alphabet})'
+        labels = f', {len(self.label_names)} labels' if len(self.label_names) > 1 else ''
+        return f'PGSEModel({len(self.segments)} segments, {target}{labels}, {self.alphabet})'
 
     def predict(self, files: list[str]) -> np.ndarray:
         """Predict a value for each sequence file.
+
+        One value per file, or one row per file and one column per label when the model
+        predicts several labels.
 
         Args:
             files: Paths of the FASTA files to score.
@@ -108,6 +121,8 @@ class PGSEModel:
             'count_dtype': np.dtype(self.count_dtype).name,
             'sparse': self.sparse,
             'binary': self.binary,
+            'label_names': self.label_names,
+            'label_scaler': self.scaler.to_dict() if self.scaler else None,
         }
 
     def save(self, path: str) -> list[str]:
@@ -151,6 +166,8 @@ class PGSEModel:
             count_dtype = np.dtype(metadata.get('count_dtype', 'float32')).type
             sparse = bool(metadata.get('sparse', False))
             binary = bool(metadata.get('binary', False))
+            label_names = metadata.get('label_names') or []
+            scaler = LabelScaler.from_dict(metadata['label_scaler']) if metadata.get('label_scaler') else None
         else:
             logger.warning(
                 f'{metadata_path} is missing, so the default DNA alphabet, dense float32 '
@@ -159,10 +176,12 @@ class PGSEModel:
             )
             alphabet, count_dtype, sparse = Alphabet(), np.float32, False
             binary = False
+            label_names, scaler = [], None
 
         return cls(
             booster, segments, alphabet,
-            count_dtype=count_dtype, sparse=sparse, workers=workers, binary=binary
+            count_dtype=count_dtype, sparse=sparse, workers=workers, binary=binary,
+            label_names=label_names, scaler=scaler
         )
 
     @classmethod
@@ -200,4 +219,6 @@ class PGSEModel:
             sequences: The sequences to score.
         """
         counts = self.counter.count(sequences)
-        return self.booster.predict(xgb.DMatrix(counts, nthread=self.workers))
+        predictions = self.booster.predict(xgb.DMatrix(counts, nthread=self.workers))
+
+        return predictions if self.scaler is None else self.scaler.inverse_transform(predictions)
