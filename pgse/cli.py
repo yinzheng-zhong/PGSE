@@ -45,7 +45,8 @@ def train():
         table_file=args.table_file,
         data_column=args.data_column,
         label_columns=args.label_columns,
-        standardise_labels=bool(args.standardise_labels)
+        standardise_labels=bool(args.standardise_labels),
+        spill_dir=args.spill_dir
     )
     pipeline.run()
 

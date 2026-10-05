@@ -60,7 +60,8 @@ class Pipeline:
             table_file: Optional[TableArg] = None,
             data_column: Optional[str] = None,
             label_columns: Optional[LabelColumns] = None,
-            standardise_labels: bool = False
+            standardise_labels: bool = False,
+            spill_dir: Optional[str] = None
     ) -> None:
         """
         :param data_dir: Directory holding one sequence file per sample. Read in file
@@ -108,6 +109,8 @@ class Pipeline:
             of the dataset, so this only changes what the model optimises: it stops a label
             on a larger scale from dominating the eval metric and early stopping of a
             multi-label run. Not available in binary mode.
+        :param spill_dir: Directory Ray spills objects to when its object store fills up.
+            None keeps Ray's default, its session directory under the system temp directory.
         """
         # Install the alphabet first: everything downstream reads it, including the
         # segment extender and the Ray workers.
@@ -144,6 +147,7 @@ class Pipeline:
         if standardise_labels and binary:
             raise ValueError('standardise_labels is for continuous labels, so it cannot be used with binary.')
         self.standardise_labels = standardise_labels
+        self.spill_dir = spill_dir
 
         self.source: SampleSource = build_source(
             data_dir, label_file, pre_kfold_info_file, table_file, data_column, label_columns
@@ -194,7 +198,7 @@ class Pipeline:
 
     def run(self) -> TrainingResult:
         """Train every fold, returning the models, segments and scores they produced."""
-        RayEnvManager.initialize(self.dist, self.nodes, self.workers)
+        RayEnvManager.initialize(self.dist, self.nodes, self.workers, self.spill_dir)
 
         start_fold, accumulated_results = self.progress_manager.load_fold_progress()
         validation_metric = Metric(self.metric, ea_min=self.ea_min, ea_max=self.ea_max)

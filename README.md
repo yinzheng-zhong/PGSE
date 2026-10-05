@@ -244,6 +244,8 @@ their importance) and `<prefix>_fold_<i>_meta.json` (the alphabet and count sett
 reload it), plus `<prefix>.csv` with the predictions of every fold. Nothing is written when it is
 omitted.
 * `--log-file`: file to append the log to. The log goes to the console only when it is omitted.
+* `--spill-dir`: directory Ray spills objects to when its object store fills up. Defaults to Ray's
+session directory under the system temp directory. See [Ray memory](#ray-memory) below.
 * `--workers`: number of workers per node.
 * `--features`: Maximum number of features to keep after the feature importance calculation and ranking.
 * `--partition-size-target`: Target number of features in each XGBoost partition during feature
@@ -652,6 +654,27 @@ pipeline = TrainingPipeline(data_dir='...', label_file='...', label_columns='mic
 > zeros are read by XGBoost as *missing* values, whereas in a dense matrix a count of zero is an
 > explicit `0`. Training dense and predicting sparse (or vice versa) shifts the predictions. `--uint16`
 > has no such constraint. Pass the same values to `pgse-predict` (see below).
+
+#### Ray memory
+
+PGSE shares data between its workers through Ray's object store, which lives in `/dev/shm`
+(shared memory, i.e. RAM). On a single machine PGSE sizes it as follows:
+
+* **Size.** 40% of the memory available to the process: physical memory, or the cgroup limit when
+that is smaller. Under Slurm with memory enforcement, that limit is the job's `--mem`, and
+`/dev/shm` pages count towards it. The size is also capped at 95% of the free space in `/dev/shm`,
+which other jobs on the node may be using. Set `PGSE_OBJECT_STORE_MEMORY` (bytes) to choose the
+size yourself.
+* **Spilling.** When the store is 95% full, Ray writes objects out to disk ("spills") and reads them
+back when needed. Ray's own default is 80%. Set `RAY_object_spilling_threshold` to change it.
+* **Spill location.** By default Ray spills into its session directory under the system temp
+directory. Where `/tmp` is a `tmpfs`, as on many HPC nodes, that is RAM too, so spilling frees
+nothing and still counts against the job's memory. Pass `--spill-dir` (or `spill_dir=` on
+`TrainingPipeline`) to spill to a directory on disk instead:
+
+```bash
+pgse-train ... --spill-dir "/scratch/$USER/pgse_spill"
+```
 
 #### Distributed computation
 
