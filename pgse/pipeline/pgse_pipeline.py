@@ -61,7 +61,8 @@ class Pipeline:
             data_column: Optional[str] = None,
             label_columns: Optional[LabelColumns] = None,
             standardise_labels: bool = False,
-            spill_dir: Optional[str] = None
+            spill_dir: Optional[str] = None,
+            binary_features: bool = False
     ) -> None:
         """
         :param data_dir: Directory holding one sequence file per sample. Read in file
@@ -111,6 +112,8 @@ class Pipeline:
             multi-label run. Not available in binary mode.
         :param spill_dir: Directory Ray spills objects to when its object store fills up.
             None keeps Ray's default, its session directory under the system temp directory.
+        :param binary_features: Train on 0/1 segment presence instead of segment counts. The
+            setting is saved with each model, so its predictions count the same way.
         """
         # Install the alphabet first: everything downstream reads it, including the
         # segment extender and the Ray workers.
@@ -148,6 +151,7 @@ class Pipeline:
             raise ValueError('standardise_labels is for continuous labels, so it cannot be used with binary.')
         self.standardise_labels = standardise_labels
         self.spill_dir = spill_dir
+        self.binary_features = binary_features
 
         self.source: SampleSource = build_source(
             data_dir, label_file, pre_kfold_info_file, table_file, data_column, label_columns
@@ -214,7 +218,8 @@ class Pipeline:
                 sparse=self.sparse,
                 workers=self.workers,
                 dist=self.dist,
-                nodes=self.nodes
+                nodes=self.nodes,
+                binary_features=self.binary_features
             )
 
             if self.binary:
@@ -279,7 +284,8 @@ class Pipeline:
                 workers=self.workers,
                 binary=self.binary,
                 label_names=self.source.label_names,
-                scaler=scaler
+                scaler=scaler,
+                binary_features=self.binary_features
             )
             label_scores, score = self._score_fold(validation_metric, fold_results)
             self._log_fold_score(i, validation_metric.name, label_scores, score)

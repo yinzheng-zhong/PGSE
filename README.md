@@ -274,6 +274,9 @@ DNA (`atgc`). See [Alphabets](#alphabets) below.
 as distinct characters.
 * `--complement`: the complement used to canonicalise segments, one character per character of
 `--alphabet`. See [Alphabets](#alphabets) below.
+* `--binary-features`: `0` (default) uses how many times each segment occurs in a sample as its
+feature; `1` uses 1 if the segment occurs and 0 if it does not. The setting is saved in the
+model's `_meta.json`, so `PGSEModel.load` and `pgse-predict` count the same way at prediction time.
 * `--uint16`: `0` (default) stores the segment-count matrix as `float32`; `1` stores it as `uint16`,
 halving the memory. Lossless for counts up to 65535 (larger counts are saturated). See
 [Reducing memory usage](#reducing-memory-usage) below.

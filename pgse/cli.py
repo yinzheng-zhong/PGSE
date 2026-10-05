@@ -46,7 +46,8 @@ def train():
         data_column=args.data_column,
         label_columns=args.label_columns,
         standardise_labels=bool(args.standardise_labels),
-        spill_dir=args.spill_dir
+        spill_dir=args.spill_dir,
+        binary_features=bool(args.binary_features)
     )
     pipeline.run()
 
@@ -71,7 +72,8 @@ def predict():
         case_sensitive=bool(args.case_sensitive),
         complement=args.complement,
         uint16=bool(args.uint16),
-        sparse=bool(args.sparse)
+        sparse=bool(args.sparse),
+        binary_features=bool(args.binary_features)
     )
 
     if args.table_file:

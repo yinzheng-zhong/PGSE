@@ -35,5 +35,6 @@ if __name__ == "__main__":
         label_columns=args.label_columns,
         standardise_labels=bool(args.standardise_labels),
         spill_dir=args.spill_dir,
+        binary_features=bool(args.binary_features),
     )
     pipeline.run()

@@ -13,7 +13,8 @@ class LoaderInference(Loader):
             inline: bool = False,
             count_dtype: npt.DTypeLike = np.float32,
             sparse: bool = False,
-            workers: int = 8
+            workers: int = 8,
+            binary_features: bool = False
     ):
         """
         Args:
@@ -23,8 +24,11 @@ class LoaderInference(Loader):
             count_dtype: Storage dtype of the count matrix (np.float32 or np.uint16).
             sparse: Store the count matrix as a sparse CSR matrix.
             workers: Threads used for counting.
+            binary_features: Record only whether each segment occurs (1/0) instead of how often.
         """
-        super().__init__(None, count_dtype=count_dtype, sparse=sparse, workers=workers)
+        super().__init__(
+            None, count_dtype=count_dtype, sparse=sparse, workers=workers, binary_features=binary_features
+        )
         self.inline = inline
         self.test_items = items
 

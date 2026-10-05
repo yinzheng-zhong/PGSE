@@ -24,7 +24,8 @@ class Pipeline:
             case_sensitive: bool = False,
             complement: ComplementArg = AUTO,
             uint16: bool = False,
-            sparse: bool = False
+            sparse: bool = False,
+            binary_features: bool = False
     ) -> None:
         """
         :param alphabet: str or Alphabet: The alphabet the model was trained with.
@@ -36,11 +37,14 @@ class Pipeline:
             used at train time: CSR's unstored zeros are read as missing by XGBoost,
             so mixing dense training with sparse prediction (or vice versa) shifts the
             predictions.
+        :param binary_features: Count 0/1 segment presence instead of segment counts. The
+            model's metadata file, when present, overrides this with the training setting.
         """
         self.model_path: str = model_path
         self.segment_path: str = segment_path
         self.count_dtype = np.uint16 if uint16 else np.float32
         self.sparse: bool = sparse
+        self.binary_features: bool = binary_features
         self.workers: int = workers
         self.alphabet: Alphabet = set_alphabet(alphabet, case_sensitive=case_sensitive, complement=complement)
         logger.info(f'Using {self.alphabet}')
@@ -63,7 +67,7 @@ class Pipeline:
         self._load_metadata()
 
     def _load_metadata(self) -> None:
-        """Read the label names and the label scaler from the model's metadata file."""
+        """Read the label names, the label scaler and the feature type from the model's metadata file."""
         if not self.model_path.endswith(PGSEModel.MODEL_SUFFIX):
             return
 
@@ -76,6 +80,7 @@ class Pipeline:
             metadata = json.load(file)
 
         self.label_names = metadata.get('label_names') or []
+        self.binary_features = bool(metadata.get('binary_features', self.binary_features))
         if metadata.get('label_scaler'):
             self.scaler = LabelScaler.from_dict(metadata['label_scaler'])
             logger.info(f'Undoing the label standardisation recorded in {metadata_path}')
@@ -140,6 +145,7 @@ class Pipeline:
             inline=files is None,
             count_dtype=self.count_dtype,
             sparse=self.sparse,
-            workers=self.workers
+            workers=self.workers,
+            binary_features=self.binary_features
         )
         return loader.get_dataset_from_pool()
