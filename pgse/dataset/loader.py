@@ -7,7 +7,7 @@ from pgse.dataset.sample_source import SampleSource
 from tqdm import tqdm
 
 from pgse.dataset.alphabet import Alphabet, get_alphabet, set_alphabet
-from pgse.dataset.counts import Dataset, assemble_counts
+from pgse.dataset.counts import Dataset, assemble_counts, to_presence
 from pgse.genome import seq_manager
 from pgse.log import logger
 from pgse.genome.sequence import Sequence
@@ -36,7 +36,8 @@ class Loader:
             sparse: bool = False,
             workers: int = 8,
             dist: bool = False,
-            nodes: int = 1
+            nodes: int = 1,
+            binary_features: bool = False
     ) -> None:
         # LoaderInference passes None here and overrides the file-loading hooks.
         self.source: Optional[SampleSource] = source
@@ -49,6 +50,8 @@ class Loader:
         # Storage format for the segment-count matrix. See assemble_counts.
         self.count_dtype: npt.DTypeLike = count_dtype
         self.sparse: bool = sparse
+        # Record only whether each segment occurs (1/0) instead of how often.
+        self.binary_features: bool = binary_features
         # Parallelism for the native counting kernel: rayon threads per node, and how
         # many nodes to shard across when running distributed.
         self.workers: int = workers
@@ -176,6 +179,16 @@ class Loader:
         )
 
     def _count_dataset(self, sequences, desc: str) -> Dataset:
+        """Segment matrix of the sequences: counts, or 0/1 presence when binary_features is set.
+
+        Args:
+            sequences: The sequences to count against.
+            desc: Description for the progress bar.
+        """
+        counts = self._count_occurrences(sequences, desc)
+        return to_presence(counts) if self.binary_features else counts
+
+    def _count_occurrences(self, sequences, desc: str) -> Dataset:
         """
         Count the segment pool against every sequence, returning the count matrix in
         the configured representation (dense/sparse, float32/uint16).

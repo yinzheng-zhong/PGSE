@@ -109,6 +109,9 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument('--uint16', type=int, default=0,
                         help="Flag to store segment counts as uint16 instead of float32, halving the "
                              "count-matrix memory. Lossless for counts up to 65535 (saturated above).")
+    parser.add_argument('--binary-features', type=int, default=0,
+                        help="Flag to use 0/1 segment presence as the features instead of segment "
+                             "counts. Saved with the model, so pgse-predict counts the same way.")
     parser.add_argument('--sparse', type=int, default=0,
                         help="Flag to store the count matrix as a sparse CSR matrix. Big saving for "
                              "short sequences (e.g. short text strings). The same flag must be used for "

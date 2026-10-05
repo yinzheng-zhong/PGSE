@@ -57,3 +57,17 @@ def assemble_counts(
             row = np.minimum(row, UINT16_MAX)
         out[i] = row
     return out
+
+
+def to_presence(matrix: Dataset) -> Dataset:
+    """Turn a count matrix into a 0/1 presence matrix in place: every count above 1 becomes 1.
+
+    Args:
+        matrix: The count matrix, dense or CSR. Its type and dtype are kept.
+
+    Returns:
+        The same matrix object, now holding 1 where a segment occurs and 0 where it does not.
+    """
+    values = matrix.data if sp.issparse(matrix) else matrix
+    np.minimum(values, 1, out=values)
+    return matrix

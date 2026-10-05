@@ -40,7 +40,8 @@ class PGSEModel:
             workers: int = 8,
             binary: bool = False,
             label_names: Optional[SequenceType[str]] = None,
-            scaler: Optional[LabelScaler] = None
+            scaler: Optional[LabelScaler] = None,
+            binary_features: bool = False
     ) -> None:
         """
         Args:
@@ -56,6 +57,8 @@ class PGSEModel:
                 output columns.
             scaler: The standardisation the labels were trained on, undone on every
                 prediction.
+            binary_features: The booster was trained on 0/1 segment presence instead of
+                segment counts.
         """
         self.booster: xgb.Booster = booster
         self.segments: SegmentImportance = segments
@@ -66,9 +69,11 @@ class PGSEModel:
         self.binary: bool = binary
         self.label_names: list[str] = list(label_names) if label_names else []
         self.scaler: Optional[LabelScaler] = scaler
+        self.binary_features: bool = binary_features
 
         self.counter: SegmentCounter = SegmentCounter(
-            segments.segments, alphabet, count_dtype=count_dtype, sparse=sparse, threads=workers
+            segments.segments, alphabet, count_dtype=count_dtype, sparse=sparse, threads=workers,
+            binary_features=binary_features
         )
 
     def __repr__(self) -> str:
@@ -120,6 +125,7 @@ class PGSEModel:
             'alphabet': alphabet_to_dict(self.alphabet),
             'count_dtype': np.dtype(self.count_dtype).name,
             'sparse': self.sparse,
+            'binary_features': self.binary_features,
             'binary': self.binary,
             'label_names': self.label_names,
             'label_scaler': self.scaler.to_dict() if self.scaler else None,
@@ -165,6 +171,7 @@ class PGSEModel:
             alphabet = alphabet_from_dict(metadata['alphabet'])
             count_dtype = np.dtype(metadata.get('count_dtype', 'float32')).type
             sparse = bool(metadata.get('sparse', False))
+            binary_features = bool(metadata.get('binary_features', False))
             binary = bool(metadata.get('binary', False))
             label_names = metadata.get('label_names') or []
             scaler = LabelScaler.from_dict(metadata['label_scaler']) if metadata.get('label_scaler') else None
@@ -175,13 +182,14 @@ class PGSEModel:
                 f'to record them.'
             )
             alphabet, count_dtype, sparse = Alphabet(), np.float32, False
+            binary_features = False
             binary = False
             label_names, scaler = [], None
 
         return cls(
             booster, segments, alphabet,
             count_dtype=count_dtype, sparse=sparse, workers=workers, binary=binary,
-            label_names=label_names, scaler=scaler
+            label_names=label_names, scaler=scaler, binary_features=binary_features
         )
 
     @classmethod

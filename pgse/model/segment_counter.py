@@ -8,7 +8,7 @@ import numpy.typing as npt
 from pgse.algos import aho_corasick, native_counter
 from pgse.dataset.alphabet import Alphabet
 from pgse.dataset.alphabet_utils import using_alphabet
-from pgse.dataset.counts import Dataset, assemble_counts
+from pgse.dataset.counts import Dataset, assemble_counts, to_presence
 
 COUNTING_DESCRIPTION = 'Counting segments'
 
@@ -22,7 +22,8 @@ class SegmentCounter:
             alphabet: Alphabet,
             count_dtype: npt.DTypeLike = np.float32,
             sparse: bool = False,
-            threads: int = 8
+            threads: int = 8,
+            binary_features: bool = False
     ) -> None:
         """
         Args:
@@ -31,16 +32,28 @@ class SegmentCounter:
             count_dtype: Storage dtype of the counts (np.float32 or np.uint16).
             sparse: Store the counts as a sparse CSR matrix instead of a dense array.
             threads: Threads the native counting kernel may use.
+            binary_features: Record only whether each segment occurs (1/0) instead of how often.
         """
         self.segments: list[str] = list(segments)
         self.alphabet: Alphabet = alphabet
         self.count_dtype: npt.DTypeLike = count_dtype
         self.sparse: bool = sparse
         self.threads: int = max(threads, 1)
+        self.binary_features: bool = binary_features
 
         self._matcher: Optional[Any] = None
 
     def count(self, sequences: Sequence[Any]) -> Dataset:
+        """Build the segment matrix of the sequences, one row each: counts, or 0/1
+        presence when binary_features is set.
+
+        Args:
+            sequences: The Sequence objects to count against.
+        """
+        counts = self._count_occurrences(sequences)
+        return to_presence(counts) if self.binary_features else counts
+
+    def _count_occurrences(self, sequences: Sequence[Any]) -> Dataset:
         """Build the count matrix of the sequences, one row each.
 
         Args:
