@@ -90,6 +90,10 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument('--log-file', type=str, default=None,
                         help="File to append the log to. The log goes to the console only "
                              "when this is not given.")
+    parser.add_argument('--spill-dir', type=str, default=None,
+                        help="Directory Ray spills objects to when its object store fills up. "
+                             "Defaults to Ray's session directory under the system temp "
+                             "directory, which is held in memory where /tmp is a tmpfs.")
     parser.add_argument('--alphabet', type=str, default=DNA_CHARS,
                         help="The set of characters the sequences are made of, given as a single "
                              "string. Defaults to DNA ('atgc'). Anything outside the alphabet is "
